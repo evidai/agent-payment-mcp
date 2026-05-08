@@ -60,7 +60,14 @@ def categorize(matches: list[str]) -> str:
 
 
 def gather() -> tuple[list[dict], int]:
-    since = int(time.time()) - 86400
+    """Fetch Show HN + front-page items from the last 8h, weight by freshness.
+
+    The OP of a Show HN is most active in the first few hours after posting,
+    which is exactly when a thoughtful comment drives the most reply rate
+    AND visibility. Tighter window than the previous 24h to focus on this.
+    """
+    now = int(time.time())
+    since = now - 8 * 3600
     url = (
         "https://hn.algolia.com/api/v1/search_by_date"
         f"?tags=(show_hn,front_page)&numericFilters=created_at_i%3E{since}"
@@ -70,15 +77,24 @@ def gather() -> tuple[list[dict], int]:
     hits = data.get("hits", [])
 
     scored = []
-    for idx, h in enumerate(hits):
+    for h in hits:
         text = (h.get("title") or "") + " " + (h.get("story_text") or "") + " " + (h.get("url") or "")
         m = keyword_matches(text, KEYWORDS)
         if not m:
             continue
         is_show = "show_hn" in (h.get("_tags") or [])
-        scored.append(((not is_show, -len(m), idx), h, m, is_show))
-    scored.sort(key=lambda t: t[0])
-    return [{"h": h, "m": m, "is_show": is_show} for (_, h, m, is_show) in scored[:10]], len(hits)
+        age_hours = (now - (h.get("created_at_i") or now)) / 3600.0
+        # Show HN gets a +1.5 base (founder is actively watching the thread,
+        # comment value is higher). Freshness weighted 2x: a 1h-old match
+        # outranks a 6h-old match even at same relevance.
+        freshness = max(0.0, (6.0 - age_hours) / 6.0)
+        score = float(len(m)) + (1.5 if is_show else 0.0) + freshness * 2.0
+        scored.append((score, age_hours, h, m, is_show))
+    scored.sort(key=lambda t: -t[0])
+    return [
+        {"h": h, "m": m, "is_show": is_show, "age_hours": age}
+        for (_, age, h, m, is_show) in scored[:10]
+    ], len(hits)
 
 
 def build_payload(items: list[dict]) -> list[dict]:
@@ -91,6 +107,7 @@ def build_payload(items: list[dict]) -> list[dict]:
             "points": it["h"].get("points") or 0,
             "comments": it["h"].get("num_comments") or 0,
             "is_show_hn": it["is_show"],
+            "age_hours": round(it["age_hours"], 1),
             "matched_keywords": it["m"],
             "category": categorize(it["m"]),
         }
@@ -98,11 +115,22 @@ def build_payload(items: list[dict]) -> list[dict]:
     ]
 
 
-def _item_header(rank: int, h: dict, m: list[str], is_show: bool) -> list[str]:
+def _freshness_badge(age_hours: float) -> str:
+    if age_hours < 2:
+        return "🆕 (新着)"
+    if age_hours < 4:
+        return "🟢 (高返信率帯)"
+    if age_hours < 6:
+        return "🟡 (まだ返信率あり)"
+    return "🔴 (返信率低下)"
+
+
+def _item_header(rank: int, h: dict, m: list[str], is_show: bool, age_hours: float) -> list[str]:
     prefix = "[Show HN] " if is_show else "[FrontPage] "
     cat = categorize(m)
     lines = [
         f"【{rank}】{prefix}(原題) {h.get('title','')[:90]}  ({h.get('points',0)}pt / {h.get('num_comments',0)}c)",
+        f"  投稿: {age_hours:.1f} 時間前  {_freshness_badge(age_hours)}",
         f"  カテゴリ: {cat}",
         f"  マッチ: {', '.join(m[:5])}",
     ]
@@ -116,11 +144,11 @@ def _item_header(rank: int, h: dict, m: list[str], is_show: bool) -> list[str]:
 
 def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> str:
     lines = [
-        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中) — HN カルマ獲得用フル英文+和訳",
+        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h、返信率重視で並び替え",
         "",
     ]
     for rank, (it, e) in enumerate(zip(items, enriched), 1):
-        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"]))
+        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"], it["age_hours"]))
 
         skip = (e.get("skip_reason") or "").strip()
         if skip:
@@ -158,17 +186,17 @@ def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> s
 
 def format_static_fallback(items: list[dict], total: int) -> str:
     lines = [
-        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中)",
+        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h",
         "",
         "(注: ANTHROPIC_API_KEY が未設定のため英文コメントドラフトはスキップ。",
         "GitHub Secrets に追加すると次回からカルマ獲得用フル英文+和訳付きで届きます。)",
         "",
     ]
     for rank, it in enumerate(items, 1):
-        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"]))
+        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"], it["age_hours"]))
         lines.append("")
     if not items:
-        lines.append("(本日は関連する Show HN / フロントページ記事なし)")
+        lines.append("(直近 8 時間に該当 Show HN / フロントページ記事なし)")
     return "\n".join(lines)
 
 
