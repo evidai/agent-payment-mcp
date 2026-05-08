@@ -16,18 +16,16 @@ LLM-driven Japanese translation + opener drafting.
 
 from __future__ import annotations
 
-import json
 import sys
 import time
 import traceback
 import urllib.parse
 
 from common import (
-    claude_messages,
+    enrich_with_llm,
     fetch_json,
     keyword_matches,
     post_to_slack,
-    strip_code_fence,
     today_iso,
 )
 
@@ -108,17 +106,24 @@ def gather_prospects() -> tuple[list[dict], int]:
     return items[:12], len(raw_hits)
 
 
+PROSPECT_SYSTEM_PROMPT = (
+    "You assist a Japanese-speaking founder by translating HN signals to Japanese "
+    "and drafting cold-outreach openers in English with parallel Japanese translation. "
+    + BUILDER_CONTEXT
+    + "\n\n"
+    "For each item, produce:\n"
+    "1. signal_jp_full — natural Japanese translation of the snippet (1-3 sentences, no padding)\n"
+    "2. signal_jp_summary — 30-60 character Japanese summary of what this person is building or struggling with\n"
+    "3. opener_en — 60-120 word English DM/reply that opens with a specific question (NOT a pitch). Don't paste any URL. Tone: peer asking a curious question, not a salesperson.\n"
+    "4. opener_jp — accurate Japanese translation of opener_en (sentence-by-sentence, not summary)\n"
+    "5. opener_intent_jp — 30-60 character Japanese note on why this opener should work for this person\n\n"
+    "Return ONLY a JSON array of objects with these exact keys plus 'i' (the index). No markdown, no commentary."
+)
+
+
 def llm_enrich(top: list[dict]) -> list[dict] | None:
-    """Ask Claude Haiku 4.5 to translate each signal and draft an opener with translation.
-
-    Returns a list of dicts (one per input item, same order) with keys:
-      signal_jp_full, signal_jp_summary, opener_en, opener_jp, opener_intent_jp
-    Or None if the LLM call fails / returns garbage.
-    """
-    if not top:
-        return []
-
-    payload_items = [
+    """Use the shared enrich_with_llm helper with a prospect-specific prompt."""
+    payload = [
         {
             "i": idx,
             "author": p["author"],
@@ -127,43 +132,7 @@ def llm_enrich(top: list[dict]) -> list[dict] | None:
         }
         for idx, p in enumerate(top)
     ]
-
-    system = (
-        "You assist a Japanese-speaking founder by translating HN signals to Japanese "
-        "and drafting cold-outreach openers in English with parallel Japanese translation. "
-        + BUILDER_CONTEXT
-        + "\n\n"
-        "For each item, produce:\n"
-        "1. signal_jp_full — natural Japanese translation of the snippet (1-3 sentences, no padding)\n"
-        "2. signal_jp_summary — 30-60 character Japanese summary of what this person is building or struggling with\n"
-        "3. opener_en — 60-120 word English DM/reply that opens with a specific question (NOT a pitch). Don't paste any URL. Tone: peer asking a curious question, not a salesperson.\n"
-        "4. opener_jp — accurate Japanese translation of opener_en (sentence-by-sentence, not summary)\n"
-        "5. opener_intent_jp — 30-60 character Japanese note on why this opener should work for this person\n\n"
-        "Return ONLY a JSON array of objects with these exact keys plus 'i' (the index). No markdown, no commentary."
-    )
-
-    user_msg = "Items:\n" + json.dumps(payload_items, ensure_ascii=False, indent=2)
-    raw = claude_messages(
-        messages=[{"role": "user", "content": user_msg}],
-        model="claude-haiku-4-5",
-        max_tokens=8192,
-        system=system,
-    )
-    if not raw:
-        return None
-
-    try:
-        cleaned = strip_code_fence(raw)
-        parsed = json.loads(cleaned)
-        if not isinstance(parsed, list):
-            print(f"warn: LLM returned non-list JSON: {type(parsed)}", file=sys.stderr)
-            return None
-        # Reorder by 'i' to match input
-        by_idx = {item.get("i", -1): item for item in parsed if isinstance(item, dict)}
-        return [by_idx.get(i, {}) for i in range(len(top))]
-    except json.JSONDecodeError as e:
-        print(f"warn: LLM JSON parse failed: {e}\nfirst 300 chars: {raw[:300]}", file=sys.stderr)
-        return None
+    return enrich_with_llm(payload, PROSPECT_SYSTEM_PROMPT)
 
 
 def format_with_translations(top: list[dict], enriched: list[dict], total_fetched: int) -> str:

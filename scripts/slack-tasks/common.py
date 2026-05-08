@@ -121,6 +121,74 @@ def strip_code_fence(text: str) -> str:
     return t.strip()
 
 
+def enrich_with_llm(items_payload: list[dict], system_prompt: str, max_tokens: int = 8192) -> list[dict] | None:
+    """Send a structured-input prompt to Claude and parse a JSON-array response.
+
+    Convention:
+    - `items_payload` items must each carry an `i` field (integer index).
+    - The system prompt must instruct the model to return a JSON array of objects,
+      each echoing back its `i` plus whatever fields the caller wants.
+    - Returns the list reordered to match the input order, or None on any failure.
+    """
+    if not items_payload:
+        return []
+
+    user_msg = "Items:\n" + json.dumps(items_payload, ensure_ascii=False, indent=2)
+    raw = claude_messages(
+        messages=[{"role": "user", "content": user_msg}],
+        model="claude-haiku-4-5",
+        max_tokens=max_tokens,
+        system=system_prompt,
+    )
+    if not raw:
+        return None
+
+    try:
+        cleaned = strip_code_fence(raw)
+        parsed = json.loads(cleaned)
+        if not isinstance(parsed, list):
+            print(f"warn: LLM returned non-list JSON: {type(parsed)}", file=sys.stderr)
+            return None
+        by_idx = {item.get("i", -1): item for item in parsed if isinstance(item, dict)}
+        return [by_idx.get(i, {}) for i in range(len(items_payload))]
+    except json.JSONDecodeError as e:
+        print(f"warn: LLM JSON parse failed: {e}\nfirst 300 chars: {raw[:300]}", file=sys.stderr)
+        return None
+
+
+HN_KARMA_SYSTEM_PROMPT = """You are helping a Japanese-speaking founder write Hacker News comments that earn karma (upvotes).
+
+The founder builds lemon-cake-mcp / pay-per-call-mcp / KYAPay (AI-agent payment infrastructure: per-call billing, M2M payment, agent-level budgets, MCP server). Do NOT mention these products by name in any comment — leak no URL, no name. The goal is reputation-building, not promotion.
+
+WHAT EARNS KARMA ON HN:
+- Lead with a specific number, dataset, or personal observation. ("We saw a 3x throughput drop when…", "I ran this on 12k requests and…", "In our agent that handles ~$5k/mo of API spend…")
+- Share concrete experience: a specific failure mode, a workaround that worked, a number you measured.
+- Add NEW information to the thread — data, technical depth, counter-example.
+- Politely disagree with nuance and reasoning. Mainstream opinions get parroted; nuance gets upvoted.
+- 100–250 words. Dense and specific. No hype, no "great post", no "this is interesting".
+- Optionally end with one focused question — but the body must stand alone as a contribution.
+
+WHAT BURNS KARMA / GETS DOWNVOTED:
+- Pure question with no substance ("How are people handling X?")
+- Vague agreement / fluff ("This is great, thanks!")
+- URL drops, product mentions, anything that smells of marketing
+- Generic advice anyone could write
+- Excessive hedging ("I'm not sure but maybe…")
+
+For each input item, draft a comment based on the user's domain (AI agents, MCP, LLM cost, per-call billing, autonomous systems).
+
+Return ONLY a JSON array. Each object MUST have these exact keys:
+  i              — integer, echoed back from input
+  comment_en     — 100–250 word English HN comment, ready to paste, no quotes around it
+  comment_jp     — natural Japanese translation of comment_en, sentence-by-sentence (not summary)
+  karma_intent   — 30–60 character Japanese note explaining why this comment should earn upvotes here
+  skip_reason    — empty string if this item is worth commenting on; otherwise a short Japanese reason to skip (e.g. "決済/エージェント無関係")
+
+If the topic is far from the user's expertise (AI agents, payments, LLM, dev infra), set skip_reason and leave comment_en/comment_jp/karma_intent as empty strings.
+
+No markdown, no commentary outside the JSON array."""
+
+
 def comment_angle_hint(matches: list[str], category: str) -> str:
     """Static templated hint based on matched keywords.
 
