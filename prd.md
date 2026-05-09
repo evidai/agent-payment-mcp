@@ -33,11 +33,18 @@ Status legend:
 - [ ] T-1001  Clarify intent of three new untracked freee scripts (`api/scripts/freee-{demo,extract-from-db,reauth}.ts`): commit, gitignore, or delete  USER
       acceptance: user replies "commit" / "ignore" / "delete"; Claude executes accordingly
 
-- [ ] T-1002  Anthropic Directory submission — final 4 manual steps (icon, screenshots, mcpb pack, form submit)  USER
-      acceptance: form submit confirmation captured in [project_anthropic_directory_submission.md](file:///Users/workoutsomehow/.claude/projects/-Users-workoutsomehow-adhunt-pro/memory/project_anthropic_directory_submission.md)
+- [~] T-1002  Anthropic Directory submission — SUBMITTED 2026-05-08; awaiting review (~5/22)  WAITING
+      status: form already submitted with bundle lemon-cake-0.5.0.mcpb; not actionable until review result lands
 
-- [ ] T-1003  HN karma farming to ≥30 (currently 1) by substantive comments on active threads (3-10 lines, no questions)  USER  ONGOING
+- [ ] T-1003  HN karma farming to ≥30 (currently 1) by substantive comments on active threads (3-10 lines, no questions)  USER  ONGOING — only active user task
       acceptance: profile karma display ≥30; ≥1 comment with score ≥3
+
+### Waiting on external responses (no Claude or User action possible)
+
+- [~] WAIT-1  freee app re-application result (submitted 2026-05-09)
+- [~] WAIT-2  MoneyForward partnership reply
+- [~] WAIT-3  Partnership outreach R1 (5社, sent 5/9) replies — soft-bump scheduled 5/14
+- [~] WAIT-4  Partnership outreach R2 (4社 AI infra: CrewAI/Modal/Pipedream/LangChain, sent 5/10) replies — soft-bump scheduled 5/15
 
 ---
 
