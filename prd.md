@@ -41,8 +41,8 @@ Status legend:
 
 ### User-actionable
 
-- [ ] T-1004  Trigger production deployment for the Vercel project that owns `www.lemoncake.xyz` so the OG image and `/about` hero CTA propagate. Dashboard project (`contact-2985s-projects/dashboard`) deploy is up to date and verified at the alias, but `www.lemoncake.xyz` is served by a different Vercel account/project that I cannot push to.  USER  READY
-      acceptance: `curl -s -o /dev/null -w "%{http_code}" https://www.lemoncake.xyz/start/opengraph-image` returns 200; `/about` HTML contains "30 秒で試す"
+- [x] T-1004  www.lemoncake.xyz auto-deploy fixed  CLAUDE  DONE 2026-05-10
+      result: lemon-cake project (separate from dashboard project) auto-deploys from main; broke on da74996 because twitter-image.tsx re-exported route-segment-config keys (uncommitted local fix only worked when I pushed via vercel --prod to dashboard). Fixed in 7d47785 — declares config locally instead. www.lemoncake.xyz/start/opengraph-image now returns 200; /about contains "30 秒で試す" twice.
 
 ### Waiting on external responses (no Claude or User action possible)
 
