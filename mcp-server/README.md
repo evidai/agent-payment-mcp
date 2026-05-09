@@ -131,6 +131,60 @@ Claude は自動で:
 
 ---
 
+## 🪙 x402-compatible interface (since v0.5.1)
+
+This server speaks the [x402](https://www.x402.org/) idiom even though settlement happens off-chain via a Pay Token. The same agent code that handles on-chain x402 receipts works against `pay-per-call-mcp` unmodified.
+
+### Successful calls return an `x402Receipt`
+
+```json
+{
+  "status": 200,
+  "chargeId": "ch_abc123",
+  "amountUsdc": "0.005",
+  "response": { "...": "upstream payload" },
+  "x402Receipt": {
+    "scheme":          "lemoncake-pay-token-v1",
+    "x402Compatible":  true,
+    "chain":           "off-chain (LemonCake Pay Token)",
+    "asset":           "USDC",
+    "amount":          "0.005",
+    "recipient":       "serper",
+    "paymentIntentId": "ch_abc123",
+    "settledAt":       "2026-05-09T14:50:11.019Z"
+  }
+}
+```
+
+### Upstream `402` challenges are parsed
+
+If a service returns an x402 challenge, `call_service` surfaces it as `x402Challenge` for your agent to reason about. Three challenge sources are recognised:
+
+| Source | Example |
+|---|---|
+| `WWW-Authenticate` header | `WWW-Authenticate: x402 chain="base" asset=USDC amount=0.01 recipient=0xabc` |
+| `X-402-*` headers | `X-402-Chain: polygon`, `X-402-Asset: USDC`, ... |
+| Body `x402` field | `{ "x402": { "chain": "ethereum", ... } }` |
+
+> ⚠️ **On-chain auto-pay** of detected challenges (debiting the upstream's address from the Pay Token's USDC balance) is **gated** on the LemonCake `HOT_WALLET` rollout — see [issue #4](https://github.com/evidai/lemon-cake/issues/4). For now, the agent should escalate or pick another service.
+
+### `PAYMENT_PENDING` semantics for async settlement
+
+If upstream returns `202 + Retry-After + X-Payment-Status: pending`, `call_service` returns:
+
+```json
+{
+  "status": "PAYMENT_PENDING",
+  "paymentIntentId": "pi_xyz",
+  "retryAfterMs": 5000,
+  "retryContract": "Call call_service again with the SAME idempotencyKey after 5000ms. The original request will resume; no double-charge."
+}
+```
+
+Agents should sleep `retryAfterMs` and retry with the same `idempotencyKey`. Demo Mode shows the same shape so you can write the handler against `demo_search` and ship it unchanged.
+
+---
+
 ## ✅ Tested Clients
 
 | Client | Status | Notes |

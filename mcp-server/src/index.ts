@@ -146,6 +146,81 @@ function findDemoService(id: string) {
 
 const DEMO_NOTICE = "🎮 DEMO MODE — no real charge, no real upstream. Set LEMON_CAKE_PAY_TOKEN / LEMON_CAKE_BUYER_JWT to call real services. Run the `setup` tool for instructions.";
 
+// ── x402 互換ユーティリティ ──────────────────────────────────────────────
+// 我々は Pay Token モデル（off-chain pre-auth）で動作するが、レスポンス形は
+// x402 spec と互換性を保つ。エージェントが書く処理ロジックは on-chain x402 と
+// 同じで OK になる。実 on-chain 送金は HOT_WALLET 解放後に追加（issue #4）。
+
+type X402Receipt = {
+  scheme:           "lemoncake-pay-token-v1";
+  x402Compatible:   true;
+  chain:            string;
+  asset:            string;
+  amount:           string;
+  recipient:        string;
+  paymentIntentId:  string;
+  settledAt:        string;
+  note:             string;
+};
+
+function buildX402Receipt(opts: {
+  chargeId:   string | null;
+  amountUsdc: string | null;
+  serviceId:  string;
+  mode:       "demo" | "live";
+}): X402Receipt {
+  return {
+    scheme:           "lemoncake-pay-token-v1",
+    x402Compatible:   true,
+    chain:            "off-chain (LemonCake Pay Token)",
+    asset:            "USDC",
+    amount:           opts.amountUsdc ?? "0.00",
+    recipient:        opts.serviceId,
+    paymentIntentId:  opts.chargeId ?? `${opts.mode}_${Date.now().toString(36)}`,
+    settledAt:        new Date().toISOString(),
+    note:             opts.mode === "demo"
+      ? "Demo Mode: receipt shape is illustrative, no actual settlement."
+      : "Off-chain settlement via Pay Token. On-chain x402 receipt mode is gated (HOT_WALLET).",
+  };
+}
+
+/**
+ * Parse an x402 challenge from upstream response.
+ * Recognises:
+ *   - `WWW-Authenticate: x402 chain=... asset=... amount=... recipient=...`
+ *   - `X-402-Chain` / `X-402-Asset` / `X-402-Amount` / `X-402-Recipient` headers
+ *   - JSON body with a top-level `x402` field
+ * Returns null if no challenge detected (caller falls back to generic 402 hint).
+ */
+function parseX402Challenge(headers: Headers, body: unknown): Record<string, string> | null {
+  const wwwAuth = headers.get("www-authenticate");
+  if (wwwAuth && /^\s*x402\b/i.test(wwwAuth)) {
+    const params: Record<string, string> = { source: "WWW-Authenticate", scheme: "x402" };
+    const re = /(\w+)=("([^"]*)"|(\S+))/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(wwwAuth))) params[m[1]] = m[3] ?? m[4];
+    return params;
+  }
+  const headerKeys = ["x-402-chain", "x-402-asset", "x-402-amount", "x-402-recipient", "x-402-callback"];
+  const fromHeaders: Record<string, string> = {};
+  for (const k of headerKeys) {
+    const v = headers.get(k);
+    if (v) fromHeaders[k.replace(/^x-402-/, "")] = v;
+  }
+  if (Object.keys(fromHeaders).length > 0) {
+    return { source: "X-402-* headers", scheme: "x402", ...fromHeaders };
+  }
+  if (body && typeof body === "object" && body !== null && "x402" in (body as object)) {
+    const inner = (body as Record<string, unknown>).x402;
+    if (inner && typeof inner === "object") {
+      const flat: Record<string, string> = { source: "response.x402", scheme: "x402" };
+      for (const [k, v] of Object.entries(inner as Record<string, unknown>)) flat[k] = String(v);
+      return flat;
+    }
+  }
+  return null;
+}
+
 // ── 登録/入金/ダッシュボード URL（UTM 付きで経由クライアントを区別） ──
 const UTM            = "utm_source=mcp-server&utm_medium=cli";
 const REGISTER_URL   = `https://lemoncake.xyz/register?${UTM}&utm_campaign=credential-missing`;
@@ -397,7 +472,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "  • This tool spends real money and contacts an external service — it is",
         "    non-idempotent by default and has external side effects.",
         "",
-        "Returns: { status, chargeId, amountUsdc, response }",
+        "x402-COMPATIBLE INTERFACE (since v0.5.1):",
+        "  • Successful calls include an `x402Receipt` field with { scheme, chain, asset, amount,",
+        "    recipient, paymentIntentId, settledAt }. Same shape as on-chain x402 receipts so the",
+        "    agent's payment-handling logic is portable.",
+        "  • If upstream returns an x402 challenge (WWW-Authenticate: x402, X-402-* headers, or",
+        "    body.x402), it's parsed into `x402Challenge` for the agent to reason about. On-chain",
+        "    auto-pay from Pay Token is gated (see issue #4); for now the agent should escalate.",
+        "  • If upstream returns 202 + Retry-After + X-Payment-Status: pending, the result is",
+        "    `{ status: \"PAYMENT_PENDING\", paymentIntentId, retryAfterMs, retryContract }`.",
+        "    Re-call with the same idempotencyKey to resume — no double-charge.",
+        "",
+        "Returns: { status, chargeId, amountUsdc, response, x402Receipt?, x402Challenge?, hint? }",
       ].join("\n"),
       annotations: {
         title:           "Call a paid service (charges USDC)",
@@ -753,6 +839,17 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           register:   REGISTER_URL,
           dashboard:  DASHBOARD_URL,
           docs:       "https://github.com/evidai/lemon-cake",
+          // x402 互換性メタデータ。エージェントが「この MCP は x402 形式の receipt /
+          // challenge を返す」と知った上で payment-handling logic を組めるように。
+          x402: {
+            interface:        "compatible",
+            scheme:           "lemoncake-pay-token-v1",
+            settlement:       "off-chain (Pay Token)",
+            onChainAutoPay:   "gated (HOT_WALLET) — see https://github.com/evidai/lemon-cake/issues/4",
+            receiptShape:     ["scheme", "x402Compatible", "chain", "asset", "amount", "recipient", "paymentIntentId", "settledAt"],
+            challengeParser:  ["WWW-Authenticate: x402 ...", "X-402-* headers", "body.x402"],
+            pendingSemantics: "upstream 202 + Retry-After + X-Payment-Status: pending → status: PAYMENT_PENDING with retryContract; safe to retry with same idempotencyKey",
+          },
         });
       }
 
@@ -804,13 +901,24 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         // and new users can verify the call shape before signing up.
         const demoSvc = findDemoService(serviceId);
         if (demoSvc) {
+          const demoChargeId = `demo_${Date.now().toString(36)}`;
+          const demoAmount   = demoSvc.pricePerCall.split(" ")[0];
           return json({
             status:     200,
-            chargeId:   `demo_${Date.now().toString(36)}`,
-            amountUsdc: demoSvc.pricePerCall.split(" ")[0],
+            chargeId:   demoChargeId,
+            amountUsdc: demoAmount,
             response:   await demoSvc.handler(normalizedPath, body),
             mode:       "demo",
             note:       DEMO_NOTICE,
+            // x402-compatible receipt — same shape live calls return.
+            // Lets agents write payment-handling logic once, against the
+            // demo, and ship it unchanged to production.
+            x402Receipt: buildX402Receipt({
+              chargeId:   demoChargeId,
+              amountUsdc: demoAmount,
+              serviceId,
+              mode:       "demo",
+            }),
           });
         }
 
@@ -845,8 +953,31 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         // （エージェントが自律的に停止判断できるように）
         const result: Record<string, unknown> = { status: res.status, chargeId, amountUsdc, response: responseBody };
 
+        // ── x402: PAYMENT_PENDING 検知 ─────────────────────────────────
+        // 上流が 202 + Retry-After + X-Payment-Status: pending を返したら、
+        // エージェントには「リトライしろ、idempotencyKey で安全」と伝える
+        if (res.status === 202 && res.headers.get("x-payment-status")?.toLowerCase() === "pending") {
+          const retryAfterMs = parseInt(res.headers.get("retry-after") ?? "5", 10) * 1000;
+          result.status = "PAYMENT_PENDING";
+          result.paymentIntentId = res.headers.get("x-payment-intent-id") ?? chargeId ?? `pending_${Date.now().toString(36)}`;
+          result.retryAfterMs    = retryAfterMs;
+          result.retryContract   = `Call \`call_service\` again with the SAME idempotencyKey="${idempotencyKey ?? "<set one and retry>"}" after ${retryAfterMs}ms. The original request will resume; no double-charge.`;
+          return json(result);
+        }
+
+        // ── x402: 上流チャレンジ検知 ───────────────────────────────────
+        // 上流が x402 challenge（WWW-Authenticate / X-402-* / body.x402）を
+        // 返したら parse してエージェントに構造化情報として渡す
+        if (res.status === 402) {
+          const challenge = parseX402Challenge(res.headers, responseBody);
+          if (challenge) {
+            result.x402Challenge = challenge;
+            result.hint = `Upstream returned x402 challenge (chain=${challenge.chain ?? "?"} asset=${challenge.asset ?? "?"} amount=${challenge.amount ?? "?"}). On-chain auto-pay is gated; for now, escalate to human or pick another service.`;
+          }
+        }
+
         // よくある 4xx に対するエージェント向けヒントを付与
-        if (res.status >= 400) {
+        if (res.status >= 400 && !result.hint) {
           let hint: string | undefined;
           const bodyStr = typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody ?? "");
           if (res.status === 401)                               hint = "Upstream authentication failed. The service's API key may be invalid or expired. Try a different service.";
@@ -858,6 +989,18 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           else if (res.status === 501)                          hint = "Service has no proxy endpoint configured. Pick a different service from list_services.";
           else if (res.status >= 500)                           hint = "Upstream server error. Retry once with the same idempotencyKey, then escalate or switch service.";
           if (hint) result.hint = hint;
+        }
+
+        // ── x402: 成功時 receipt ───────────────────────────────────────
+        // 課金成功時のみ x402 互換 receipt を付与。エージェントは on-chain
+        // x402 と同じパースロジックで amount/recipient/paymentIntentId を読める
+        if (res.status >= 200 && res.status < 300 && chargeId) {
+          result.x402Receipt = buildX402Receipt({
+            chargeId,
+            amountUsdc,
+            serviceId,
+            mode: "live",
+          });
         }
 
         return json(result);
