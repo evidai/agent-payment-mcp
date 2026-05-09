@@ -9,7 +9,7 @@
 
 [![License: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](https://lemoncake.xyz)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
-[![npm: lemon-cake-mcp](https://img.shields.io/npm/v/lemon-cake-mcp?label=lemon-cake-mcp)](https://www.npmjs.com/package/lemon-cake-mcp)
+[![npm: pay-per-call-mcp](https://img.shields.io/npm/v/pay-per-call-mcp?label=pay-per-call-mcp)](https://www.npmjs.com/package/pay-per-call-mcp)
 [![npm: eliza-plugin-lemoncake](https://img.shields.io/npm/v/eliza-plugin-lemoncake?label=eliza-plugin-lemoncake)](https://www.npmjs.com/package/eliza-plugin-lemoncake)
 [![Status](https://img.shields.io/badge/status-private%20beta-fffd43)](https://lemoncake.xyz)
 [![CI](https://github.com/evidai/lemon-cake/actions/workflows/ci.yml/badge.svg)](https://github.com/evidai/lemon-cake/actions/workflows/ci.yml)
@@ -45,7 +45,7 @@ curl -X POST https://lemoncake.xyz/api/tokens \
 
 # 3. Hand it to your agent. Done.
 #    Claude / Cursor:
-npx lemon-cake-mcp
+npx pay-per-call-mcp
 #    Eliza v2:
 npm install eliza-plugin-lemoncake
 #    Anything else:
@@ -85,22 +85,24 @@ You                    Agent                   Paid API
 
 ## 🔌 Integrations
 
-### MCP サーバー — `lemon-cake-mcp`
+### MCP サーバー — `pay-per-call-mcp`
 
-Claude Desktop・Cursor に **`npx` 一発**で接続できる公式 MCP サーバー。
+Claude Desktop・Cursor に **`npx` 一発**で接続できる公式 MCP サーバー。Demo Mode で env vars 空のまま動作（Wikipedia / FX / httpbin が即試せる）。x402-compatible interface。
 
 ```bash
-npx lemon-cake-mcp
+npx pay-per-call-mcp
 ```
+
+> 旧パッケージ名 `lemon-cake-mcp` は薄いラッパーとして維持中なので、既存の `npx -y lemon-cake-mcp` configs もそのまま動きます（stderr に deprecation 通知のみ）。
 
 **`claude_desktop_config.json` に追記するだけ：**
 
 ```json
 {
   "mcpServers": {
-    "lemon-cake": {
+    "pay-per-call": {
       "command": "npx",
-      "args": ["-y", "lemon-cake-mcp"],
+      "args": ["-y", "pay-per-call-mcp"],
       "env": {
         "LEMON_CAKE_PAY_TOKEN": "<Pay Token JWT>",
         "LEMON_CAKE_BUYER_JWT": "<Buyer JWT>"

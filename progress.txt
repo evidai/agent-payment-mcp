@@ -1,0 +1,46 @@
+# progress.txt — agent handoff state
+# YAML format. Each session appends a new entry at top.
+
+- iteration: 2
+  date: 2026-05-10
+  agent: Claude (autonomous protocol session)
+  completed_this_iteration:
+    - T-0001  README rename audit  (5 stale → 0; 1 intentional wrapper-notice line)
+    - T-0002  *.mcpb gitignore     (root .gitignore handles node_modules/dist; mcp-server/.gitignore minimal — *.mcpb only)
+    - T-0003  parseX402Challenge unit tests (11/11 pass via npm test; x402 utils extracted to src/x402.ts; smoke-test live server still emits canonical x402Receipt)
+  refactor_notes:
+    - src/index.ts now imports buildX402Receipt + parseX402Challenge from ./x402.js (was inline 70 lines)
+    - test runner: node:test (built-in since Node 20, zero new deps)
+    - pretest auto-runs build so tests always exercise the published JS surface
+  remaining_atomic_claude_tasks: []  # sprint backlog exhausted; next steps require user input or trigger event
+  blocked_on_user:
+    - T-1001 (freee scripts intent: commit / ignore / delete)
+    - T-1002 (Anthropic Directory final 4 manual steps)
+    - T-1003 (HN karma to ≥30)
+  trigger_gated:
+    - T-2001 (Phase B x402 on-chain auto-pay)
+    - T-2002 (partnership soft-bump 5/14 — 4 days from now)
+    - T-2003 (2027 horizon features; gated on buyer count ≥5)
+  exit_condition_check: true
+  notes_to_next_agent: |
+    All atomic Claude-doable tasks in this sprint are complete.
+    The protocol's exit condition fires here. Before pushing a new sprint:
+      1. Re-check `gh issue list --repo evidai/lemon-cake --state open` for new issues
+      2. Re-check git status for new untracked files needing classification
+      3. Re-check memory directory mtimes for newly-added project_* notes
+      4. If anything pops up, append new T-NNNN entries to prd.md and start Phase 1 again
+
+- iteration: 1
+  date: 2026-05-10
+  agent: Claude (autonomous protocol session)
+  bootstrap_reason: prd.md and progress.txt did not exist; seeded from observed memory + git + open issues
+  current_task: T-0001
+  observed_state:
+    open_github_issues: 0
+    open_github_prs:    0
+    untracked_files:
+      - mcp-server/lemon-cake-0.5.0.mcpb
+      - api/scripts/freee-demo.ts
+      - api/scripts/freee-extract-from-db.ts
+      - api/scripts/freee-reauth.ts
+    head_commit: dfcb41b

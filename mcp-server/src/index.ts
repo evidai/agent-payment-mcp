@@ -146,80 +146,8 @@ function findDemoService(id: string) {
 
 const DEMO_NOTICE = "🎮 DEMO MODE — no real charge, no real upstream. Set LEMON_CAKE_PAY_TOKEN / LEMON_CAKE_BUYER_JWT to call real services. Run the `setup` tool for instructions.";
 
-// ── x402 互換ユーティリティ ──────────────────────────────────────────────
-// 我々は Pay Token モデル（off-chain pre-auth）で動作するが、レスポンス形は
-// x402 spec と互換性を保つ。エージェントが書く処理ロジックは on-chain x402 と
-// 同じで OK になる。実 on-chain 送金は HOT_WALLET 解放後に追加（issue #4）。
-
-type X402Receipt = {
-  scheme:           "lemoncake-pay-token-v1";
-  x402Compatible:   true;
-  chain:            string;
-  asset:            string;
-  amount:           string;
-  recipient:        string;
-  paymentIntentId:  string;
-  settledAt:        string;
-  note:             string;
-};
-
-function buildX402Receipt(opts: {
-  chargeId:   string | null;
-  amountUsdc: string | null;
-  serviceId:  string;
-  mode:       "demo" | "live";
-}): X402Receipt {
-  return {
-    scheme:           "lemoncake-pay-token-v1",
-    x402Compatible:   true,
-    chain:            "off-chain (LemonCake Pay Token)",
-    asset:            "USDC",
-    amount:           opts.amountUsdc ?? "0.00",
-    recipient:        opts.serviceId,
-    paymentIntentId:  opts.chargeId ?? `${opts.mode}_${Date.now().toString(36)}`,
-    settledAt:        new Date().toISOString(),
-    note:             opts.mode === "demo"
-      ? "Demo Mode: receipt shape is illustrative, no actual settlement."
-      : "Off-chain settlement via Pay Token. On-chain x402 receipt mode is gated (HOT_WALLET).",
-  };
-}
-
-/**
- * Parse an x402 challenge from upstream response.
- * Recognises:
- *   - `WWW-Authenticate: x402 chain=... asset=... amount=... recipient=...`
- *   - `X-402-Chain` / `X-402-Asset` / `X-402-Amount` / `X-402-Recipient` headers
- *   - JSON body with a top-level `x402` field
- * Returns null if no challenge detected (caller falls back to generic 402 hint).
- */
-function parseX402Challenge(headers: Headers, body: unknown): Record<string, string> | null {
-  const wwwAuth = headers.get("www-authenticate");
-  if (wwwAuth && /^\s*x402\b/i.test(wwwAuth)) {
-    const params: Record<string, string> = { source: "WWW-Authenticate", scheme: "x402" };
-    const re = /(\w+)=("([^"]*)"|(\S+))/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(wwwAuth))) params[m[1]] = m[3] ?? m[4];
-    return params;
-  }
-  const headerKeys = ["x-402-chain", "x-402-asset", "x-402-amount", "x-402-recipient", "x-402-callback"];
-  const fromHeaders: Record<string, string> = {};
-  for (const k of headerKeys) {
-    const v = headers.get(k);
-    if (v) fromHeaders[k.replace(/^x-402-/, "")] = v;
-  }
-  if (Object.keys(fromHeaders).length > 0) {
-    return { source: "X-402-* headers", scheme: "x402", ...fromHeaders };
-  }
-  if (body && typeof body === "object" && body !== null && "x402" in (body as object)) {
-    const inner = (body as Record<string, unknown>).x402;
-    if (inner && typeof inner === "object") {
-      const flat: Record<string, string> = { source: "response.x402", scheme: "x402" };
-      for (const [k, v] of Object.entries(inner as Record<string, unknown>)) flat[k] = String(v);
-      return flat;
-    }
-  }
-  return null;
-}
+// x402 互換ユーティリティは src/x402.ts に切り出してテスト可能化。
+import { buildX402Receipt, parseX402Challenge } from "./x402.js";
 
 // ── 登録/入金/ダッシュボード URL（UTM 付きで経由クライアントを区別） ──
 const UTM            = "utm_source=mcp-server&utm_medium=cli";
