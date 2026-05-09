@@ -39,6 +39,11 @@ Status legend:
 - [ ] T-1003  HN karma farming to ≥30 (currently 1) by substantive comments on active threads (3-10 lines, no questions)  USER  ONGOING — only active user task
       acceptance: profile karma display ≥30; ≥1 comment with score ≥3
 
+### User-actionable
+
+- [ ] T-1004  Trigger production deployment for the Vercel project that owns `www.lemoncake.xyz` so the OG image and `/about` hero CTA propagate. Dashboard project (`contact-2985s-projects/dashboard`) deploy is up to date and verified at the alias, but `www.lemoncake.xyz` is served by a different Vercel account/project that I cannot push to.  USER  READY
+      acceptance: `curl -s -o /dev/null -w "%{http_code}" https://www.lemoncake.xyz/start/opengraph-image` returns 200; `/about` HTML contains "30 秒で試す"
+
 ### Waiting on external responses (no Claude or User action possible)
 
 - [~] WAIT-1  freee app re-application result (submitted 2026-05-09)
