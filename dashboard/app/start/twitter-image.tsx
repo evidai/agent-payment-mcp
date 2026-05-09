@@ -1,3 +1,12 @@
 // Twitter / X uses the same large-card 1200×630 image as Open Graph.
-// Re-export to avoid duplicating the rendering logic.
-export { default, alt, size, contentType, runtime } from "./opengraph-image";
+// We declare the route-segment config locally (Next.js forbids re-exporting
+// `runtime` from another file) but reuse the renderer.
+
+import OG from "./opengraph-image";
+
+export const runtime     = "edge";
+export const alt         = "pay-per-call-mcp — Pay-per-call USDC for any HTTP API";
+export const size        = { width: 1200, height: 630 };
+export const contentType = "image/png";
+
+export default OG;
