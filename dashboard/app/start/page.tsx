@@ -64,7 +64,7 @@ export default function StartPage() {
             <div className="flex flex-col items-start gap-6">
               <span className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#fffd43]/80 bg-[#fffd43]/5 border border-[#fffd43]/20 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#fffd43] animate-pulse" />
-                MCP server · USDC · agent payments
+                MCP server · USDC · x402-compatible · agent payments
               </span>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]">
@@ -109,6 +109,7 @@ export default function StartPage() {
                 <Pill label="Node 20+" />
                 <Pill label="Listed on Glama" accent />
                 <Pill label="Demo Mode (no auth)" accent />
+                <Pill label="x402-compatible" accent />
               </div>
             </div>
 
@@ -226,6 +227,55 @@ export default function StartPage() {
             sub="USDC or JPYC. No subscription. No expiry."
             accent
           />
+        </div>
+      </Section>
+
+      {/* ───── x402 ───── */}
+      <Section title="x402-compatible interface" eyebrow="Standards">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-6 md:p-8">
+          <p className="text-white/70 leading-relaxed">
+            Settlement happens off-chain via your Pay Token, but the response
+            shape mirrors the <a href="https://www.x402.org/" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">x402</a> idiom. Write your agent&apos;s payment-handling logic
+            once and ship it unchanged when on-chain auto-pay (gated on{" "}
+            <a href="https://github.com/evidai/lemon-cake/issues/4" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">issue #4</a>) lands.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-4 mt-6">
+            <X402Card
+              kind="✓"
+              title="Receipt on success"
+              body="`x402Receipt` field with scheme / chain / asset / amount / recipient / paymentIntentId / settledAt — same parser works for on-chain x402."
+            />
+            <X402Card
+              kind="✓"
+              title="402 challenge parser"
+              body="Detects WWW-Authenticate: x402, X-402-* headers, and body.x402. Surfaced as `x402Challenge` with source attribution."
+            />
+            <X402Card
+              kind="✓"
+              title="PAYMENT_PENDING retry"
+              body="Async settlement returns retryAfterMs + retryContract; same idempotencyKey resumes without double-charge."
+            />
+          </div>
+
+          <pre className="mt-6 rounded-xl bg-black/60 border border-white/10 p-4 overflow-x-auto text-[12px] md:text-[13px] font-mono text-white/80">{`{
+  "status": 200,
+  "chargeId": "ch_abc123",
+  "amountUsdc": "0.005",
+  "x402Receipt": {
+    "scheme":         "lemoncake-pay-token-v1",
+    "x402Compatible": true,
+    "asset":          "USDC",
+    "amount":         "0.005",
+    "recipient":      "serper",
+    "paymentIntentId":"ch_abc123",
+    "settledAt":      "2026-05-09T14:50:11.019Z"
+  }
+}`}</pre>
+          <p className="text-[12px] text-white/40 mt-3">
+            Demo Mode emits the same shape — write your handler against{" "}
+            <code className="font-mono text-white/60">demo_search</code> and ship unchanged.
+          </p>
         </div>
       </Section>
 
@@ -363,6 +413,18 @@ function PromptCard({ emoji, name, desc }: { emoji: string; name: string; desc: 
         <code className="font-mono text-sm text-[#fffd43]/90">{name}</code>
       </div>
       <p className="text-white/50 text-[12.5px] leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function X402Card({ kind, title, body }: { kind: string; title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <span className="text-[#fffd43] font-bold">{kind}</span>
+        <span className="text-white/85 font-semibold text-sm">{title}</span>
+      </div>
+      <p className="text-white/50 text-[12.5px] leading-relaxed">{body}</p>
     </div>
   );
 }
