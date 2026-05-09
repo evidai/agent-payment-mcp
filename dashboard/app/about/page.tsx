@@ -287,12 +287,21 @@ export default function AboutPage() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/register"
+              href="/start"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Pay Token を発行する <IconArrowRight />
+              🎮 30 秒で試す（無料） <IconArrowRight />
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
+            >
+              Pay Token を発行する
             </Link>
           </div>
+          <p className="text-[12px] text-[#1a0f00]/50 mt-4">
+            <code className="font-mono">npx -y pay-per-call-mcp</code> · サインアップ不要・x402 互換
+          </p>
         </section>
       </div>
 
