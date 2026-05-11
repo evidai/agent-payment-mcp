@@ -30,9 +30,85 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.lemoncake.xyz/start" },
 };
 
+// schema.org JSON-LD: SoftwareApplication + Offer + FAQ.
+// Used by Google for rich-result eligibility (price, features, FAQ snippets)
+// and by LinkedIn / Slack for richer URL unfurls.
+const JSON_LD = {
+  "@context":  "https://schema.org",
+  "@graph": [
+    {
+      "@type":            "SoftwareApplication",
+      "@id":              "https://www.lemoncake.xyz/start#app",
+      "name":             "pay-per-call-mcp",
+      "alternateName":    "LemonCake MCP server",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem":  "macOS, Linux, Windows (Node.js 20+)",
+      "description":      OG_DESC,
+      "url":              "https://www.lemoncake.xyz/start",
+      "downloadUrl":      NPM_URL,
+      "softwareVersion":  "0.5.1",
+      "license":          "https://opensource.org/licenses/MIT",
+      "softwareRequirements": "Node.js 20+, MCP-compatible client (Claude Desktop, Cursor, Cline)",
+      "featureList": [
+        "Pay-per-call USDC billing for any HTTP API",
+        "Demo Mode runs without signup",
+        "x402-compatible interface (receipt + 402 challenge parser)",
+        "6 pre-written MCP prompts",
+        "Built-in Japan tax APIs (NTA invoice, gBizINFO, e-Gov)",
+      ],
+      "offers": {
+        "@type":         "Offer",
+        "price":         "0.005",
+        "priceCurrency": "USD",
+        "description":   "Typical per-call price; 10% platform margin over upstream",
+        "availability":  "https://schema.org/InStock",
+      },
+      "publisher": {
+        "@type":  "Organization",
+        "name":   "LemonCake",
+        "url":    "https://www.lemoncake.xyz",
+      },
+    },
+    {
+      "@type":  "FAQPage",
+      "mainEntity": [
+        {
+          "@type":         "Question",
+          "name":          "Do I need to sign up to try it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text":  "No. Run npx -y pay-per-call-mcp with no env vars and Demo Mode hits real Wikipedia / FX / httpbin without an account. The /start landing page also has an in-browser playground that works with zero setup.",
+          },
+        },
+        {
+          "@type":         "Question",
+          "name":          "How is this different from Cursor / Cline / official MCP servers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text":  "pay-per-call-mcp is a billing proxy: it lets your agent call paid APIs (Tavily, Serper, Hunter.io, gBizINFO, the Japanese NTA invoice API) without you handing over per-vendor API keys. One Pay Token JWT with a hard USDC spending cap covers all of them.",
+          },
+        },
+        {
+          "@type":         "Question",
+          "name":          "Is it x402 compatible?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text":  "Yes. Successful calls return an x402-shaped receipt; upstream HTTP 402 challenges are parsed (WWW-Authenticate, X-402-* headers, body.x402); PAYMENT_PENDING semantics with idempotent retry are supported. On-chain auto-pay from Pay Token balance is gated on HOT_WALLET availability (issue #4).",
+          },
+        },
+      ],
+    },
+  ],
+};
+
 export default function StartPage() {
   return (
     <main className="min-h-screen bg-[#06060a] text-white antialiased">
+      <script
+        type="application/ld+json"
+        // Next.js requires dangerouslySetInnerHTML for raw script content
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* ───── Top strip ───── */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-[#06060a]/85 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">

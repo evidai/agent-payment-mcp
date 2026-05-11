@@ -6,6 +6,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   return [
     { url: `${BASE}/`,                       lastModified: now, changeFrequency: "weekly",  priority: 1.0 },
+    // /start is the friction-free public entry point (HN/Reddit/X promo lands here).
+    // Higher priority than /about so search engines surface it first for new visitors.
+    { url: `${BASE}/start`,                  lastModified: now, changeFrequency: "weekly",  priority: 1.0 },
     { url: `${BASE}/about`,                  lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/about/en`,               lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/integrations/freee`,     lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
