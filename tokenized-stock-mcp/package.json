@@ -1,6 +1,6 @@
 {
   "name": "tokenized-stock-mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MCP server to buy/sell tokenized US stocks (Dinari dShares) paying directly in USDC. Daily USD cap guard built in. Sandbox-only by default. Sibling to alpaca-guard-mcp and pay-per-call-mcp.",
   "type": "module",
   "main": "dist/index.js",

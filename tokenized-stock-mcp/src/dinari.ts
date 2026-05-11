@@ -84,6 +84,8 @@ export type DShareTicker = {
   name:        string;
   asset_class: "EQUITY" | "ETF";
   tradable:    boolean;
+  /** Dinari internal stock ID (UUID). Required for order creation. */
+  stockId?:    string;
 };
 
 export type Quote = {
@@ -120,37 +122,66 @@ const SAMPLE_TICKERS: DShareTicker[] = [
   { symbol: "MSTR.d",  underlying: "MSTR",  name: "MicroStrategy Inc.",          asset_class: "EQUITY", tradable: true },
 ];
 
+// Symbol → stockId cache. Populated on first listSupportedStocks() call.
+// Required because Dinari order endpoints expect stock_id (UUID), not symbol.
+let stockIdCache: Map<string, string> | null = null;
+
 export async function listSupportedStocks(): Promise<DShareTicker[]> {
   if (!hasCredentials()) return SAMPLE_TICKERS;
   try {
-    // The SDK's stock listing endpoint. We map to our minimal shape so the
-    // tool surface stays stable even if Dinari adjusts their schema.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const c = getClient() as any;
     const result = await c.v2.marketData.stocks.list();
     if (!Array.isArray(result?.data) && !Array.isArray(result)) return SAMPLE_TICKERS;
     const items = Array.isArray(result) ? result : result.data;
+
+    // Build / refresh the symbol→id cache
+    const cache = new Map<string, string>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return items.map((s: any) => ({
-      symbol:      s.symbol     ?? s.token_symbol ?? "",
-      underlying:  s.underlying ?? s.ticker       ?? "",
-      name:        s.name       ?? s.display_name ?? "",
-      asset_class: s.asset_class === "ETF" ? "ETF" : "EQUITY",
-      tradable:    s.tradable   ?? true,
-    })).filter((t: DShareTicker) => t.symbol);
+    const mapped = items.map((s: any) => {
+      const sym = s.symbol ?? s.token_symbol ?? "";
+      const id  = s.id     ?? s.stock_id     ?? "";
+      if (sym && id) cache.set(sym.toUpperCase(), id);
+      return {
+        symbol:      sym,
+        underlying:  s.underlying ?? s.ticker       ?? "",
+        name:        s.name       ?? s.display_name ?? "",
+        asset_class: s.asset_class === "ETF" ? "ETF" : "EQUITY",
+        tradable:    s.tradable   ?? true,
+        stockId:     id || undefined,
+      } as DShareTicker;
+    }).filter((t: DShareTicker) => t.symbol);
+    stockIdCache = cache;
+    return mapped;
   } catch {
     return SAMPLE_TICKERS;
   }
 }
 
+async function resolveStockId(symbolOrId: string): Promise<string | null> {
+  // If it already looks like a UUID, pass through.
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(symbolOrId)) {
+    return symbolOrId;
+  }
+  // Otherwise treat it as a symbol — normalize and look up.
+  const key = symbolOrId.replace(/\.d$/i, "").toUpperCase();
+  if (!stockIdCache) {
+    // First-use cache miss: populate.
+    await listSupportedStocks();
+  }
+  return stockIdCache?.get(key) ?? null;
+}
+
 export async function getQuote(symbol: string): Promise<Quote | null> {
   if (!hasCredentials()) return null;
   try {
+    const stockId = await resolveStockId(symbol);
+    if (!stockId) return null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const c = getClient() as any;
-    const q = await c.v2.marketData.stocks.quote.retrieve(symbol);
-    const bid = Number(q?.bid ?? q?.bid_price ?? 0);
-    const ask = Number(q?.ask ?? q?.ask_price ?? 0);
+    const q = await c.v2.marketData.stocks.retrieveCurrentQuote(stockId);
+    const bid = Number(q?.bid_price ?? q?.bid ?? 0);
+    const ask = Number(q?.ask_price ?? q?.ask ?? 0);
     if (!bid && !ask) return null;
     return {
       symbol,
@@ -169,22 +200,26 @@ export async function getQuote(symbol: string): Promise<Quote | null> {
 export async function placeBuyOrder(opts: {
   symbol:          string;
   amountUsd:       number;
-  recipientWallet: string;
+  recipientWallet: string;  // currently ignored in managed-account mode; kept for v0.2+ self-custody flow
 }): Promise<DinariOrder> {
   assertSafeMode();
   if (!hasCredentials()) throw new Error("Dinari credentials required to place orders");
-  if (!DINARI_ACCOUNT_ID || !DINARI_ENTITY_ID) {
-    throw new Error("DINARI_ACCOUNT_ID + DINARI_ENTITY_ID required to scope the order");
+  if (!DINARI_ACCOUNT_ID) throw new Error("DINARI_ACCOUNT_ID required");
+
+  const stockId = await resolveStockId(opts.symbol);
+  if (!stockId) {
+    throw new Error(`Symbol "${opts.symbol}" not found in Dinari supported list. Call list_supported_stocks first.`);
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c = getClient() as any;
-  const o = await c.v2.entities.accounts.orders.create({
-    entity_id:  DINARI_ENTITY_ID,
-    account_id: DINARI_ACCOUNT_ID,
-    side:       "buy",
-    symbol:     opts.symbol,
-    amount_usd: opts.amountUsd,
-    recipient:  opts.recipientWallet,
+  // v0.1.3: use the official OrderRequests path with createMarketBuy.
+  // Managed-account mode → dShare lands in DINARI_ACCOUNT_ID itself.
+  // Self-custody (EIP-712 permit) flow planned for v0.2.
+  const o = await c.v2.accounts.orderRequests.createMarketBuy(DINARI_ACCOUNT_ID, {
+    payment_amount:       Math.round(opts.amountUsd * 100) / 100,
+    stock_id:             stockId,
+    recipient_account_id: DINARI_ACCOUNT_ID,
   });
   return mapOrder(o);
 }
@@ -192,22 +227,22 @@ export async function placeBuyOrder(opts: {
 export async function placeSellOrder(opts: {
   symbol:       string;
   qty:          number;
-  sourceWallet: string;
+  sourceWallet: string;  // currently ignored in managed-account mode
 }): Promise<DinariOrder> {
   assertSafeMode();
   if (!hasCredentials()) throw new Error("Dinari credentials required to place orders");
-  if (!DINARI_ACCOUNT_ID || !DINARI_ENTITY_ID) {
-    throw new Error("DINARI_ACCOUNT_ID + DINARI_ENTITY_ID required to scope the order");
+  if (!DINARI_ACCOUNT_ID) throw new Error("DINARI_ACCOUNT_ID required");
+
+  const stockId = await resolveStockId(opts.symbol);
+  if (!stockId) {
+    throw new Error(`Symbol "${opts.symbol}" not found in Dinari supported list. Call list_supported_stocks first.`);
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c = getClient() as any;
-  const o = await c.v2.entities.accounts.orders.create({
-    entity_id:  DINARI_ENTITY_ID,
-    account_id: DINARI_ACCOUNT_ID,
-    side:       "sell",
-    symbol:     opts.symbol,
-    qty:        opts.qty,
-    source:     opts.sourceWallet,
+  const o = await c.v2.accounts.orderRequests.createMarketSell(DINARI_ACCOUNT_ID, {
+    asset_quantity: Math.round(opts.qty * 1_000_000) / 1_000_000,
+    stock_id:       stockId,
   });
   return mapOrder(o);
 }
