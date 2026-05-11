@@ -9,9 +9,11 @@
 
 ## Connection request message (limited to ~300 chars)
 
-> 井戸さんはじめまして。Alpaca MCP server の v2 リリースおつかれさまです、FastMCP + OpenAPI ベースの設計参考になりました。当方も MCP サーバー (pay-per-call-mcp) を出していて、エージェント trading の支出制御まわりで井戸さんの設計判断について 1-2 質問させていただけたらと思います。よろしくお願いします。
+> 井戸さんはじめまして。横川さんの伝説ラジオ「日本人初の米ユニコーン」回拝見して、Alpaca のこと知りました。MCP server v2 のリリースもおつかれさまです、FastMCP + OpenAPI ベースの設計参考になりました。当方も MCP サーバー (pay-per-call-mcp) を出してて、agentic trading の支出制御で 1-2 質問させていただけたらと。よろしくお願いします。
 
-(282 chars, LinkedIn 制限内)
+(298 chars、LinkedIn 制限内)
+
+**冒頭に 横川 + 伝説ラジオ を入れた理由**: JP 文脈で「Alpaca をちゃんと知って DM してる」signal。創業者の JP メディア出演を recognize するのは、シカゴ在住の Satoshi 氏にとって懐かしさ + 信頼度両方上がる。スパム DM との差別化も決定的。
 
 ---
 
@@ -19,7 +21,9 @@
 
 > 井戸さん、connect ありがとうございます。
 >
-> 自己紹介遅くなりました — LemonCake (lemoncake.xyz) という MCP サーバーを開発している evid.ai の者です。AI エージェントに「USDC ウォレット + 支出キャップ付き JWT (Pay Token)」を持たせて API 課金を proxy する仕組みで、現状 Glama AAB / Anthropic Connectors Directory 申請中です。
+> 改めて — 横川さんの伝説ラジオ回 ([YouTube](https://www.youtube.com/watch?v=SMQu7agFqR0)) を見て Alpaca のことを知り、その後 GitHub で v2 リリースに気づいた、という入り口でした。日本人初の米ユニコーンを金融機関ゼロから作ったストーリー、エンジニアの視点で見ても示唆深かったです。
+>
+> 自己紹介 — LemonCake (lemoncake.xyz) という MCP サーバーを開発している evid.ai の者です。AI エージェントに「USDC ウォレット + 支出キャップ付き JWT (Pay Token)」を持たせて API 課金を proxy する仕組みで、現状 Glama AAB / Anthropic Connectors Directory 申請中です。
 >
 > Alpaca MCP v2 を見ていて、エージェント trading のもう一段上のレイヤーで「rogue agent が $50k 一発で買っちゃう」リスクをインフラレベルで抑える需要があるなと思いました。LemonCake の Pay Token (limitUsdc 強制 + KYA 段階) はまさにそのレイヤー向けの設計です。
 >
@@ -54,4 +58,5 @@
 
 - Alpaca MCP server: https://github.com/alpacahq/alpaca-mcp-server
 - Satoshi LinkedIn: https://www.linkedin.com/in/idsts2670/
-- Co-target email: claudiu.tiganetea@alpaca.markets (Gmail draft `r349959950295789582`)
+- Co-target email: claudiu.tiganetea@alpaca.markets (Gmail draft `r403305869398790153` — 伝説ラジオ angle 反映済み版。旧 `r349959950295789582` は破棄してください)
+- Yokogawa 伝説ラジオ episode: [YouTube](https://www.youtube.com/watch?v=SMQu7agFqR0) / [Apple Podcast](https://podcasts.apple.com/jp/podcast/alpaca%E6%A8%AA%E5%B7%9D%E6%AF%85-%E6%97%A5%E6%9C%AC%E4%BA%BA%E5%88%9D%E3%81%AE%E7%B1%B3%E3%83%A6%E3%83%8B%E3%82%B3%E3%83%BC%E3%83%B3%E3%81%AB/id1823235581) — JP context relevance signal の根拠
