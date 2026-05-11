@@ -33,10 +33,11 @@ You hand an AI agent the ability to **buy real US stocks paid in USDC** — toke
       "command": "npx",
       "args":    ["-y", "tokenized-stock-mcp"],
       "env": {
-        "DINARI_API_KEY":    "...",
-        "DINARI_ACCOUNT_ID": "...",
-        "DINARI_ENTITY_ID":  "...",
-        "DINARI_SANDBOX":    "true"
+        "DINARI_API_KEY_ID":     "...",
+        "DINARI_API_SECRET_KEY": "...",
+        "DINARI_ACCOUNT_ID":     "...",
+        "DINARI_ENTITY_ID":      "...",
+        "DINARI_SANDBOX":        "true"
       }
     }
   }
@@ -48,7 +49,7 @@ Apply for Dinari partner access at [partners.dinari.com](https://partners.dinari
 - **Account ID** (your trading account UUID)
 - **Entity ID** (your KYB'd legal entity UUID)
 
-All three are required to place orders. Without them, the MCP still loads and tools like `setup` / `list_supported_stocks` / `guard_set_limit` / `guard_status` work — you can inspect everything before going live.
+All four credential values (API Key ID + API Secret Key + Account ID + Entity ID) are required to place orders. Without them, the MCP still loads and tools like `setup` / `list_supported_stocks` / `guard_set_limit` / `guard_status` work — you can inspect everything before going live.
 
 ### 2. Set your daily cap
 
@@ -92,11 +93,10 @@ If the agent tries `amountUsd: 1000`:
 
 | Env var                       | Required | Default | Notes |
 | ----------------------------- | :------: | ------- | ----- |
-| `DINARI_API_KEY`              | ✅       | —       | Auth — from partners.dinari.com dashboard |
+| `DINARI_API_KEY_ID`           | ✅       | —       | Public key identifier — from partners.dinari.com dashboard |
+| `DINARI_API_SECRET_KEY`       | ✅       | —       | Auth secret — paired with `DINARI_API_KEY_ID` |
 | `DINARI_ACCOUNT_ID`           | ✅ (orders) | —    | Trading account UUID issued at onboarding |
 | `DINARI_ENTITY_ID`            | ✅ (orders) | —    | KYB'd legal entity UUID |
-| `DINARI_PARTNER_ID`           | —        | falls back to `DINARI_ENTITY_ID` | Legacy alias kept for backward compat |
-| `DINARI_API_BASE`             | —        | `https://api-enterprise.sbt.dinari.com/api/v1` | Override only if Dinari rotates endpoints |
 | `DINARI_SANDBOX`              | —        | `true`  | Set to `false` for real-money orders (still requires `TOKENIZED_STOCK_ALLOW_LIVE`) |
 | `TOKENIZED_STOCK_ALLOW_LIVE`  | live only | —      | Must literally be `yes-i-understand` to enable real-money orders |
 | `TOKENIZED_STOCK_LEDGER_DIR`  | —        | `~/.tokenized-stock` | Where `cap.json` lives. Useful for tests / multiple ledgers. |

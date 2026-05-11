@@ -1,38 +1,29 @@
-// Dinari API client wrapper.
+// Dinari API client. Uses the official @dinari/api-sdk for auth + API calls.
 //
-// In v0.1 (this release) we keep the integration narrow:
-//   - read-only methods (list_supported, get_quote) use the public REST API
-//     where available; otherwise return a graceful "needs partner credentials"
-//     payload so the MCP is installable + inspectable without keys.
-//   - write methods (place_order, cancel_order) require DINARI_API_KEY and
-//     refuse if LIVE flag is not explicitly set, mirroring the alpaca-guard
-//     safety pattern.
+// Environment variables (matching the SDK's expected names):
+//   DINARI_API_KEY_ID      — public key identifier
+//   DINARI_API_SECRET_KEY  — private auth secret
+//   DINARI_ACCOUNT_ID      — trading account UUID (Dinari onboarding)
+//   DINARI_ENTITY_ID       — KYB'd legal entity UUID (Dinari onboarding)
+//   DINARI_SANDBOX         — "true" (default) → SDK environment "sandbox"
+//                             "false"          → SDK environment "production"
+//   TOKENIZED_STOCK_ALLOW_LIVE — must literally be "yes-i-understand"
+//                                to allow real-money orders
 //
-// The official TS SDK (@dinari/api-sdk) is loaded only when DINARI_API_KEY is
-// present, so just running `npx -y tokenized-stock-mcp` to look at the tool
-// surface does not error on missing creds.
+// Sandbox is the default. Live trading is blocked at two layers (SDK env
+// + our explicit opt-in flag) so the user has to pass both to send real money.
 
-const DINARI_API_KEY     = process.env.DINARI_API_KEY     ?? "";
-const DINARI_API_BASE    = process.env.DINARI_API_BASE    ?? "https://api-enterprise.sbt.dinari.com/api/v1";
-const DINARI_ACCOUNT_ID  = process.env.DINARI_ACCOUNT_ID  ?? "";
-const DINARI_ENTITY_ID   = process.env.DINARI_ENTITY_ID   ?? "";
-// DINARI_PARTNER_ID kept as alias for backward-compat with v0.1.0 docs;
-// in v0.1.1+ the canonical name is DINARI_ENTITY_ID (matches Dinari's term).
-const DINARI_PARTNER_ID  = process.env.DINARI_PARTNER_ID  ?? DINARI_ENTITY_ID;
-const SANDBOX            = process.env.DINARI_SANDBOX !== "false";  // default sandbox
-const ALLOW_LIVE         = process.env.TOKENIZED_STOCK_ALLOW_LIVE === "yes-i-understand";
+import Dinari from "@dinari/api-sdk";
+
+const DINARI_API_KEY_ID     = process.env.DINARI_API_KEY_ID     ?? "";
+const DINARI_API_SECRET_KEY = process.env.DINARI_API_SECRET_KEY ?? "";
+const DINARI_ACCOUNT_ID     = process.env.DINARI_ACCOUNT_ID     ?? "";
+const DINARI_ENTITY_ID      = process.env.DINARI_ENTITY_ID      ?? "";
+const SANDBOX               = process.env.DINARI_SANDBOX !== "false";
+const ALLOW_LIVE            = process.env.TOKENIZED_STOCK_ALLOW_LIVE === "yes-i-understand";
 
 export function hasCredentials(): boolean {
-  return DINARI_API_KEY.length > 0;
-}
-
-export function credentialStatus() {
-  return {
-    apiKey:    DINARI_API_KEY    ? "✓"   : "✗ NOT SET — get from partners.dinari.com dashboard",
-    accountId: DINARI_ACCOUNT_ID ? "✓"   : "✗ NOT SET — found in Dinari onboarding email or dashboard",
-    entityId:  DINARI_ENTITY_ID  ? "✓"   : "✗ NOT SET — your KYB'd legal entity ID from Dinari",
-    allReady:  !!(DINARI_API_KEY && DINARI_ACCOUNT_ID && DINARI_ENTITY_ID),
-  };
+  return DINARI_API_KEY_ID.length > 0 && DINARI_API_SECRET_KEY.length > 0;
 }
 
 export function sandboxMode(): boolean {
@@ -47,61 +38,65 @@ export function assertSafeMode(): void {
   if (!SANDBOX && !ALLOW_LIVE) {
     throw new Error(
       "DINARI_SANDBOX=false but TOKENIZED_STOCK_ALLOW_LIVE is not set to " +
-      "'yes-i-understand'. Refusing to send real-money orders. Either set " +
-      "DINARI_SANDBOX=true (sandbox mode) or explicitly opt into live trading " +
-      "with TOKENIZED_STOCK_ALLOW_LIVE=yes-i-understand."
+      "'yes-i-understand'. Refusing to send real-money orders.",
     );
   }
 }
 
-// ─── helpers ──────────────────────────────────────────────────────────────
-
-async function api(path: string, init: RequestInit = {}): Promise<unknown> {
-  if (!DINARI_API_KEY) {
-    throw new Error("DINARI_API_KEY not set — apply for partner access at https://partners.dinari.com");
-  }
-  // Dinari scopes most resource endpoints by entity / account. We pass them
-  // as headers when set; the API also accepts them in the path on some routes
-  // but headers are simpler for a single client wrapper.
-  const headers: Record<string, string> = {
-    "Authorization":  `Bearer ${DINARI_API_KEY}`,
-    "Content-Type":   "application/json",
-    ...(init.headers as Record<string, string> | undefined),
+export function credentialStatus() {
+  return {
+    apiKeyID:     DINARI_API_KEY_ID     ? "✓" : "✗ NOT SET — get from partners.dinari.com (issued as 'API Key ID' alongside the secret)",
+    apiSecretKey: DINARI_API_SECRET_KEY ? "✓" : "✗ NOT SET — get from partners.dinari.com (the auth secret)",
+    accountId:    DINARI_ACCOUNT_ID     ? "✓" : "✗ NOT SET — your trading-account UUID from Dinari onboarding",
+    entityId:     DINARI_ENTITY_ID      ? "✓" : "✗ NOT SET — your KYB'd legal-entity UUID from Dinari onboarding",
+    allReady:     !!(DINARI_API_KEY_ID && DINARI_API_SECRET_KEY && DINARI_ACCOUNT_ID && DINARI_ENTITY_ID),
   };
-  if (DINARI_ENTITY_ID)  headers["X-Dinari-Entity-Id"]  = DINARI_ENTITY_ID;
-  if (DINARI_ACCOUNT_ID) headers["X-Dinari-Account-Id"] = DINARI_ACCOUNT_ID;
+}
 
-  const res = await fetch(`${DINARI_API_BASE}${path}`, { ...init, headers });
-  const text = await res.text();
-  let body: unknown;
-  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
-  if (!res.ok) {
-    throw new Error(`dinari ${res.status} ${path}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+// Lazy client init: only constructed once we know creds are present.
+let client: Dinari | null = null;
+
+function getClient(): Dinari {
+  if (!hasCredentials()) {
+    throw new Error("Dinari credentials missing — set DINARI_API_KEY_ID + DINARI_API_SECRET_KEY");
   }
-  return body;
+  if (!client) {
+    client = new Dinari({
+      apiKeyID:     DINARI_API_KEY_ID,
+      apiSecretKey: DINARI_API_SECRET_KEY,
+      environment:  SANDBOX ? "sandbox" : "production",
+    });
+  }
+  return client;
+}
+
+export function sandboxNote(): string {
+  return SANDBOX
+    ? "🧪 SANDBOX mode (safe default). Set DINARI_SANDBOX=false + TOKENIZED_STOCK_ALLOW_LIVE=yes-i-understand for real-money orders."
+    : (ALLOW_LIVE ? "🔴 LIVE mode (explicit opt-in)." : "⚠️ Live mode requested but TOKENIZED_STOCK_ALLOW_LIVE not set — orders will refuse.");
 }
 
 // ─── shapes ───────────────────────────────────────────────────────────────
 
 export type DShareTicker = {
-  symbol:     string;   // e.g. "AAPL.d"
-  underlying: string;   // "AAPL"
-  name:       string;   // "Apple Inc."
+  symbol:      string;
+  underlying:  string;
+  name:        string;
   asset_class: "EQUITY" | "ETF";
-  tradable:   boolean;
+  tradable:    boolean;
 };
 
 export type Quote = {
-  symbol:     string;
-  bid:        number;
-  ask:        number;
-  mid:        number;
-  asOf:       string;
+  symbol: string;
+  bid:    number;
+  ask:    number;
+  mid:    number;
+  asOf:   string;
 };
 
 export type DinariOrder = {
   id:         string;
-  status:     "PENDING" | "FILLED" | "CANCELED" | "REJECTED";
+  status:     string;
   symbol:     string;
   side:       "buy" | "sell";
   qty:        string;
@@ -112,79 +107,6 @@ export type DinariOrder = {
 
 // ─── read-only ────────────────────────────────────────────────────────────
 
-export async function listSupportedStocks(): Promise<DShareTicker[]> {
-  // Hardcoded high-confidence subset for v0.1 so the tool is useful without
-  // partner credentials. The real list will be fetched from Dinari API when
-  // DINARI_API_KEY is set. Keeps the MCP installable + inspectable.
-  if (!DINARI_API_KEY) {
-    return SAMPLE_TICKERS;
-  }
-  return api("/assets") as Promise<DShareTicker[]>;
-}
-
-export async function getQuote(symbol: string): Promise<Quote | null> {
-  if (!DINARI_API_KEY) {
-    // Without credentials we cannot get a real quote. Return null so the
-    // guard reports PRICE_LOOKUP_FAILED with a helpful hint.
-    return null;
-  }
-  try {
-    return await api(`/quotes/${encodeURIComponent(symbol)}/latest`) as Quote;
-  } catch {
-    return null;
-  }
-}
-
-// ─── orders ───────────────────────────────────────────────────────────────
-
-function orderContext(): Record<string, string> {
-  const ctx: Record<string, string> = {};
-  if (DINARI_ACCOUNT_ID) ctx.account_id = DINARI_ACCOUNT_ID;
-  if (DINARI_ENTITY_ID)  ctx.entity_id  = DINARI_ENTITY_ID;
-  // partner_id retained for Dinari analytics attribution; falls back to entity_id
-  if (DINARI_PARTNER_ID) ctx.partner_id = DINARI_PARTNER_ID;
-  return ctx;
-}
-
-export async function placeBuyOrder(opts: {
-  symbol:          string;
-  amountUsd:       number;
-  recipientWallet: string;  // user's wallet address (pass-through model)
-}): Promise<DinariOrder> {
-  assertSafeMode();
-  if (!DINARI_API_KEY) throw new Error("DINARI_API_KEY required to place orders");
-  return api("/orders", {
-    method: "POST",
-    body:   JSON.stringify({
-      ...orderContext(),
-      side:        "buy",
-      symbol:      opts.symbol,
-      amount_usd:  opts.amountUsd,
-      recipient:   opts.recipientWallet,
-    }),
-  }) as Promise<DinariOrder>;
-}
-
-export async function placeSellOrder(opts: {
-  symbol:       string;
-  qty:          number;
-  sourceWallet: string;
-}): Promise<DinariOrder> {
-  assertSafeMode();
-  if (!DINARI_API_KEY) throw new Error("DINARI_API_KEY required to place orders");
-  return api("/orders", {
-    method: "POST",
-    body:   JSON.stringify({
-      ...orderContext(),
-      side:    "sell",
-      symbol:  opts.symbol,
-      qty:     opts.qty,
-      source:  opts.sourceWallet,
-    }),
-  }) as Promise<DinariOrder>;
-}
-
-// ─── sample tickers (v0.1 fallback when no creds) ─────────────────────────
 const SAMPLE_TICKERS: DShareTicker[] = [
   { symbol: "AAPL.d",  underlying: "AAPL",  name: "Apple Inc.",                  asset_class: "EQUITY", tradable: true },
   { symbol: "MSFT.d",  underlying: "MSFT",  name: "Microsoft Corporation",       asset_class: "EQUITY", tradable: true },
@@ -198,8 +120,108 @@ const SAMPLE_TICKERS: DShareTicker[] = [
   { symbol: "MSTR.d",  underlying: "MSTR",  name: "MicroStrategy Inc.",          asset_class: "EQUITY", tradable: true },
 ];
 
-export function sandboxNote(): string {
-  return SANDBOX
-    ? "🧪 SANDBOX mode (safe default). Set DINARI_SANDBOX=false + TOKENIZED_STOCK_ALLOW_LIVE=yes-i-understand for real-money orders."
-    : (ALLOW_LIVE ? "🔴 LIVE mode (explicit opt-in)." : "⚠️ Live mode requested but TOKENIZED_STOCK_ALLOW_LIVE not set — orders will refuse.");
+export async function listSupportedStocks(): Promise<DShareTicker[]> {
+  if (!hasCredentials()) return SAMPLE_TICKERS;
+  try {
+    // The SDK's stock listing endpoint. We map to our minimal shape so the
+    // tool surface stays stable even if Dinari adjusts their schema.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = getClient() as any;
+    const result = await c.v2.marketData.stocks.list();
+    if (!Array.isArray(result?.data) && !Array.isArray(result)) return SAMPLE_TICKERS;
+    const items = Array.isArray(result) ? result : result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return items.map((s: any) => ({
+      symbol:      s.symbol     ?? s.token_symbol ?? "",
+      underlying:  s.underlying ?? s.ticker       ?? "",
+      name:        s.name       ?? s.display_name ?? "",
+      asset_class: s.asset_class === "ETF" ? "ETF" : "EQUITY",
+      tradable:    s.tradable   ?? true,
+    })).filter((t: DShareTicker) => t.symbol);
+  } catch {
+    return SAMPLE_TICKERS;
+  }
+}
+
+export async function getQuote(symbol: string): Promise<Quote | null> {
+  if (!hasCredentials()) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = getClient() as any;
+    const q = await c.v2.marketData.stocks.quote.retrieve(symbol);
+    const bid = Number(q?.bid ?? q?.bid_price ?? 0);
+    const ask = Number(q?.ask ?? q?.ask_price ?? 0);
+    if (!bid && !ask) return null;
+    return {
+      symbol,
+      bid,
+      ask,
+      mid: (bid + ask) / 2 || ask || bid,
+      asOf: q?.timestamp ?? q?.as_of ?? new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── orders ───────────────────────────────────────────────────────────────
+
+export async function placeBuyOrder(opts: {
+  symbol:          string;
+  amountUsd:       number;
+  recipientWallet: string;
+}): Promise<DinariOrder> {
+  assertSafeMode();
+  if (!hasCredentials()) throw new Error("Dinari credentials required to place orders");
+  if (!DINARI_ACCOUNT_ID || !DINARI_ENTITY_ID) {
+    throw new Error("DINARI_ACCOUNT_ID + DINARI_ENTITY_ID required to scope the order");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c = getClient() as any;
+  const o = await c.v2.entities.accounts.orders.create({
+    entity_id:  DINARI_ENTITY_ID,
+    account_id: DINARI_ACCOUNT_ID,
+    side:       "buy",
+    symbol:     opts.symbol,
+    amount_usd: opts.amountUsd,
+    recipient:  opts.recipientWallet,
+  });
+  return mapOrder(o);
+}
+
+export async function placeSellOrder(opts: {
+  symbol:       string;
+  qty:          number;
+  sourceWallet: string;
+}): Promise<DinariOrder> {
+  assertSafeMode();
+  if (!hasCredentials()) throw new Error("Dinari credentials required to place orders");
+  if (!DINARI_ACCOUNT_ID || !DINARI_ENTITY_ID) {
+    throw new Error("DINARI_ACCOUNT_ID + DINARI_ENTITY_ID required to scope the order");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c = getClient() as any;
+  const o = await c.v2.entities.accounts.orders.create({
+    entity_id:  DINARI_ENTITY_ID,
+    account_id: DINARI_ACCOUNT_ID,
+    side:       "sell",
+    symbol:     opts.symbol,
+    qty:        opts.qty,
+    source:     opts.sourceWallet,
+  });
+  return mapOrder(o);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapOrder(o: any): DinariOrder {
+  return {
+    id:        String(o?.id ?? o?.order_id ?? ""),
+    status:    String(o?.status ?? "PENDING"),
+    symbol:    String(o?.symbol ?? ""),
+    side:      (o?.side === "sell" ? "sell" : "buy") as "buy" | "sell",
+    qty:       String(o?.qty ?? o?.quantity ?? "0"),
+    fillPrice: o?.fill_price != null ? String(o.fill_price) : null,
+    feeUsd:    o?.fee_usd    != null ? String(o.fee_usd)    : null,
+    createdAt: String(o?.created_at ?? o?.createdAt ?? new Date().toISOString()),
+  };
 }
