@@ -1,0 +1,65 @@
+{
+  "name": "xstocks-mcp",
+  "version": "0.1.0",
+  "description": "MCP server to buy/sell tokenized US stocks (xStocks by Backed) on Solana, paying directly in USDC via Jupiter DEX. Hard daily USD cap guard. Dry-run by default; opt-in for real-money swaps.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "xstocks-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "xstocks",
+    "tokenized-stocks",
+    "solana",
+    "jupiter",
+    "usdc",
+    "agentic-trading",
+    "ai-agent",
+    "spending-cap",
+    "guard",
+    "lemoncake",
+    "claude",
+    "cursor"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/evidai/lemon-cake.git",
+    "directory": "xstocks-mcp"
+  },
+  "homepage": "https://github.com/evidai/lemon-cake/tree/main/xstocks-mcp",
+  "bugs": {
+    "url": "https://github.com/evidai/lemon-cake/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "dev":   "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@solana/web3.js":           "^1.95.0",
+    "bs58":                      "^6.0.0"
+  },
+  "overrides": {
+    "rpc-websockets": {
+      "uuid": "^9.0.0"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx":         "^4.19.0",
+    "typescript":  "^5.7.0"
+  }
+}

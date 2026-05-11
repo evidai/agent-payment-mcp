@@ -1,0 +1,2 @@
+# node_modules/ + dist/ are covered by repo-root .gitignore
+*.mcpb
