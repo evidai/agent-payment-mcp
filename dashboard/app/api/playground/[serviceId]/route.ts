@@ -11,6 +11,50 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "edge";
 
 const TIMEOUT_MS = 5000;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+// SHA-256 prefix in hex (Web Crypto, edge-compatible).
+async function sha256Prefix(input: string, len: number): Promise<string> {
+  const buf  = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash))
+    .slice(0, len / 2)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Fire-and-forget telemetry: never blocks or fails the user's response.
+async function logRun(opts: {
+  serviceId: string;
+  rawQuery: string;
+  latencyMs: number;
+  forwardedFor: string | null;
+  userAgent:    string | null;
+}): Promise<void> {
+  try {
+    const queryHash    = opts.rawQuery ? await sha256Prefix(opts.rawQuery, 16) : undefined;
+    const queryPreview = opts.rawQuery ? opts.rawQuery.slice(0, 60) : undefined;
+    await fetch(`${API_URL}/api/telemetry/playground`, {
+      method:  "POST",
+      headers: {
+        "Content-Type":     "application/json",
+        // Forward the original visitor's IP + UA so the server can hash them
+        // for the unique-visitor bucket. We never store the raw IP.
+        ...(opts.forwardedFor ? { "X-Forwarded-For": opts.forwardedFor } : {}),
+        ...(opts.userAgent    ? { "User-Agent":      opts.userAgent }    : {}),
+      },
+      body: JSON.stringify({
+        serviceId:    opts.serviceId,
+        queryHash,
+        queryPreview,
+        latencyMs:    opts.latencyMs,
+        status:       200,
+      }),
+    });
+  } catch {
+    // swallow — the playground UX must not depend on telemetry being healthy
+  }
+}
 
 async function withTimeout(p: Promise<Response>, ms: number) {
   const ctrl = new AbortController();
@@ -116,6 +160,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ser
   const response = await handler(body);
   const latencyMs = Date.now() - t0;
   const chargeId = `demo_${Date.now().toString(36)}`;
+
+  // fire-and-forget telemetry. Capture the raw query string for top-N stats.
+  // Don't await — visitor sees the response immediately.
+  const rawQuery =
+    serviceId === "demo_search" ? String((body.q as string) ?? "") :
+    serviceId === "demo_echo"   ? JSON.stringify(body).slice(0, 200) :
+    "";
+  void logRun({
+    serviceId,
+    rawQuery,
+    latencyMs,
+    forwardedFor: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip"),
+    userAgent:    req.headers.get("user-agent"),
+  });
 
   return NextResponse.json({
     status:      200,

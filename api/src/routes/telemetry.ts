@@ -328,3 +328,175 @@ telemetryRouter.openapi(mcpAccessRoute, async (c) => {
     families,
   });
 });
+
+// ─── POST /api/telemetry/playground ────────────────────────
+// /start LP の playground widget が Run のたびに fire-and-forget で叩く。
+// 認証なし（だれでもアクセスできる LP からの呼び出しなので）。
+const playgroundLogRoute = createRoute({
+  method: "post",
+  path:   "/playground",
+  tags:   ["Telemetry"],
+  summary: "Record one /start LP playground click (public, no auth)",
+  description:
+    "/start ページの DemoPlayground widget から fire-and-forget で送られる利用ログ。" +
+    "PII を含まず、サービス ID + クエリの先頭 60 文字 + ハッシュ + レイテンシのみ。",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            serviceId:    z.string().max(40),
+            queryHash:    z.string().max(64).optional(),
+            queryPreview: z.string().max(60).optional(),
+            latencyMs:    z.number().int().min(0).max(60000),
+            status:       z.number().int().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: "Logged (no body)" },
+    400: { description: "Bad request", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+telemetryRouter.openapi(playgroundLogRoute, async (c) => {
+  const body = c.req.valid("json");
+
+  // simple IP bucket: hash of x-forwarded-for + UA so ipHash collides
+  // only for the same visitor making repeated runs
+  const ipRaw = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "";
+  const ua = c.req.header("user-agent") ?? "";
+  const ipHash = ipRaw ? await sha256Prefix(`${ipRaw}|${ua}`, 16) : null;
+
+  await prisma.playgroundLog.create({
+    data: {
+      serviceId:    body.serviceId,
+      queryHash:    body.queryHash ?? null,
+      queryPreview: body.queryPreview ?? null,
+      latencyMs:    body.latencyMs,
+      status:       body.status ?? 200,
+      ipHash,
+      userAgent:    ua.slice(0, 500) || null,
+    },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return c.body(null, 204) as any;
+});
+
+// ─── GET /api/telemetry/playground ─────────────────────────
+// admin/telemetry ダッシュボード用の集計エンドポイント。
+const PlaygroundAggSchema = z.object({
+  windowDays:  z.number(),
+  generatedAt: z.string(),
+  totals: z.object({
+    totalRuns:       z.number().int(),
+    uniqueVisitors:  z.number().int(),
+    avgLatencyMs:    z.number().int(),
+  }),
+  byService: z.array(z.object({
+    serviceId:    z.string(),
+    runs:         z.number().int(),
+    pct:          z.number(),
+    avgLatencyMs: z.number().int(),
+  })),
+  topQueries: z.array(z.object({
+    serviceId:    z.string(),
+    queryPreview: z.string(),
+    runs:         z.number().int(),
+  })),
+});
+
+const playgroundAggRoute = createRoute({
+  method: "get",
+  path:   "/playground",
+  tags:   ["Telemetry"],
+  summary: "/start playground click aggregation (admin only)",
+  request: {
+    query: z.object({
+      days: z.coerce.number().int().min(1).max(365).default(30),
+    }),
+  },
+  responses: {
+    200: { description: "OK",           content: { "application/json": { schema: PlaygroundAggSchema } } },
+    401: { description: "Unauthorized", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+telemetryRouter.openapi(playgroundAggRoute, async (c) => {
+  const auth = c.req.header("Authorization");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!auth?.startsWith("Bearer "))                             return c.json({ error: "Unauthorized" }, 401) as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(await verifyAdminToken(auth.slice(7))))                 return c.json({ error: "Invalid token" }, 401) as any;
+
+  const { days } = c.req.valid("query");
+  const since = new Date(Date.now() - days * 86400_000);
+
+  const logs = await prisma.playgroundLog.findMany({
+    where:   { createdAt: { gte: since } },
+    select:  { serviceId: true, queryPreview: true, latencyMs: true, ipHash: true },
+    orderBy: { createdAt: "desc" },
+    take:    20000,
+  });
+
+  const total = logs.length;
+  const unique = new Set(logs.map(l => l.ipHash).filter(Boolean)).size;
+  const avgLatency = total ? Math.round(logs.reduce((s, l) => s + l.latencyMs, 0) / total) : 0;
+
+  const byServiceMap = new Map<string, { runs: number; latencySum: number }>();
+  for (const l of logs) {
+    const cur = byServiceMap.get(l.serviceId) ?? { runs: 0, latencySum: 0 };
+    cur.runs        += 1;
+    cur.latencySum  += l.latencyMs;
+    byServiceMap.set(l.serviceId, cur);
+  }
+  const byService = Array.from(byServiceMap.entries())
+    .map(([serviceId, v]) => ({
+      serviceId,
+      runs:         v.runs,
+      pct:          total ? Math.round((v.runs / total) * 1000) / 10 : 0,
+      avgLatencyMs: Math.round(v.latencySum / v.runs),
+    }))
+    .sort((a, b) => b.runs - a.runs);
+
+  const queryMap = new Map<string, { runs: number }>();
+  for (const l of logs) {
+    if (!l.queryPreview) continue;
+    const key = `${l.serviceId}|${l.queryPreview}`;
+    const cur = queryMap.get(key) ?? { runs: 0 };
+    cur.runs += 1;
+    queryMap.set(key, cur);
+  }
+  const topQueries = Array.from(queryMap.entries())
+    .map(([key, v]) => {
+      const idx = key.indexOf("|");
+      return { serviceId: key.slice(0, idx), queryPreview: key.slice(idx + 1), runs: v.runs };
+    })
+    .sort((a, b) => b.runs - a.runs)
+    .slice(0, 10);
+
+  return c.json({
+    windowDays:  days,
+    generatedAt: new Date().toISOString(),
+    totals: {
+      totalRuns:      total,
+      uniqueVisitors: unique,
+      avgLatencyMs:   avgLatency,
+    },
+    byService,
+    topQueries,
+  });
+});
+
+// helper: SHA-256 prefix (hex). Web Crypto, runs in both node and edge.
+async function sha256Prefix(input: string, len: number): Promise<string> {
+  const buf  = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash))
+    .slice(0, len / 2)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}

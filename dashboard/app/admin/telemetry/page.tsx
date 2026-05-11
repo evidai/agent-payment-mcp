@@ -56,13 +56,35 @@ interface McpAccessResponse {
   families: McpFamilyBucket[];
 }
 
+interface PlaygroundResponse {
+  windowDays:  number;
+  generatedAt: string;
+  totals: {
+    totalRuns:      number;
+    uniqueVisitors: number;
+    avgLatencyMs:   number;
+  };
+  byService: Array<{
+    serviceId:    string;
+    runs:         number;
+    pct:          number;
+    avgLatencyMs: number;
+  }>;
+  topQueries: Array<{
+    serviceId:    string;
+    queryPreview: string;
+    runs:         number;
+  }>;
+}
+
 export default function TelemetryPage() {
   const router = useRouter();
-  const [data,     setData]     = useState<UsageResponse | null>(null);
-  const [mcpData,  setMcpData]  = useState<McpAccessResponse | null>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string>("");
-  const [days,     setDays]     = useState(30);
+  const [data,        setData]        = useState<UsageResponse | null>(null);
+  const [mcpData,     setMcpData]     = useState<McpAccessResponse | null>(null);
+  const [playData,    setPlayData]    = useState<PlaygroundResponse | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState<string>("");
+  const [days,        setDays]        = useState(30);
 
   const load = useCallback(async (d: number) => {
     setLoading(true); setError("");
@@ -73,11 +95,12 @@ export default function TelemetryPage() {
     }
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [usageRes, mcpRes] = await Promise.all([
-        fetch(`${API_URL}/api/telemetry/client-usage?days=${d}`, { headers }),
-        fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`, { headers }),
+      const [usageRes, mcpRes, playRes] = await Promise.all([
+        fetch(`${API_URL}/api/telemetry/client-usage?days=${d}`,                  { headers }),
+        fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`,      { headers }),
+        fetch(`${API_URL}/api/telemetry/playground?days=${d}`,                    { headers }),
       ]);
-      if (usageRes.status === 401 || mcpRes.status === 401) {
+      if (usageRes.status === 401 || mcpRes.status === 401 || playRes.status === 401) {
         localStorage.removeItem("admin_token");
         router.push("/admin/login");
         return;
@@ -86,12 +109,8 @@ export default function TelemetryPage() {
       if (!usageRes.ok) throw new Error(usageJson.error ?? "failed (usage)");
       setData(usageJson);
 
-      if (mcpRes.ok) {
-        setMcpData(await mcpRes.json());
-      } else {
-        // Don't fail the whole page if mcp endpoint not yet deployed
-        setMcpData(null);
-      }
+      if (mcpRes.ok)  setMcpData(await mcpRes.json());   else setMcpData(null);
+      if (playRes.ok) setPlayData(await playRes.json()); else setPlayData(null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "取得失敗");
     } finally {
@@ -283,6 +302,86 @@ export default function TelemetryPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* ─── /start LP Playground (PlaygroundLog ベース) ─── */}
+            <div className="mt-12">
+              <div className="flex items-baseline justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-700">/start LP Playground</h2>
+                <span className="text-[10px] text-gray-400">DemoPlayground 経由の Run クリック · npm install 前段の活性指標</span>
+              </div>
+
+              {!playData && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 text-xs">
+                  playground endpoint がまだ未デプロイです。API 再デプロイ後にデータが入ります。
+                </div>
+              )}
+
+              {playData && (
+                <>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <Kpi label="Total Run clicks" value={playData.totals.totalRuns}      sub={`過去${playData.windowDays}日`} />
+                    <Kpi label="Unique visitors"  value={playData.totals.uniqueVisitors} sub="ip+UA bucket（PII保存なし）" />
+                    <Kpi label="Avg latency"      value={playData.totals.avgLatencyMs}   sub="ms（upstream + edge往復）" />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* by service */}
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 text-xs font-medium text-gray-500">サービス別</div>
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-500 text-xs">
+                          <tr>
+                            <th className="text-left  px-4 py-2 font-medium">Service</th>
+                            <th className="text-right px-4 py-2 font-medium">Runs</th>
+                            <th className="text-right px-4 py-2 font-medium">%</th>
+                            <th className="text-right px-4 py-2 font-medium">Avg ms</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {playData.byService.length === 0 && (
+                            <tr><td colSpan={4} className="text-center py-6 text-gray-400">データなし</td></tr>
+                          )}
+                          {playData.byService.map(s => (
+                            <tr key={s.serviceId}>
+                              <td className="px-4 py-2 font-mono text-xs text-gray-700">{s.serviceId}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{s.runs}</td>
+                              <td className="px-4 py-2 text-right tabular-nums text-gray-500">{s.pct}%</td>
+                              <td className="px-4 py-2 text-right tabular-nums text-gray-500">{s.avgLatencyMs}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* top queries */}
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 text-xs font-medium text-gray-500">人気クエリ Top 10</div>
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-500 text-xs">
+                          <tr>
+                            <th className="text-left  px-4 py-2 font-medium">Service</th>
+                            <th className="text-left  px-4 py-2 font-medium">Query</th>
+                            <th className="text-right px-4 py-2 font-medium">Runs</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {playData.topQueries.length === 0 && (
+                            <tr><td colSpan={3} className="text-center py-6 text-gray-400">データなし</td></tr>
+                          )}
+                          {playData.topQueries.map((q, i) => (
+                            <tr key={i}>
+                              <td className="px-4 py-2 font-mono text-xs text-gray-500">{q.serviceId}</td>
+                              <td className="px-4 py-2 text-xs text-gray-800 truncate max-w-xs">{q.queryPreview}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{q.runs}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ─── MCP / SDK access (McpAccessLog ベース) ─────── */}

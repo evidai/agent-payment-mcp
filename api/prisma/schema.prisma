@@ -707,3 +707,33 @@ model McpAccessLog {
   @@index([createdAt])
   @@map("mcp_access_logs")
 }
+
+// ─────────────────────────────────────────────────────────────
+// /start LP 上のインタラクティブ playground 利用ログ。
+// 訪問者が demo_search / demo_fx / demo_echo の Run ボタンを押すたびに
+// fire-and-forget で 1 行 insert される。Glama tool calls = 0 のままでも、
+// LP 上で実際にエージェント体験が起きてるかをここで観測する。
+// ─────────────────────────────────────────────────────────────
+model PlaygroundLog {
+  id String @id @default(cuid())
+
+  serviceId String // demo_search | demo_fx | demo_echo
+  // queryHash: クエリ本文の sha256 prefix。集計用なので 16 文字で十分。
+  // top クエリを集計するときに同一クエリをまとめるキーになる。
+  queryHash String?
+  // queryPreview: 実クエリの先頭 60 文字（PII 含む可能性あるので短く）。
+  // ダッシュボードで「人気クエリ Top 10」見るためだけに使う。
+  queryPreview String? @db.Text
+  latencyMs Int
+  status    Int     @default(200)
+  // ipHash: IP の sha256 prefix。同一訪問者の重複カウント避けるための bucket key。
+  // 生 IP は保存しない。
+  ipHash    String?
+  userAgent String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId, createdAt])
+  @@index([createdAt])
+  @@map("playground_logs")
+}
