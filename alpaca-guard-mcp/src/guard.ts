@@ -1,74 +1,110 @@
-// Pre-flight guard logic. Composes price discovery + Pay Token preflight
-// into the single decision: should this order be allowed?
+// Pre-flight guard. Composes price discovery + the local cap ledger.
 //
-// The guard is INTENTIONALLY a hard refuser. There is no "warn but allow"
-// mode and there is no agent-overridable path. The point of the guard is
-// that the agent literally cannot exceed the configured Pay Token cap,
-// regardless of how clever the prompt is.
+// v0.1 design choice: we use the LOCAL ledger (capLedger.ts). When the
+// LemonCake API exposes the real Pay Token preflight endpoint, payToken.ts
+// will take precedence and this file will fall back to the ledger only when
+// LEMON_CAKE_PAY_TOKEN is not set.
+//
+// The guard is INTENTIONALLY fail-CLOSED. Any error during price lookup
+// or preflight refuses the order. There is no agent-overridable path.
 
-import { preflight } from "./payToken.js";
+import { getLatestQuote } from "./alpaca.js";
+import * as ledger from "./capLedger.js";
 
 export type GuardDecision =
   | {
       allowed:           true;
-      tradeNotionalUsdc: string;
-      remainingUsdc:     string;
+      tradeNotionalUsd:  number;
+      remainingUsd:      number;
+      limitUsd:          number;
+      priceSource:       "limit_input" | "latest_quote";
+      effectivePriceUsd: number;
     }
   | {
       allowed:           false;
-      tradeNotionalUsdc: string;
-      remainingUsdc:     string;
-      dailyUsedUsdc:     string;
+      reason:            "BUDGET_EXCEEDED" | "PRICE_LOOKUP_FAILED" | "NO_CREDENTIALS" | "INVALID_INPUT";
+      tradeNotionalUsd:  number;
+      remainingUsd:      number;
+      limitUsd:          number;
       hint:              string;
-      reason:            "BUDGET_EXCEEDED" | "NO_PAY_TOKEN" | "PRICE_LOOKUP_FAILED";
     };
 
 export async function guardOrder(opts: {
-  symbol:    string;
-  qty:       number;
-  side:      "buy" | "sell";
-  // limit price if available; otherwise we'll fetch a current quote
-  limitPrice: number | null;
-  // resolver injected so guard.ts has zero Alpaca-API knowledge
-  resolveCurrentPrice: (symbol: string) => Promise<number | null>;
+  symbol:     string;
+  qty:        number;
+  side:       "buy" | "sell";
+  limitPrice: number | null;   // null = market order; we'll fetch the quote
 }): Promise<GuardDecision> {
-  const price = opts.limitPrice ?? await opts.resolveCurrentPrice(opts.symbol);
-  if (price === null) {
+  if (!opts.symbol || !Number.isFinite(opts.qty) || opts.qty <= 0) {
     return {
-      allowed:           false,
-      tradeNotionalUsdc: "0.00",
-      remainingUsdc:     "0.00",
-      dailyUsedUsdc:     "0.00",
-      hint:              `Could not resolve current price for ${opts.symbol}. Refusing the order to avoid an unbounded notional. Try again with an explicit limit_price.`,
-      reason:            "PRICE_LOOKUP_FAILED",
+      allowed:          false,
+      reason:           "INVALID_INPUT",
+      tradeNotionalUsd: 0,
+      remainingUsd:     0,
+      limitUsd:         0,
+      hint: `Invalid order input: symbol="${opts.symbol}", qty=${opts.qty}. Both must be non-empty / positive.`,
     };
   }
 
-  // sells reduce risk in our spending model; we still preflight on notional
-  // so a margin sell that opens new exposure is still capped.
-  const notional = Math.abs(price * opts.qty);
-  const notionalStr = notional.toFixed(2);
+  let effectivePrice: number;
+  let priceSource: "limit_input" | "latest_quote";
+  if (opts.limitPrice != null && Number.isFinite(opts.limitPrice) && opts.limitPrice > 0) {
+    effectivePrice = opts.limitPrice;
+    priceSource    = "limit_input";
+  } else {
+    const q = await getLatestQuote(opts.symbol).catch(() => null);
+    if (!q || !q.mid || q.mid <= 0) {
+      const st = await ledger.status().catch(() => ({ dailyLimitUsd: 0, todayUsedUsd: 0, remainingUsd: 0 } as never));
+      return {
+        allowed:          false,
+        reason:           "PRICE_LOOKUP_FAILED",
+        tradeNotionalUsd: 0,
+        remainingUsd:     st.remainingUsd,
+        limitUsd:         st.dailyLimitUsd,
+        hint: `Could not resolve a current quote for ${opts.symbol}. Either pass an explicit limit_price (so the notional is bounded), or check that the symbol is tradable on Alpaca and the data API is reachable.`,
+      };
+    }
+    effectivePrice = q.mid;
+    priceSource    = "latest_quote";
+  }
 
-  const pf = await preflight({
-    notionalUsdc: notionalStr,
-    serviceTag:   "alpaca",
-    reasonCode:   "place_order",
-  });
-
+  const notional = Math.abs(effectivePrice * opts.qty);
+  const pf = await ledger.preflight(notional);
   if (!pf.allowed) {
     return {
-      allowed:           false,
-      tradeNotionalUsdc: notionalStr,
-      remainingUsdc:     pf.remainingUsdc,
-      dailyUsedUsdc:     pf.dailyUsedUsdc,
-      hint:              pf.hint,
-      reason:            pf.hint.includes("LEMON_CAKE_PAY_TOKEN") ? "NO_PAY_TOKEN" : "BUDGET_EXCEEDED",
+      allowed:          false,
+      reason:           "BUDGET_EXCEEDED",
+      tradeNotionalUsd: notional,
+      remainingUsd:     pf.remainingUsd,
+      limitUsd:         pf.limitUsd,
+      hint:             pf.hint,
     };
   }
 
   return {
     allowed:           true,
-    tradeNotionalUsdc: notionalStr,
-    remainingUsdc:     pf.remainingUsdc,
+    tradeNotionalUsd:  notional,
+    remainingUsd:      pf.remainingUsd,
+    limitUsd:          pf.limitUsd,
+    priceSource,
+    effectivePriceUsd: effectivePrice,
   };
+}
+
+/** Record that a guarded order actually filled (called after Alpaca accepts the order). */
+export async function recordOrderCharge(opts: {
+  notionalUsd: number;
+  orderId:     string;
+  symbol:      string;
+  side:        "buy" | "sell";
+}): Promise<void> {
+  await ledger.recordCharge(opts);
+}
+
+export async function guardStatus() {
+  return ledger.status();
+}
+
+export async function guardSetLimit(limitUsd: number) {
+  return ledger.setDailyLimit(limitUsd);
 }

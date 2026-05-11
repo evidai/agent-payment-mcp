@@ -1,8 +1,7 @@
 {
   "name": "alpaca-guard-mcp",
-  "version": "0.0.1-design",
-  "private": true,
-  "description": "MCP server that wraps the official Alpaca MCP with a LemonCake Pay Token spending guard. Pre-flight every order against a hard USDC cap.",
+  "version": "0.1.0",
+  "description": "MCP server that wraps the Alpaca trading API with a hard daily USD cap. Paper trading by default. Live trading blocked unless explicit opt-in.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -17,24 +16,35 @@
     "mcp",
     "model-context-protocol",
     "alpaca",
+    "alpaca-markets",
     "agentic-trading",
     "ai-agent",
     "spending-cap",
-    "pay-token",
-    "lemoncake",
-    "x402",
-    "guard"
+    "daily-limit",
+    "paper-trading",
+    "guard",
+    "circuit-breaker",
+    "claude",
+    "cursor"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/evidai/lemon-cake.git",
     "directory": "alpaca-guard-mcp"
   },
+  "homepage": "https://github.com/evidai/lemon-cake/tree/main/alpaca-guard-mcp",
+  "bugs": {
+    "url": "https://github.com/evidai/lemon-cake/issues"
+  },
   "license": "MIT",
   "scripts": {
     "build": "tsc",
     "dev":   "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.2"

@@ -1,152 +1,180 @@
 # 🛡️ alpaca-guard-mcp
 
-> **MCP server that wraps the official [Alpaca MCP server](https://github.com/alpacahq/alpaca-mcp-server) with a [LemonCake Pay Token](https://lemoncake.xyz/start) spending guard. Pre-flight every order against a hard USDC cap; refuse anything that would exceed it.**
+> **MCP server that wraps the [Alpaca trading API](https://alpaca.markets/) with a hard daily USD cap. The guard is enforced server-side from a local JSON ledger, so an over-eager AI agent literally cannot exceed it. Paper trading by default. Live trading blocked unless you explicitly opt in.**
 
-**Status**: design + scaffolding only. Implementation gated on positive signal from Alpaca team (LinkedIn DM to Satoshi Ido + email to Claudiu Tiganetea outbound 2026-05-11). Do not publish to npm yet.
+[![npm version](https://img.shields.io/npm/v/alpaca-guard-mcp)](https://www.npmjs.com/package/alpaca-guard-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
+
+```bash
+npx -y alpaca-guard-mcp
+```
 
 ---
 
-## Why
+## 30-second pitch
 
-Alpaca's MCP v2 exposes the trading API directly to LLMs. Powerful, but the biggest objection from teams shipping agentic trading is one specific failure mode:
+[Alpaca's official MCP](https://github.com/alpacahq/alpaca-mcp-server) exposes the Alpaca trading API directly to LLMs. Powerful, but the single biggest objection from teams shipping agentic trading is:
 
 > "What if the AI rage-buys $50k of meme stocks at 3am because the prompt got injected?"
 
-Alpaca's MCP doesn't ship agent-level spending controls (correctly so — that's not Alpaca's job). LemonCake's Pay Token model *is* purpose-built for this:
+Alpaca's MCP doesn't ship agent-level spending controls (correctly so — that's not Alpaca's job). `alpaca-guard-mcp` does:
 
-- A Pay Token is a JWT with `limitUsdc` baked in.
-- The limit is enforced server-side at LemonCake — the agent literally cannot exceed it.
-- KYA (Know-Your-Agent) tier limits add daily / weekly / per-service caps on top.
-- Idempotency keys prevent double-debit on retries.
+- Preflight every order against a **daily USD cap** stored in `~/.alpaca-guard/cap.json`.
+- Refuse the call (with a structured hint the LLM can read) if the trade would breach the cap.
+- Record the charge on success; the cap survives across MCP server restarts and rolls over at UTC midnight.
+- **Paper trading is the default.** Live trading is blocked unless the operator sets `ALPACA_GUARD_ALLOW_LIVE=yes-i-understand`.
 
-`alpaca-guard-mcp` is the bridge: it presents an Alpaca-shaped tool surface to the agent, intercepts the write operations, runs a pre-flight check against the Pay Token's remaining balance, and only forwards to Alpaca if the trade fits.
-
----
-
-## Architecture
-
-```
-┌────────────────────────┐
-│  Agent (Claude / Cursor) │
-└────────────┬───────────┘
-             │  tool call: guarded_place_order(symbol="TSLA", qty=10, …)
-             ▼
-┌────────────────────────────────────────────────────────────────┐
-│                    alpaca-guard-mcp                              │
-│                                                                  │
-│  1. Resolve trade USD value (price * qty * direction)            │
-│  2. POST LemonCake /api/pay-tokens/<id>/preflight                │
-│       → returns { allowed, remainingUsdc, dailyUsedUsdc, ... }   │
-│  3. If !allowed → return { status: BUDGET_EXCEEDED, hint, ... }  │
-│     (never touches Alpaca)                                        │
-│  4. If allowed → forward to Alpaca MCP                           │
-│  5. On Alpaca success → POST LemonCake /charges                  │
-│       (idempotent against the Alpaca order_id)                    │
-│  6. Return Alpaca's response + x402-compatible receipt           │
-└────────────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────┐    ┌────────────────────────┐
-│   Alpaca MCP server    │    │   LemonCake API        │
-│   (alpacahq/...)       │    │   (preflight + charge) │
-└────────────────────────┘    └────────────────────────┘
-```
-
-Key design choice: **alpaca-guard-mcp does NOT replace Alpaca MCP**. It composes with it. Read-only tools (positions, market data, account) pass through unchanged. Only write/spend tools get the pre-flight guard.
+There is no agent-side override. The cap is a circuit breaker, not a suggestion.
 
 ---
 
-## Tool surface (planned)
+## Quickstart
 
-### Guarded (pre-flight check before forwarding to Alpaca)
+### 1. Install (Claude Desktop / Cursor / Cline)
 
-| Tool                       | Notes                                                          |
-| -------------------------- | -------------------------------------------------------------- |
-| `guarded_place_order`      | The big one. Computes notional, pre-flights, charges on fill.  |
-| `guarded_close_position`   | Notional from current price + qty. Refuse if would re-buy > cap. |
-
-### Pass-through to Alpaca (read-only, no spend)
-
-| Tool                  | Notes                          |
-| --------------------- | ------------------------------ |
-| `get_account`         | Account info (balance, equity) |
-| `get_positions`       | Current positions              |
-| `get_orders`          | Open + historical orders       |
-| `get_market_data`     | Bars / quotes / trades         |
-| `cancel_order`        | Refunds the Pay Token charge if order was unfilled |
-
-### LemonCake-specific
-
-| Tool                  | Notes                                                 |
-| --------------------- | ----------------------------------------------------- |
-| `get_pay_token_status` | Current limit / used / remaining USDC / KYA tier      |
-| `setup`               | First-run guide; explains BYOK + Pay Token requirement |
-
----
-
-## Configuration
-
-`alpaca-guard-mcp` requires both an Alpaca key (BYOK, like Alpaca's own MCP) AND a LemonCake Pay Token:
+Add to your MCP client config (`claude_desktop_config.json` or equivalent):
 
 ```json
 {
   "mcpServers": {
     "alpaca-guard": {
       "command": "npx",
-      "args": ["-y", "alpaca-guard-mcp"],
+      "args":    ["-y", "alpaca-guard-mcp"],
       "env": {
-        "ALPACA_API_KEY":         "PK...",
-        "ALPACA_SECRET_KEY":      "...",
-        "ALPACA_PAPER_TRADE":     "true",
-        "LEMON_CAKE_PAY_TOKEN":   "eyJhbGci..."
+        "ALPACA_API_KEY":     "PK...",
+        "ALPACA_SECRET_KEY":  "...",
+        "ALPACA_PAPER_TRADE": "true"
       }
     }
   }
 }
 ```
 
-Note: the user still brings their own Alpaca key. We don't hold it. We just enforce the spending cap on top.
+Restart your MCP client. The 🔨 tools icon should show `alpaca-guard-mcp` tools.
+
+Free Alpaca paper-trading account: https://app.alpaca.markets/paper/dashboard/overview
+
+### 2. Set your daily cap
+
+In your MCP client, ask:
+
+> Set my alpaca-guard daily limit to $50.
+
+The agent will call `guard_set_limit({ dailyLimitUsd: 50 })`. The first-ever default is **$10** as a safety floor.
+
+### 3. Let the agent trade — and watch it refuse the dumb ones
+
+> Buy 1000 NVDA at limit $900.
+
+The agent will call `guarded_place_order`. The guard will preflight: notional = 1000 × $900 = $900,000, remaining = $50, **refused with `BUDGET_EXCEEDED`**.
+
+The hint the agent sees back:
+
+```
+This order would cost ~$900000.00 but only $50.00 remains under today's
+$50.00 cap. Either (a) wait until tomorrow (UTC), (b) call guard_set_limit
+to raise the cap (you decide, not the agent), or (c) split the order into
+smaller qty. The agent cannot override this from inside a tool call.
+```
 
 ---
 
-## Worked example
+## Tools
 
-Pay Token: `limitUsdc=$1000`, `used=$847`.
+| Tool                   | Read-only? | Notes |
+| ---------------------- | :--------: | ----- |
+| `setup`                | ✅ | Env state, mode, current cap, ledger location |
+| `guard_status`         | ✅ | Daily limit / used / remaining / recent 10 orders |
+| `guard_set_limit`      | ❌ | Set the daily USD cap. Idempotent. |
+| `get_account`          | ✅ | Alpaca account snapshot |
+| `get_positions`        | ✅ | Current open positions |
+| `get_latest_quote`     | ✅ | Bid / ask / mid for a symbol |
+| `guarded_place_order`  | ❌ | Place an order; preflighted against the cap |
+| `guarded_close_position` | ❌ | Close a position; preflighted on notional |
 
-Agent calls `guarded_place_order(symbol="NVDA", qty=5, side="buy", type="market")`.
+---
 
-1. We resolve current NVDA market price via `get_market_data` (cheap, ~10ms).
-2. Notional = 5 × $920 = $4,600.
-3. Pre-flight: `$4,600 > $1,000 - $847 = $153 remaining`. **Refuse.**
+## Configuration
 
-Response to the agent:
+| Env var                       | Required | Default | Notes |
+| ----------------------------- | :------: | ------- | ----- |
+| `ALPACA_API_KEY`              | ✅       | —       | From Alpaca dashboard |
+| `ALPACA_SECRET_KEY`           | ✅       | —       | From Alpaca dashboard |
+| `ALPACA_PAPER_TRADE`          | —        | `true`  | Set to `false` for live trading (still requires `ALPACA_GUARD_ALLOW_LIVE`) |
+| `ALPACA_GUARD_ALLOW_LIVE`     | live only | —      | Must literally be `yes-i-understand` to enable real-money orders |
+| `ALPACA_GUARD_LEDGER_DIR`     | —        | `~/.alpaca-guard` | Where `cap.json` lives. Useful for tests / multiple ledgers. |
+| `LEMON_CAKE_PAY_TOKEN`        | —        | —       | Currently unused (v0.1 local-ledger mode). Future: switch the guard to LemonCake's Pay Token preflight when the upstream API ships it. See [issue #4](https://github.com/evidai/lemon-cake/issues/4). |
+
+---
+
+## Worked example (end-to-end via stdio smoke test)
+
+Without any Alpaca credentials, the guard still works for the preflight stage. From the test in this repo:
+
+```bash
+$ ALPACA_GUARD_LEDGER_DIR=/tmp/alpaca-guard-test \
+  echo '{"jsonrpc":"2.0",...,"method":"tools/call","params":{"name":"guarded_place_order",
+        "arguments":{"symbol":"NVDA","qty":1000,"side":"buy","type":"limit","limitPrice":900}}}' \
+  | node dist/index.js
+```
+
+Returns:
 
 ```json
 {
-  "status": "BUDGET_EXCEEDED",
-  "tradeNotionalUsdc": "4600.00",
-  "remainingUsdc":     "153.00",
-  "dailyUsedUsdc":     "847.00",
-  "hint": "This order would cost ~$4600 USD; only $153 remains under the current Pay Token's limit. Either (a) close existing positions to free up cap, (b) split the order into smaller qty, or (c) ask the user to issue a larger Pay Token. Do NOT bypass this — there is no override path from the agent side.",
-  "x402Receipt": null
+  "allowed":          false,
+  "status":           "BUDGET_EXCEEDED",
+  "tradeNotionalUsd": 900000,
+  "remainingUsd":     10,
+  "limitUsd":         10,
+  "hint":             "This order would cost ~$900000.00 but only $10.00 remains ..."
 }
 ```
 
-Note the explicit "**there is no override path from the agent side**" — written for the LLM to read and avoid reasoning its way around the guard.
-
-If approved, the order is forwarded to Alpaca, the order ID is used as the `idempotencyKey` for the LemonCake charge, and the response includes a real `x402Receipt`.
+That preflight ran before any Alpaca call — and would refuse the order **even on a paper account**. With paper credentials added and a sensible cap, the same `guarded_place_order` against a 1-share order at $25 will succeed and record `$25` against the daily ledger.
 
 ---
 
-## Why this is interesting beyond Alpaca
+## How the guard is composed (architecture)
 
-This pattern (`guard-mcp` style wrapper) generalises to any MCP that touches a real-world spending action: payments APIs (Stripe), cloud (AWS), agent compute (E2B), email (Resend), etc. `alpaca-guard-mcp` is the first concrete proof.
+```
+┌──────────────────────────────────┐
+│  Agent (Claude / Cursor / Cline) │
+└────────────┬─────────────────────┘
+             │ tool: guarded_place_order(symbol, qty, side, type, limitPrice?, tif?)
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  alpaca-guard-mcp                                                   │
+│                                                                     │
+│  1. Resolve effective price (limit_input OR get_latest_quote)       │
+│  2. Preflight against ~/.alpaca-guard/cap.json                      │
+│  3. If !allowed → refuse with BUDGET_EXCEEDED (no Alpaca call)      │
+│  4. If allowed → forward to Alpaca REST /v2/orders                  │
+│  5. On success → record charge in ledger (cap.json + history)       │
+│  6. Return Alpaca order + x402-shaped receipt                       │
+└──────────────────┬──────────────────┬──────────────────────────────┘
+                   │                  │
+                   ▼                  ▼
+┌──────────────────────┐   ┌──────────────────────────┐
+│ Alpaca REST          │   │  ~/.alpaca-guard/cap.json │
+│ (paper or live)      │   │  { dailyLimitUsd,         │
+└──────────────────────┘   │    todayUsedUsd,          │
+                           │    history[] }            │
+                           └──────────────────────────┘
+```
 
-If Alpaca-side adoption goes well, expect:
+Read-only tools (`get_account`, `get_positions`, `get_latest_quote`) bypass the guard — they don't spend.
 
-- `aws-guard-mcp` — pre-flight against monthly AWS spend cap
-- `stripe-guard-mcp` — pre-flight against per-transaction cap
-- `sendgrid-guard-mcp` — daily volume cap
+---
+
+## Why the cap is local-file rather than LemonCake API (today)
+
+`alpaca-guard-mcp` is built by the same team as [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) at [lemoncake.xyz](https://www.lemoncake.xyz/start). The eventual goal is for the guard to live on LemonCake's Pay Token preflight endpoint — same daily cap mechanic, but server-side and shared across MCP clients.
+
+That endpoint doesn't exist yet (see [issue #4](https://github.com/evidai/lemon-cake/issues/4)). Until it does, the local ledger is the right shape: zero network dependency, survives restarts, simple to inspect.
+
+When the LemonCake API ships, `LEMON_CAKE_PAY_TOKEN` will be honored: if set, the guard switches to remote preflight. The tool surface stays identical.
 
 ---
 
@@ -154,25 +182,19 @@ If Alpaca-side adoption goes well, expect:
 
 | Phase | Status | Notes |
 | ----- | ------ | ----- |
-| Design doc          | ✅ this file | |
-| Scaffolding         | ✅ src/* skeletons | |
-| BD outreach to Alpaca | ✅ sent 2026-05-11 (Gmail draft id `r349959950295789582`, LinkedIn DM to Satoshi Ido) | |
-| Implementation      | ⏳ gated on Alpaca response or +5 day no-reply (whichever first) | |
-| First publish to npm | ⏳ after impl + manual smoke test on paper trading account | |
-| Listed on Glama / awesome-mcp | ⏳ after at least one external user reports it works | |
-
-If Alpaca returns positive signal → fast-track impl (3-5 days).
-If +5 day silence → ship anyway as MIT under our org, mention in the next Qiita/Zenn article.
+| Phase A: local-ledger guard + paper trading | ✅ shipped v0.1.0 | This release |
+| Phase B: LemonCake Pay Token integration | ⏳ gated | [issue #4](https://github.com/evidai/lemon-cake/issues/4) |
+| Phase C: KYA tier multi-cap (daily + weekly + per-symbol) | ⏳ | After Phase B |
+| Phase D: Listed on Anthropic Connectors Directory | ⏳ | Same submission flow as pay-per-call-mcp |
 
 ---
 
 ## License
 
-MIT (planned). Source code lives at `adhunt-pro/alpaca-guard-mcp/`.
+MIT. Source at [github.com/evidai/lemon-cake/tree/main/alpaca-guard-mcp](https://github.com/evidai/lemon-cake/tree/main/alpaca-guard-mcp).
 
 ## Related
 
-- [Alpaca MCP server v2](https://github.com/alpacahq/alpaca-mcp-server) — the upstream we wrap
-- [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) — the LemonCake MCP that defines Pay Tokens
-- [LemonCake /start](https://www.lemoncake.xyz/start) — interactive playground & docs
-- [GitHub issue #4](https://github.com/evidai/lemon-cake/issues/4) — Phase B (on-chain x402 auto-pay) which this server foreshadows
+- [Alpaca MCP server v2](https://github.com/alpacahq/alpaca-mcp-server) — the upstream this guard wraps (logically; we talk directly to Alpaca REST so we don't depend on it at runtime)
+- [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) — sibling MCP from the same team, where Pay Tokens originate
+- [LemonCake](https://www.lemoncake.xyz/start) — interactive playground & docs
