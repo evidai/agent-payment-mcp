@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CopyCommand } from "./CopyCommand";
 import { TerminalDemo } from "./TerminalDemo";
+import { DemoPlayground } from "./DemoPlayground";
 
 const NPM_COMMAND = "npx -y pay-per-call-mcp";
 const NPM_URL     = "https://www.npmjs.com/package/pay-per-call-mcp";
@@ -123,6 +124,14 @@ export default function StartPage() {
           </div>
         </div>
       </section>
+
+      {/* ───── INTERACTIVE PLAYGROUND ───── */}
+      <Section title="Try it on this page — no install, no signup" eyebrow="Live demo">
+        <p className="text-white/50 text-sm mb-6 max-w-2xl">
+          The widget below hits the same Wikipedia / FX / httpbin upstreams that <code className="font-mono text-[#fffd43]/80">npx -y pay-per-call-mcp</code> uses in Demo Mode. Same response shape, same x402-compatible receipt, $0 charged. If this convinces you the call shape is right, install the MCP server and your agent gets the same JSON back.
+        </p>
+        <DemoPlayground />
+      </Section>
 
       {/* ───── PROBLEMS ───── */}
       <Section title="Why this exists" eyebrow="The friction we kill">
