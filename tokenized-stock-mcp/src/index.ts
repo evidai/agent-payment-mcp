@@ -25,7 +25,7 @@ import {
 import { createRequire } from "node:module";
 
 import {
-  hasCredentials, sandboxMode, liveAllowed, sandboxNote,
+  hasCredentials, sandboxMode, liveAllowed, sandboxNote, credentialStatus,
   listSupportedStocks, getQuote, placeBuyOrder, placeSellOrder,
 } from "./dinari.js";
 import {
@@ -148,11 +148,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     switch (name) {
       case "setup": {
         const st = await guardStatus();
+        const creds = credentialStatus();
         return json({
           version: VERSION,
           mode:    sandboxMode() ? "sandbox" : (liveAllowed() ? "live (explicit opt-in)" : "live (BLOCKED — set TOKENIZED_STOCK_ALLOW_LIVE=yes-i-understand)"),
           envSet: {
-            dinariApiKey:     hasCredentials() ? "✓" : "✗ NOT SET — apply at https://partners.dinari.com",
+            dinariApiKey:     creds.apiKey,
+            dinariAccountId:  creds.accountId,
+            dinariEntityId:   creds.entityId,
+            allCredsReady:    creds.allReady,
             dinariSandbox:    sandboxMode() ? "true (safe default)" : "false (live mode requested)",
             allowLive:        liveAllowed(),
           },

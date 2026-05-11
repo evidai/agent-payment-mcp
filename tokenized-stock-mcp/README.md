@@ -34,7 +34,8 @@ You hand an AI agent the ability to **buy real US stocks paid in USDC** — toke
       "args":    ["-y", "tokenized-stock-mcp"],
       "env": {
         "DINARI_API_KEY":    "...",
-        "DINARI_PARTNER_ID": "...",
+        "DINARI_ACCOUNT_ID": "...",
+        "DINARI_ENTITY_ID":  "...",
         "DINARI_SANDBOX":    "true"
       }
     }
@@ -42,7 +43,12 @@ You hand an AI agent the ability to **buy real US stocks paid in USDC** — toke
 }
 ```
 
-Apply for a Dinari partner key at [partners.dinari.com](https://partners.dinari.com). Sandbox access is granted on first signup; live access requires KYB approval (~1-2 weeks).
+Apply for Dinari partner access at [partners.dinari.com](https://partners.dinari.com). Sandbox access is typically granted on signup; live access requires KYB approval (~1-2 weeks). After signup you'll receive:
+- **API key** (auth, treat like a password)
+- **Account ID** (your trading account UUID)
+- **Entity ID** (your KYB'd legal entity UUID)
+
+All three are required to place orders. Without them, the MCP still loads and tools like `setup` / `list_supported_stocks` / `guard_set_limit` / `guard_status` work — you can inspect everything before going live.
 
 ### 2. Set your daily cap
 
@@ -86,8 +92,10 @@ If the agent tries `amountUsd: 1000`:
 
 | Env var                       | Required | Default | Notes |
 | ----------------------------- | :------: | ------- | ----- |
-| `DINARI_API_KEY`              | ✅       | —       | From partners.dinari.com |
-| `DINARI_PARTNER_ID`           | recommended | — | Required for partner-attributed orders |
+| `DINARI_API_KEY`              | ✅       | —       | Auth — from partners.dinari.com dashboard |
+| `DINARI_ACCOUNT_ID`           | ✅ (orders) | —    | Trading account UUID issued at onboarding |
+| `DINARI_ENTITY_ID`            | ✅ (orders) | —    | KYB'd legal entity UUID |
+| `DINARI_PARTNER_ID`           | —        | falls back to `DINARI_ENTITY_ID` | Legacy alias kept for backward compat |
 | `DINARI_API_BASE`             | —        | `https://api-enterprise.sbt.dinari.com/api/v1` | Override only if Dinari rotates endpoints |
 | `DINARI_SANDBOX`              | —        | `true`  | Set to `false` for real-money orders (still requires `TOKENIZED_STOCK_ALLOW_LIVE`) |
 | `TOKENIZED_STOCK_ALLOW_LIVE`  | live only | —      | Must literally be `yes-i-understand` to enable real-money orders |

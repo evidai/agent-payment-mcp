@@ -14,12 +14,25 @@
 
 const DINARI_API_KEY     = process.env.DINARI_API_KEY     ?? "";
 const DINARI_API_BASE    = process.env.DINARI_API_BASE    ?? "https://api-enterprise.sbt.dinari.com/api/v1";
-const DINARI_PARTNER_ID  = process.env.DINARI_PARTNER_ID  ?? "";
+const DINARI_ACCOUNT_ID  = process.env.DINARI_ACCOUNT_ID  ?? "";
+const DINARI_ENTITY_ID   = process.env.DINARI_ENTITY_ID   ?? "";
+// DINARI_PARTNER_ID kept as alias for backward-compat with v0.1.0 docs;
+// in v0.1.1+ the canonical name is DINARI_ENTITY_ID (matches Dinari's term).
+const DINARI_PARTNER_ID  = process.env.DINARI_PARTNER_ID  ?? DINARI_ENTITY_ID;
 const SANDBOX            = process.env.DINARI_SANDBOX !== "false";  // default sandbox
 const ALLOW_LIVE         = process.env.TOKENIZED_STOCK_ALLOW_LIVE === "yes-i-understand";
 
 export function hasCredentials(): boolean {
   return DINARI_API_KEY.length > 0;
+}
+
+export function credentialStatus() {
+  return {
+    apiKey:    DINARI_API_KEY    ? "✓"   : "✗ NOT SET — get from partners.dinari.com dashboard",
+    accountId: DINARI_ACCOUNT_ID ? "✓"   : "✗ NOT SET — found in Dinari onboarding email or dashboard",
+    entityId:  DINARI_ENTITY_ID  ? "✓"   : "✗ NOT SET — your KYB'd legal entity ID from Dinari",
+    allReady:  !!(DINARI_API_KEY && DINARI_ACCOUNT_ID && DINARI_ENTITY_ID),
+  };
 }
 
 export function sandboxMode(): boolean {
@@ -47,14 +60,18 @@ async function api(path: string, init: RequestInit = {}): Promise<unknown> {
   if (!DINARI_API_KEY) {
     throw new Error("DINARI_API_KEY not set — apply for partner access at https://partners.dinari.com");
   }
-  const res = await fetch(`${DINARI_API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Authorization":  `Bearer ${DINARI_API_KEY}`,
-      "Content-Type":   "application/json",
-      ...(init.headers as Record<string, string> | undefined),
-    },
-  });
+  // Dinari scopes most resource endpoints by entity / account. We pass them
+  // as headers when set; the API also accepts them in the path on some routes
+  // but headers are simpler for a single client wrapper.
+  const headers: Record<string, string> = {
+    "Authorization":  `Bearer ${DINARI_API_KEY}`,
+    "Content-Type":   "application/json",
+    ...(init.headers as Record<string, string> | undefined),
+  };
+  if (DINARI_ENTITY_ID)  headers["X-Dinari-Entity-Id"]  = DINARI_ENTITY_ID;
+  if (DINARI_ACCOUNT_ID) headers["X-Dinari-Account-Id"] = DINARI_ACCOUNT_ID;
+
+  const res = await fetch(`${DINARI_API_BASE}${path}`, { ...init, headers });
   const text = await res.text();
   let body: unknown;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
@@ -120,9 +137,18 @@ export async function getQuote(symbol: string): Promise<Quote | null> {
 
 // ─── orders ───────────────────────────────────────────────────────────────
 
+function orderContext(): Record<string, string> {
+  const ctx: Record<string, string> = {};
+  if (DINARI_ACCOUNT_ID) ctx.account_id = DINARI_ACCOUNT_ID;
+  if (DINARI_ENTITY_ID)  ctx.entity_id  = DINARI_ENTITY_ID;
+  // partner_id retained for Dinari analytics attribution; falls back to entity_id
+  if (DINARI_PARTNER_ID) ctx.partner_id = DINARI_PARTNER_ID;
+  return ctx;
+}
+
 export async function placeBuyOrder(opts: {
-  symbol:        string;
-  amountUsd:     number;
+  symbol:          string;
+  amountUsd:       number;
   recipientWallet: string;  // user's wallet address (pass-through model)
 }): Promise<DinariOrder> {
   assertSafeMode();
@@ -130,18 +156,18 @@ export async function placeBuyOrder(opts: {
   return api("/orders", {
     method: "POST",
     body:   JSON.stringify({
-      side:           "buy",
-      symbol:         opts.symbol,
-      amount_usd:     opts.amountUsd,
-      recipient:      opts.recipientWallet,
-      partner_id:     DINARI_PARTNER_ID,
+      ...orderContext(),
+      side:        "buy",
+      symbol:      opts.symbol,
+      amount_usd:  opts.amountUsd,
+      recipient:   opts.recipientWallet,
     }),
   }) as Promise<DinariOrder>;
 }
 
 export async function placeSellOrder(opts: {
-  symbol:    string;
-  qty:       number;
+  symbol:       string;
+  qty:          number;
   sourceWallet: string;
 }): Promise<DinariOrder> {
   assertSafeMode();
@@ -149,11 +175,11 @@ export async function placeSellOrder(opts: {
   return api("/orders", {
     method: "POST",
     body:   JSON.stringify({
-      side:           "sell",
-      symbol:         opts.symbol,
-      qty:            opts.qty,
-      source:         opts.sourceWallet,
-      partner_id:     DINARI_PARTNER_ID,
+      ...orderContext(),
+      side:    "sell",
+      symbol:  opts.symbol,
+      qty:     opts.qty,
+      source:  opts.sourceWallet,
     }),
   }) as Promise<DinariOrder>;
 }
