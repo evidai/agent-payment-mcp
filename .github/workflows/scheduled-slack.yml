@@ -2,10 +2,13 @@ name: Scheduled Slack Tasks
 
 on:
   schedule:
-    # JST = UTC+9. Times here are UTC. Off-:00/:30 minute jitter to avoid fleet sync.
-    - cron: "12 0 * * *"   # 09:12 JST → xhn-engagement
-    - cron: "8 2 * * *"    # 11:08 JST → daily-prospect
-    - cron: "2 5 * * *"    # 14:02 JST → show-hn-launch
+    # JST = UTC+9. All 3 tasks fire in the JST 20:00-01:00 window — empirically
+    # the user's HN reply-rate sweet spot. Spread 1-2h apart so the user can act
+    # on each digest before the next arrives. Off-:00/:30 minute jitter to avoid
+    # fleet sync on GitHub's runner pool.
+    - cron: "7 11 * * *"   # 20:07 JST → show-hn-launch (newest launches first)
+    - cron: "13 12 * * *"  # 21:13 JST → xhn-engagement (front-page comment opps)
+    - cron: "8 14 * * *"   # 23:08 JST → daily-prospect (prospect digest for next-day outreach)
   workflow_dispatch:
     inputs:
       task:
@@ -39,9 +42,9 @@ jobs:
             echo "task=${{ github.event.inputs.task }}" >> "$GITHUB_OUTPUT"
           else
             case "${{ github.event.schedule }}" in
-              "12 0 * * *")  echo "task=xhn-engagement" >> "$GITHUB_OUTPUT" ;;
-              "8 2 * * *")   echo "task=daily-prospect" >> "$GITHUB_OUTPUT" ;;
-              "2 5 * * *")   echo "task=show-hn-launch" >> "$GITHUB_OUTPUT" ;;
+              "7 11 * * *")  echo "task=show-hn-launch" >> "$GITHUB_OUTPUT" ;;
+              "13 12 * * *") echo "task=xhn-engagement" >> "$GITHUB_OUTPUT" ;;
+              "8 14 * * *")  echo "task=daily-prospect" >> "$GITHUB_OUTPUT" ;;
               *) echo "task=unknown" >> "$GITHUB_OUTPUT" ;;
             esac
           fi
