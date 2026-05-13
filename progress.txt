@@ -1,6 +1,47 @@
 # progress.txt — agent handoff state
 # YAML format. Each session appends a new entry at top.
 
+- iteration: 4
+  date: 2026-05-13
+  agent: Claude (post-shipping reflection session)
+  completed_this_iteration:
+    - HN account hiroto_lemon diagnostic — NOT shadow-banned, all 7 comments visible publicly; root cause is 100% comment-format (7/7 anti-pattern: 1-line questions / wishes)
+    - Drafted Show HN post (kept in conversation): title "Show HN: 4 MCP servers so AI agents can't blow your budget" / URL https://www.lemoncake.xyz/start
+    - Drafted reply to cyberteaborg (Airlock self-upgrade thread) — 3-paragraph experience+data+question structure
+    - Reflected learnings into routines + memory:
+        1. Updated xhn-engagement-opportunity-scan SKILL.md (anti-patterns section, worked example)
+        2. Updated show-hn-launch-monitor SKILL.md (STEP 4.5 karma threshold check via HN user API)
+        3. Created memory feedback_hn_comment_quality.md (pre-flight checklist, lead patterns)
+        4. Updated prd.md with T-1005 (Show HN ready-to-post) + Done timeline (5/9-5/13)
+  shipping_status_snapshot:
+    npm_packages_live:
+      - pay-per-call-mcp@0.5.1
+      - lemon-cake-mcp@0.5.1 (wrapper)
+      - alpaca-guard-mcp@0.1.0
+      - tokenized-stock-mcp@0.1.3
+      - xstocks-mcp@0.1.0
+    user_metrics:
+      hn_account: hiroto_lemon
+      hn_karma: 1
+      hn_age_days: 8
+      glama_profile_views_30d: 820
+      glama_tool_calls_30d: 0
+      glama_score: AAB
+      anthropic_directory_status: submitted 2026-05-08, review by ~2026-05-22
+      dinari_partner_status: sandbox onboarded, KYB pending, Slack invite pending
+      alpaca_bd_status: Claudiu Gmail sent, Satoshi LinkedIn DM drafted (user to send), Yokogawa drafted-but-held
+  notes_to_next_agent: |
+    Show HN is the next big single-event lever. User has karma 1 and a ready draft.
+    Two paths to choose from:
+      (a) Karma-first: comment substantively for 2 weeks per feedback_hn_comment_quality.md
+          rules, reach ≥30 karma, then post Show HN with comfortable threshold
+      (b) Karma 1 attempt: post Show HN now with honest "0 paying users" narrative,
+          accept higher risk of auto-flag, be ready to engage 6-8h immediately after
+
+    Whichever path: when user actually drafts/posts an HN comment, READ
+    feedback_hn_comment_quality.md FIRST and run the 7-item pre-flight checklist
+    against the draft. Do not approve a draft that fails any check.
+
 - iteration: 2
   date: 2026-05-10
   agent: Claude (autonomous protocol session)

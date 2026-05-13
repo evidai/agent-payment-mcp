@@ -36,8 +36,17 @@ Status legend:
 - [~] T-1002  Anthropic Directory submission — SUBMITTED 2026-05-08; awaiting review (~5/22)  WAITING
       status: form already submitted with bundle lemon-cake-0.5.0.mcpb; not actionable until review result lands
 
-- [ ] T-1003  HN karma farming to ≥30 (currently 1) by substantive comments on active threads (3-10 lines, no questions)  USER  ONGOING — only active user task
-      acceptance: profile karma display ≥30; ≥1 comment with score ≥3
+- [ ] T-1003  HN karma farming to ≥30 (currently 1, account `hiroto_lemon` 8 days old) by **3-10 line substantive** comments (experience + numbers + open question, NOT 1-line questions)  USER  ONGOING
+      diagnostic 2026-05-13: NOT shadow-banned (all 7 comments visible publicly); cause is 100% comment-format. 7/7 comments were 1-line questions/wishes — known anti-pattern.
+      playbook: `feedback_hn_comment_quality.md` memory file. Pre-flight checklist before any HN comment.
+      acceptance: profile karma ≥30; ≥1 comment with score ≥3
+
+- [ ] T-1005  Show HN投稿 ready-to-post draft (kept in conversation 2026-05-13)  USER  GATED on T-1003
+      title: "Show HN: 4 MCP servers so AI agents can't blow your budget"
+      url:   https://www.lemoncake.xyz/start
+      body:  4-MCP-family + honest "820 view 0 buyer" narrative + playground hook
+      trigger: karma ≥30 (T-1003) OR user wants to try with karma 1 (risky)
+      best time: Tue or Wed 22:30-23:30 JST = US morning peak. 6-8h on-call needed after submit.
 
 ### User-actionable
 
@@ -70,12 +79,36 @@ Status legend:
 
 ## Done (most recent first)
 
+### 2026-05-13
+- [x] HN コメントクオリティ playbook を memory + routine 両方に反映 (`feedback_hn_comment_quality.md`, xhn-engagement-opportunity-scan SKILL, show-hn-launch-monitor SKILL)
+- [x] Show HN ready-to-post draft 用意（user の karma ≥30 達成後即投稿可能な状態）
+- [x] hiroto_lemon HN account 診断: NOT shadow-banned、全コメント可視、原因 100% comment quality
+
+### 2026-05-11
+- [x] **xstocks-mcp** v0.1.0 公開 — 第4兄弟 MCP、Solana on-chain DEX 経由（Jupiter）、broker 不要・partnership 不要
+- [x] **tokenized-stock-mcp** v0.1.3 公開 — 第3兄弟、Dinari dShares + flat $0.10/trade、Pay Token pass-through
+- [x] **alpaca-guard-mcp** v0.1.0 公開 — 第2兄弟、daily USD cap, paper trading default, fail-CLOSED preflight
+- [x] Dinari パートナー Sandbox onboard 完了 (Slack 招待依頼送信、KYB 残)
+- [x] Alpaca BD outreach 送信 (Claudiu Gmail + Satoshi Ido LinkedIn draft、伝説ラジオ JP-context hook)
+- [x] R4 partnership outreach (indie MCP devs 4社 Gmail 送信、1 X DM 残)
+- [x] tokenized-stocks feasibility 研究 doc 作成 (Backed/xStocks vs Dinari 比較、推奨は Dinari first)
+
+### 2026-05-10
+- [x] T-1004 www.lemoncake.xyz auto-deploy fixed (twitter-image re-export bug → 7d47785)
+- [x] /start playground telemetry 追加 (PlaygroundLog DB + admin/telemetry UI)
+- [x] /start に OG image (Next.js Image Response API) + sitemap + JSON-LD 追加
+- [x] /start LP に Hero CTA 追加 (/about hero に「30 秒で試す」)
+- [x] T-0001/0002/0003 完了 (README rename audit, .mcpb gitignore, x402 parser unit tests)
+- [x] prd.md / progress.txt bootstrap (自律 protocol session)
+
+### 2026-05-09 以前
 - [x] T-0000  v0.5.1 ship: x402-compatible interface (receipt + 402 parser + PAYMENT_PENDING) — issue #4 Phase A
 - [x] /start LP x402-compatible badge + section
 - [x] Glama listing description includes x402-compatible (354 bytes)
 - [x] /start animated terminal demo in hero
 - [x] v0.5.0 npm rename: pay-per-call-mcp + lemon-cake-mcp wrapper
 - [x] Anthropic Directory bundle prep (manifest, /privacy, reviewer docs)
+- [x] Partnership outreach R1-R3 (14社 cold email)
 
 ---
 
