@@ -274,34 +274,45 @@ export default function AboutPage() {
 
       {/* ── Hero ── */}
       <div className="bg-[#fffd43] w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-32 pb-28 text-center">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Code pays code.<br />
-            <span className="text-black">
-              We handle the rest.
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            AIエージェントが自律的にAPIを選び、支払い、完結する。<br className="hidden md:block" />
-            その仕組みをまるごと提供します。
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link
-              href="/start"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
-            >
-              🎮 30 秒で試す（無料） <IconArrowRight />
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
-            >
-              Pay Token を発行する
-            </Link>
+        <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          {/* Image — top on mobile, right on desktop */}
+          <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
+            <img
+              src="/hero-visual.png"
+              alt="LemonCake — AI agent payment infrastructure"
+              className="w-full h-auto drop-shadow-2xl"
+            />
           </div>
-          <p className="text-[12px] text-[#1a0f00]/50 mt-4">
-            <code className="font-mono">npx -y pay-per-call-mcp</code> · サインアップ不要・x402 互換
-          </p>
+          {/* Text — bottom on mobile, left on desktop */}
+          <div className="flex-1 text-center md:text-left order-2 md:order-1">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
+              Code pays code.<br />
+              <span className="text-black">
+                We handle the rest.
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-xl mb-10 leading-relaxed mx-auto md:mx-0">
+              AIエージェントが自律的にAPIを選び、支払い、完結する。<br className="hidden md:block" />
+              その仕組みをまるごと提供します。
+            </p>
+            <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+              <Link
+                href="/start"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
+              >
+                🎮 30 秒で試す（無料） <IconArrowRight />
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
+              >
+                Pay Token を発行する
+              </Link>
+            </div>
+            <p className="text-[12px] text-[#1a0f00]/50 mt-4">
+              <code className="font-mono">npx -y pay-per-call-mcp</code> · サインアップ不要・x402 互換
+            </p>
+          </div>
         </section>
       </div>
 
