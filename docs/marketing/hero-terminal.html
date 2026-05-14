@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LemonCake — hero terminal</title>
+<style>
+  :root {
+    --bg-outer: #050505;
+    --bg-window: #0d0d0e;
+    --border: rgba(255,255,255,0.06);
+    --shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    --text: #e6e6e6;
+    --muted: #6e6e6e;
+    --comment: #5a5a5a;
+    --prompt: #8aff80;
+    --key:   #f0c674;
+    --value-bad: #ff7b72;
+    --value-warn: #f0c674;
+    --ready: #79dac8;
+    --arrow: #6e7681;
+    --accent: #fff35a;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg-outer); }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    -webkit-font-smoothing: antialiased;
+    color: var(--text);
+  }
+  .stage { padding: 60px 40px; width: 1200px; box-sizing: border-box; }
+  .window {
+    background: var(--bg-window);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: flex; align-items: center;
+    height: 44px; padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  }
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .title {
+    flex: 1; text-align: center;
+    color: var(--muted); font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .body {
+    padding: 28px 32px 36px;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .row { white-space: pre; }
+  .comment { color: var(--comment); }
+  .prompt  { color: var(--prompt); }
+  .cmd     { color: var(--text); }
+  .key     { color: var(--key); }
+  .bad     { color: var(--value-bad); }
+  .warn    { color: var(--value-warn); }
+  .ready   { color: var(--ready); }
+  .arrow   { color: var(--arrow); }
+  .em      { color: var(--text); font-weight: 500; }
+  .caption {
+    margin-top: 14px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .caption .pill {
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="window">
+      <div class="titlebar">
+        <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+        <div class="title">~/projects · lemon-cake</div>
+        <div style="width: 48px"></div>
+      </div>
+      <div class="body">
+<div class="row"><span class="comment"># Fresh terminal. No signup. No API keys.</span></div>
+<div class="row"><span class="prompt">$</span> <span class="cmd">npx -y lemon-cake-mcp</span></div>
+<div class="row"><span class="arrow">[lemon-cake-mcp]</span> Starting...</div>
+<div class="row"><span class="key">PAY_TOKEN </span>: <span class="bad">✗ not set</span></div>
+<div class="row"><span class="key">BUYER_JWT </span>: <span class="bad">✗ not set</span></div>
+<div class="row"><span class="key">MODE      </span>: <span class="warn">🎮 DEMO (no signup needed)</span></div>
+<div class="row">&nbsp;</div>
+<div class="row"><span class="arrow">[lemon-cake-mcp]</span> <span class="ready">Ready.</span></div>
+<div class="row">&nbsp;</div>
+<div class="row"><span class="comment"># Inside Claude Desktop, ask:</span></div>
+<div class="row"><span class="prompt">$</span> <span class="em">Search Wikipedia for 'Model Context Protocol' via lemon-cake.</span></div>
+<div class="row">&nbsp;</div>
+<div class="row"><span class="arrow">→</span> Claude picks <span class="em">call_service(serviceId=demo_search)</span> ...</div>
+<div class="row"><span class="arrow">→</span> <span class="ready">200 OK</span> · <span class="em">X-Amount-Usdc: 0.000100</span> · <span class="em">X-Charge-Id: ch_8KqA…</span></div>
+      </div>
+    </div>
+    <div class="caption">↑ live capture · this is what <span class="pill">`npx -y lemon-cake-mcp`</span> actually outputs</div>
+  </div>
+</body>
+</html>
