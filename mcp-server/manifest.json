@@ -1,9 +1,9 @@
 {
   "manifest_version": "0.3",
   "name": "lemon-cake",
-  "display_name": "LemonCake — Give your AI agent a wallet",
-  "version": "0.5.0",
-  "description": "Pay-per-call USDC payments for any HTTP API. Lets AI agents bill themselves through scoped Pay Tokens with hard spending caps, with a marketplace of pre-integrated services (Serper, Hunter.io, Firecrawl, gBizINFO, 国税庁 invoice check, etc.) and Japanese tax compliance baked in.",
+  "display_name": "pay-per-call-mcp — USDC Billing for AI Agents · Demo Mode (no signup)",
+  "version": "0.5.2",
+  "description": "Give your AI agent a USDC wallet. Pay-per-call billing for any HTTP API with x402-compatible receipts, spend limits, and Demo Mode that works instantly — no signup needed. Includes Japan tax invoice check (国税庁).",
   "long_description": "LemonCake is an MCP server that gives any AI agent a wallet. Instead of asking users for 15 different API keys, the agent presents one Pay Token (a JWT with a hard USDC cap, expiry, and service scope) and LemonCake handles per-call billing across the whole marketplace.\n\nWhat works out of the box:\n- list_services / call_service for the marketplace (Serper, Hunter.io, Firecrawl, Jina Reader, IPinfo, OpenExchangeRates, Slack, gBizINFO, 国税庁 invoice check, e-Gov 法令, AbstractAPI VAT, AfterShip, Coze test echo, and more — 16+ live services)\n- check_balance for USDC remaining\n- check_tax for Japanese qualified-invoice / source-withholding compliance\n- get_service_stats for aggregate marketplace numbers\n- setup for an interactive on-boarding walkthrough (no auth required)\n\nDemo mode: if no Pay Token / Buyer JWT is set, the server boots in DEMO MODE so reviewers and curious users can call demo_search / demo_echo / demo_fx without signing up. This lets you exercise the whole tool surface (including call_service) before handing over money.\n\nSafety model: the agent is given a Pay Token JWT with limitUsdc / scope / expiresAt baked in. The agent physically cannot exceed the cap, regardless of prompt-injection or runaway loops. Token revocation is instant.\n\nLearn more: https://lemoncake.xyz | https://github.com/evidai/lemon-cake",
   "author": {
     "name": "Evid AI",
@@ -54,15 +54,15 @@
   "user_config": {
     "pay_token": {
       "type": "string",
-      "title": "Pay Token (JWT)",
-      "description": "Pay Token from your LemonCake dashboard (https://lemoncake.xyz/dashboard). Required for `call_service`. Leave empty to run in DEMO MODE (no real USDC, mock services only). The token has a hard USDC cap, expiry, and service scope baked in — your agent physically cannot exceed these.",
+      "title": "Pay Token — OPTIONAL (leave empty for instant Demo Mode)",
+      "description": "🎮 Leave this EMPTY to try Demo Mode right now — no signup, no account, no USDC needed. Three real free APIs (Wikipedia search, live FX rates, httpbin echo) work immediately.\n\nOnly fill this in when you want to call real paid APIs (Serper, Hunter, Tavily, etc.). Get your Pay Token from https://lemoncake.xyz/dashboard after creating a free account.",
       "sensitive": true,
       "required": false
     },
     "buyer_jwt": {
       "type": "string",
-      "title": "Buyer JWT",
-      "description": "Buyer JWT from your LemonCake dashboard. Required for `check_balance`. Leave empty to use DEMO MODE which returns a mock $1.00 balance.",
+      "title": "Buyer JWT — OPTIONAL (leave empty for Demo Mode)",
+      "description": "🎮 Leave this EMPTY — Demo Mode works without it. Only needed for `check_balance` on a real account.\n\nGet your Buyer JWT from https://lemoncake.xyz/dashboard → API Keys.",
       "sensitive": true,
       "required": false
     },
