@@ -10,7 +10,9 @@
     "render:gif": "remotion render src/index.tsx LaunchVideo out/launch.gif --codec=gif",
     "render:jp": "remotion render src/index.tsx JpLaunch out/launch-jp.mp4 --codec=h264 --crf=18",
     "render:jp-shorts": "remotion render src/index.tsx JpLaunchShorts out/launch-jp-shorts.mp4 --codec=h264 --crf=18",
-    "render:all": "npm run render && npm run render:shorts && npm run render:gif && npm run render:jp && npm run render:jp-shorts",
+    "render:hero": "remotion render src/index.tsx HeroTerminal out/hero-terminal.mp4 --codec=h264 --crf=18",
+    "render:hero-gif": "remotion render src/index.tsx HeroTerminal out/hero-terminal.gif --codec=gif",
+    "render:all": "npm run render && npm run render:shorts && npm run render:gif && npm run render:jp && npm run render:jp-shorts && npm run render:hero",
     "build": "remotion bundle"
   },
   "dependencies": {

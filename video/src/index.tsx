@@ -1,6 +1,7 @@
 import { registerRoot, Composition } from "remotion";
 import { LaunchVideo } from "./LaunchVideo";
 import { JpLaunchVideo } from "./JpLaunchVideo";
+import { HeroTerminal } from "./HeroTerminal";
 
 // Root component — declares every renderable composition
 export const RemotionRoot: React.FC = () => (
@@ -41,6 +42,15 @@ export const RemotionRoot: React.FC = () => (
       width={1080}
       height={1920}
       defaultProps={{ vertical: true }}
+    />
+    {/* 10-second hero terminal — typewriter of `npx -y lemon-cake-mcp` */}
+    <Composition
+      id="HeroTerminal"
+      component={HeroTerminal}
+      durationInFrames={330}
+      fps={30}
+      width={1920}
+      height={1080}
     />
   </>
 );
