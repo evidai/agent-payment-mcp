@@ -4159,7 +4159,7 @@ interface UserProfile {
   } | null;
 }
 
-function AccountSettingsPage({ token, onLogout, onProfileUpdated }: { token: string; onLogout: () => void; onProfileUpdated?: () => void }) {
+function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { token: string; onLogout: () => void; onProfileUpdated?: () => void; isSeller?: boolean }) {
   const t = useT();
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
   const [loading,      setLoading]      = useState(true);
@@ -4408,6 +4408,33 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated }: { token: str
           </div>
         </form>
       </div>
+
+      {/* SELLER_KEY — SDK用 (seller mode only) */}
+      {isSeller && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+          <h2 className="text-sm font-bold text-gray-900 mb-1">{t("SDK 販売者キー","SDK Seller Key")}</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            {t(
+              "@lemon-cake/mcp-sdk で自分の MCP サーバーを収益化するときに使います。環境変数 LEMONCAKE_SELLER_KEY に設定してください。",
+              "Use this with @lemon-cake/mcp-sdk to monetize your own MCP server. Set as the LEMONCAKE_SELLER_KEY environment variable."
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 truncate select-all">
+              {token}
+            </code>
+            <button
+              onClick={() => { navigator.clipboard.writeText(token); }}
+              className="flex-shrink-0 px-4 py-2.5 bg-lemon hover:bg-lemon-hover text-text-primary text-xs font-semibold rounded-xl transition-colors"
+            >
+              {t("コピー","Copy")}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2">
+            {t("このキーは秘密にしてください。漏洩した場合はログアウト→再ログインで無効化できます。","Keep this secret. If leaked, log out and back in to invalidate it.")}
+          </p>
+        </div>
+      )}
 
       {/* ログアウト */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6">
@@ -4724,7 +4751,7 @@ export default function Dashboard() {
           )}
           {page === "seller-stats"     && <SellerStatsPage services={myServices} />}
           {page === "seller-directory" && <DirectoryPage />}
-          {page === "seller-account"   && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} />}
+          {page === "seller-account"   && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} isSeller />}
         </div>
       </main>
 
