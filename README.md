@@ -1,20 +1,22 @@
 <div align="center">
 
-# 🍋 LemonCake
+# agent-payment-mcp — LemonCake
 
 **Give your AI agent a wallet — with a kill switch.**
 
-> JWT-based Pay Tokens + USDC balance management for autonomous
-> Machine-to-Machine payments.
+> JWT-based Pay Tokens + USDC micropayments for autonomous AI agents.  
+> No signup. No API keys. `npx agent-payment-mcp` boots in Demo Mode instantly.
 
 [![License: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](https://lemoncake.xyz)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
-[![npm: pay-per-call-mcp](https://img.shields.io/npm/v/pay-per-call-mcp?label=pay-per-call-mcp)](https://www.npmjs.com/package/pay-per-call-mcp)
-[![npm: eliza-plugin-lemoncake](https://img.shields.io/npm/v/eliza-plugin-lemoncake?label=eliza-plugin-lemoncake)](https://www.npmjs.com/package/eliza-plugin-lemoncake)
+[![npm: agent-payment-mcp](https://img.shields.io/npm/v/agent-payment-mcp?label=agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
+[![npm: xstocks-mcp](https://img.shields.io/npm/v/xstocks-mcp?label=xstocks-mcp)](https://www.npmjs.com/package/xstocks-mcp)
+[![npm: alpaca-guard-mcp](https://img.shields.io/npm/v/alpaca-guard-mcp?label=alpaca-guard-mcp)](https://www.npmjs.com/package/alpaca-guard-mcp)
+[![npm: tokenized-stock-mcp](https://img.shields.io/npm/v/tokenized-stock-mcp?label=tokenized-stock-mcp)](https://www.npmjs.com/package/tokenized-stock-mcp)
+[![npm: @lemon-cake/mcp-sdk](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk?label=%40lemon-cake%2Fmcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
 [![Status](https://img.shields.io/badge/status-private%20beta-fffd43)](https://lemoncake.xyz)
-[![CI](https://github.com/evidai/lemon-cake/actions/workflows/ci.yml/badge.svg)](https://github.com/evidai/lemon-cake/actions/workflows/ci.yml)
-[![Glama MCP Quality Score](https://glama.ai/mcp/servers/evidai/lemon-cake/badge)](https://glama.ai/mcp/servers/evidai/lemon-cake)
-<!-- Glama verification: PASTE_TOKEN_HERE_AFTER_CLAIMING_ON_GLAMA -->
+[![CI](https://github.com/evidai/agent-payment-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/evidai/agent-payment-mcp/actions/workflows/ci.yml)
+[![agent-payment-mcp MCP server](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 
 **[📚 Docs](https://lemoncake.xyz/about) · [🚀 Quickstart](#quickstart) · [📧 Contact](mailto:contact@aievid.com)**
 
@@ -45,7 +47,7 @@ curl -X POST https://lemoncake.xyz/api/tokens \
 
 # 3. Hand it to your agent. Done.
 #    Claude / Cursor:
-npx pay-per-call-mcp
+npx agent-payment-mcp
 #    Eliza v2:
 npm install eliza-plugin-lemoncake
 #    Anything else:
@@ -85,12 +87,12 @@ You                    Agent                   Paid API
 
 ## 🔌 Integrations
 
-### MCP サーバー — `pay-per-call-mcp`
+### MCP サーバー — `agent-payment-mcp`
 
 Claude Desktop・Cursor に **`npx` 一発**で接続できる公式 MCP サーバー。Demo Mode で env vars 空のまま動作（Wikipedia / FX / httpbin が即試せる）。x402-compatible interface。
 
 ```bash
-npx pay-per-call-mcp
+npx agent-payment-mcp
 ```
 
 > 旧パッケージ名 `lemon-cake-mcp` は薄いラッパーとして維持中なので、既存の `npx -y lemon-cake-mcp` configs もそのまま動きます（stderr に deprecation 通知のみ）。
@@ -102,7 +104,7 @@ npx pay-per-call-mcp
   "mcpServers": {
     "pay-per-call": {
       "command": "npx",
-      "args": ["-y", "pay-per-call-mcp"],
+      "args": ["-y", "agent-payment-mcp"],
       "env": {
         "LEMON_CAKE_PAY_TOKEN": "<Pay Token JWT>",
         "LEMON_CAKE_BUYER_JWT": "<Buyer JWT>"
@@ -161,11 +163,22 @@ LEMONCAKE_BUYER_JWT=eyJhbGci...   # 本番運用（呼び出しごとに都度�
 
 ## ✨ Features
 
+### Packages (5)
+
+| Package | What it does |
+|---|---|
+| [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) | Pay-per-call USDC for any HTTP API. Demo Mode: Wikipedia / FX / httpbin, no signup. |
+| [`xstocks-mcp`](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized stocks (AAPLx, TSLAx, SPYx…) via Jupiter DEX on Solana. No broker. |
+| [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) | Trade US stocks via Alpaca Markets with per-session spend caps and kill switch. |
+| [`tokenized-stock-mcp`](https://www.npmjs.com/package/tokenized-stock-mcp) | Buy Dinari dShares (tokenized US stocks) with USDC. Sandbox default. |
+| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | **SDK for MCP developers** — add pay-per-call billing to your own MCP server in 3 lines. |
+
 ### For AI Agents (Buyers)
 - **Pay Token (JWT)** — Scoped, expiring spend authorization. One token per task or session.
 - **402-first design** — Agents receive structured `402 Payment Required` errors with machine-readable codes when budget runs out.
-- **Idempotency keys** — Prevent double charges on retries with `Idempotency-Key` header (auto-assigned by plugins).
+- **Idempotency keys** — Prevent double charges on retries (auto-assigned by plugins).
 - **Real-time balance** — Check remaining USDC before committing to expensive calls.
+- **Kill Switch** — Atomic one-click token revocation. Race-condition-free.
 
 ### For API Providers (Sellers)
 - **Service registry** — Register any REST API. Set price-per-call in USDC.
@@ -174,7 +187,7 @@ LEMONCAKE_BUYER_JWT=eyJhbGci...   # 本番運用（呼び出しごとに都度�
 
 ### Infrastructure
 - **JPYC on-chain deposit** — Charge balance with JPYC (Polygon ERC-20). Auto-verified via TX hash.
-- **Accounting sync** — Auto-post journal entries to freee, QuickBooks, Xero, or Zoho.
+- **KYA (Know Your Agent)** — Tiered spending limits: 10 → 1,000 → 50,000 USDC/day.
 
 ---
 
@@ -270,8 +283,8 @@ GET /api/services?reviewStatus=APPROVED&limit=50
 
 ```bash
 # 1. Clone
-git clone https://github.com/evidai/lemon-cake.git
-cd lemon-cake
+git clone https://github.com/evidai/agent-payment-mcp.git
+cd agent-payment-mcp
 
 # 2. API server
 cd api
@@ -315,17 +328,20 @@ node api/seed_demo.js
 ## 🗺 Roadmap
 
 **Shipped:**
+- [x] **agent-payment-mcp** — USDC pay-per-call for any HTTP API, Demo Mode included
+- [x] **xstocks-mcp** — Jupiter DEX xStocks (AAPLx/TSLAx/SPYx) on Solana mainnet
+- [x] **alpaca-guard-mcp** — Alpaca Markets proxy with spend caps and kill switch
+- [x] **tokenized-stock-mcp** — Dinari dShares with USDC, sandbox default
+- [x] **@lemon-cake/mcp-sdk** — SDK for MCP developers to add Pay Token billing in 3 lines
 - [x] **Kill Switch** — atomic one-click token revocation (race-condition-free)
 - [x] **KYA (Know Your Agent)** — tiered spending limits: 10 → 1,000 → 50,000 USDC/day
-- [x] **Sandbox mode** — full-flow dry-run without moving real USDC
-- [x] MCP server + Eliza v2 plugin published to npm
+- [x] **Sandbox / Demo Mode** — full-flow dry-run without moving real USDC
 - [x] JPYC on-chain deposit with Polygon event-log verification
 
 **Next:**
 - [ ] Panic button — revoke all active tokens for a buyer in one click
-- [ ] Smart contract escrow for trustless settlement
+- [ ] LemonCake marketplace — register and monetize any REST API
 - [ ] Streaming / token-count billing for LLM APIs
-- [ ] Multi-chain support (Ethereum, Solana, Base)
 - [ ] Agent-to-agent sub-token delegation (parent caps child)
 - [ ] Self-hostable edition
 

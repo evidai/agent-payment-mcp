@@ -1,0 +1,58 @@
+{
+  "name": "@lemon-cake/mcp-sdk",
+  "version": "0.1.0",
+  "description": "Stripe for MCP servers — add pay-per-call USDC billing to any MCP tool in 3 lines",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "lemoncake",
+    "usdc",
+    "payments",
+    "ai-agent",
+    "pay-per-call",
+    "billing"
+  ],
+  "homepage": "https://lemoncake.xyz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evidai/agent-payment-mcp.git"
+  },
+  "license": "MIT",
+  "author": "LemonCake <contact@aievid.com>",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "example:basic": "tsx examples/basic.ts",
+    "example:advanced": "tsx examples/advanced.ts"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": ">=1.10.0"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/sdk": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

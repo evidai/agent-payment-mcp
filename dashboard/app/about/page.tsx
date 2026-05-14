@@ -200,6 +200,7 @@ const buyerFeatures = [
 const sellerFeatures = [
   "API を登録して即日マーケットプレイスに公開",
   "AIエージェントという新しい未開拓の顧客層にリーチ",
+  "@lemon-cake/mcp-sdk で自分の MCP サーバーを 3 行で収益化",
   "課金回数・累計収益をリアルタイム集計",
   "審査通過後、サービス利用料がウォレットに自動入金",
   "サービスタイプ・単価を自由に設定",
@@ -209,13 +210,13 @@ const sellerFeatures = [
 const integrations = [
   {
     icon: <IconTerminal />,
-    badge: "npm · pay-per-call-mcp",
+    badge: "npm · agent-payment-mcp",
     title: "MCP サーバー",
     subtitle: "Claude / Cursor に即接続",
-    body: "npx -y pay-per-call-mcp で起動するだけ。claude_desktop_config.json に追記すれば、Claude Desktop・Cursor がすぐに LemonCake の全機能を使えます。",
-    code: `npx -y pay-per-call-mcp`,
+    body: "npx -y agent-payment-mcp で起動するだけ。claude_desktop_config.json に追記すれば、Claude Desktop・Cursor がすぐに LemonCake の全機能を使えます。",
+    code: `npx -y agent-payment-mcp`,
     tools: ["list_services", "call_service", "check_balance", "setup"],
-    href: "https://www.npmjs.com/package/pay-per-call-mcp",
+    href: "https://www.npmjs.com/package/agent-payment-mcp",
     published: true,
   },
   {
@@ -227,6 +228,17 @@ const integrations = [
     code: `npm install eliza-plugin-lemoncake`,
     tools: ["EXECUTE_LEMONCAKE_PAYMENT", "PAY_WITH_LEMONCAKE", "M2M_PAYMENT"],
     href: "https://www.npmjs.com/package/eliza-plugin-lemoncake",
+    published: true,
+  },
+  {
+    icon: <IconStore />,
+    badge: "npm · @lemon-cake/mcp-sdk",
+    title: "MCP SDK（販売者向け）",
+    subtitle: "自分の MCP サーバーを 3 行で収益化",
+    body: "MCP ツールに lc.charge() を 1 行追加するだけで、あなたのサーバーが Pay Token に対応します。デモモード・無料枠・レートリミット・x402 ヘッダー対応をすべて内蔵。",
+    code: `npm install @lemon-cake/mcp-sdk`,
+    tools: ["charge()", "middleware()", "getEarnings()", "demoMode"],
+    href: "https://www.npmjs.com/package/@lemon-cake/mcp-sdk",
     published: true,
   },
 ];
@@ -310,7 +322,7 @@ export default function AboutPage() {
               </Link>
             </div>
             <p className="text-[12px] text-[#1a0f00]/50 mt-4">
-              <code className="font-mono">npx -y pay-per-call-mcp</code> · サインアップ不要・x402 互換
+              <code className="font-mono">npx -y agent-payment-mcp</code> · サインアップ不要・x402 互換
             </p>
           </div>
         </section>
@@ -501,7 +513,7 @@ export default function AboutPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
                   <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Claude / Cursor</p>
-                  <code className="text-[12px] font-mono text-[#fffd43] break-all">npx -y pay-per-call-mcp</code>
+                  <code className="text-[12px] font-mono text-[#fffd43] break-all">npx -y agent-payment-mcp</code>
                 </div>
                 <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
                   <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Eliza v2</p>
@@ -851,7 +863,7 @@ export default function AboutPage() {
               <ul className="flex flex-col gap-2">
                 {[
                   { label: "ダッシュボード", href: "/login" },
-                  { label: "MCP サーバー",  href: "https://www.npmjs.com/package/pay-per-call-mcp" },
+                  { label: "MCP サーバー",  href: "https://www.npmjs.com/package/agent-payment-mcp" },
                   { label: "Eliza Plugin",  href: "https://www.npmjs.com/package/eliza-plugin-lemoncake" },
                   { label: "ドキュメント",  href: "https://lemoncake.xyz/docs" },
                 ].map(({ label, href }) => (
