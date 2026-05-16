@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * xstocks-mcp v0.1
  *
@@ -15,7 +14,7 @@
  *     simultaneously. The agent has no override path.
  *
  * Sibling MCPs (same team, same daily-cap pattern):
- *   - pay-per-call-mcp        — USDC for any HTTP API (Tavily / Hunter / NTA / ...)
+ *   - agent-payment-mcp        — USDC for any HTTP API (Tavily / Hunter / NTA / ...)
  *   - alpaca-guard-mcp        — daily-cap guard for traditional Alpaca brokerage
  *   - tokenized-stock-mcp     — Dinari dShares (centralized, non-EVM)
  *   - xstocks-mcp (this one)  — fully on-chain Solana DEX path
@@ -27,8 +26,6 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { createRequire } from "node:module";
-
 import { findXStockBySymbol, USDC_MINT, buildSwapTransaction } from "./jupiter.js";
 import {
   guardBuy, recordTrade,
@@ -37,12 +34,14 @@ import {
 import {
   liveMode, dryRunReason,
   getPublicKey, getSolBalance, getUsdcBalance, signAndSendSwap,
+  hasFeePayerWallet, getFeePayerPublicKey,
+  isEmbeddedWallet, hasEmbeddedWalletFile, embeddedWalletPath,
 } from "./wallet.js";
 import { FEE_USD } from "./margin.js";
 
-const requireFromHere = createRequire(import.meta.url);
-const VERSION: string =
-  (requireFromHere("../package.json") as { version: string }).version;
+// Injected by esbuild at build time (see build.mjs __VERSION__ define)
+declare const __VERSION__: string;
+const VERSION: string = (typeof __VERSION__ !== "undefined") ? __VERSION__ : "0.1.1";
 
 const INSTRUCTIONS = [
   `xstocks-mcp v${VERSION} — Solana xStocks (USDC → AAPLx/TSLAx/SPYx/...) with a hard daily USD cap.`,
@@ -156,11 +155,27 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return json({
           version: VERSION,
           mode:    liveMode() ? "live (explicit opt-in)" : `dry-run (${dryRunReason()})`,
+          wallet: isEmbeddedWallet()
+            ? {
+                mode:    "embedded (auto-generated)",
+                file:    embeddedWalletPath(),
+                exists:  hasEmbeddedWalletFile(),
+                pubkey:  getPublicKey()?.toBase58() ?? "(will be generated on first use)",
+                hint:    hasEmbeddedWalletFile()
+                  ? "Wallet loaded from local file. Fund this address with USDC to start trading."
+                  : "No wallet yet — one will be auto-generated on first guarded_buy_stock call.",
+              }
+            : {
+                mode:   "explicit (SOLANA_WALLET_PRIVATE_KEY)",
+                pubkey: getPublicKey()?.toBase58() ?? "✗ key parse error",
+              },
           envSet: {
-            solanaWalletPrivateKey: process.env.SOLANA_WALLET_PRIVATE_KEY ? "✓" : "✗ NOT SET — base58 (Phantom export) or [u8;64] JSON",
-            xstocksAllowLive:       liveMode(),
-            solanaRpcUrl:           process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com (default)",
-            jupiterApiBase:         process.env.JUPITER_API_BASE ?? "https://lite-api.jup.ag (default)",
+            xstocksAllowLive: liveMode(),
+            solanaRpcUrl:     process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com (default)",
+            jupiterApiBase:   process.env.JUPITER_API_BASE ?? "https://lite-api.jup.ag (default)",
+            feePayerWallet:   hasFeePayerWallet()
+              ? `✓ ${getFeePayerPublicKey()?.toBase58()} (LemonCake pays SOL gas — users need USDC only)`
+              : "✗ not set — users must provide their own SOL for gas",
           },
           fee: {
             lemoncakePerTradeUsd: FEE_USD,
@@ -175,7 +190,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           },
           docs:     "https://github.com/evidai/lemon-cake/tree/main/xstocks-mcp",
           siblings: [
-            "pay-per-call-mcp (USDC for any HTTP API)",
+            "agent-payment-mcp (USDC for any HTTP API)",
             "alpaca-guard-mcp (traditional Alpaca brokerage guard)",
             "tokenized-stock-mcp (Dinari dShares)",
           ],
@@ -183,24 +198,24 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
 
       case "wallet_status": {
-        const pk = getPublicKey();
-        if (!pk) {
-          return json({
-            configured: false,
-            hint: "Set SOLANA_WALLET_PRIVATE_KEY (base58 or [u8;64] JSON) to enable wallet operations.",
-          });
-        }
-        const sol  = await getSolBalance();
-        const usdc = await getUsdcBalance(USDC_MINT);
+        const pk   = getPublicKey();
+        const sol  = pk ? await getSolBalance()        : null;
+        const usdc = pk ? await getUsdcBalance(USDC_MINT) : null;
+        const gasReady = hasFeePayerWallet() || (typeof sol === "number" && sol >= 0.01);
         return json({
-          configured:  true,
-          publicKey:   pk.toBase58(),
-          solBalance:  sol,
-          usdcBalance: usdc,
-          gasReady:    typeof sol === "number" && sol >= 0.01,
-          note:        typeof sol === "number" && sol < 0.01
-            ? "SOL balance is very low. Need at least ~0.01 SOL (~$1-2) for swap gas. Fund the wallet first."
+          walletMode:   isEmbeddedWallet() ? "embedded (auto-generated, stored locally)" : "explicit key",
+          publicKey:    pk?.toBase58() ?? "(not yet generated)",
+          solBalance:   sol,
+          usdcBalance:  usdc,
+          gasReady,
+          feePayerMode: hasFeePayerWallet()
+            ? `✓ LemonCake fee payer pays SOL gas — USDC only needed`
             : undefined,
+          note: !gasReady
+            ? "Set FEEPAYER_PRIVATE_KEY so LemonCake pays gas, or fund this address with ~0.01 SOL."
+            : !usdc
+              ? `Fund ${pk?.toBase58()} with USDC on Solana to start trading.`
+              : undefined,
         });
       }
 
@@ -301,11 +316,13 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         if (!pk) {
           return json({ allowed: false, status: "WALLET_LOAD_FAILED", hint: "Could not load Solana keypair from SOLANA_WALLET_PRIVATE_KEY." });
         }
-        const base64Tx = await buildSwapTransaction({
-          quote:         decision.quote,
-          userPublicKey: pk.toBase58(),
+        const feePayerPk = getFeePayerPublicKey();
+        const { base64Tx, isLegacy } = await buildSwapTransaction({
+          quote:            decision.quote,
+          userPublicKey:    pk.toBase58(),
+          feePayerPublicKey: feePayerPk?.toBase58(),
         });
-        const txSig = await signAndSendSwap(base64Tx);
+        const txSig = await signAndSendSwap(base64Tx, isLegacy);
         await recordTrade({
           notionalUsd: decision.notionalUsd,
           feeUsd:      FEE_USD,

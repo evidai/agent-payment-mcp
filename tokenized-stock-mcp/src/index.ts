@@ -173,7 +173,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             ledgerFile:    st.ledgerFile,
           },
           docs:    "https://github.com/evidai/lemon-cake/tree/main/tokenized-stock-mcp",
-          siblings: ["pay-per-call-mcp (USDC for any HTTP API)", "alpaca-guard-mcp (traditional broker guard)"],
+          siblings: ["agent-payment-mcp (USDC for any HTTP API)", "alpaca-guard-mcp (traditional broker guard)"],
         });
       }
 

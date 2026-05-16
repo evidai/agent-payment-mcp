@@ -20,7 +20,7 @@ You give your AI agent the ability to **buy real US stocks paying in USDC** — 
 - ✅ **No partnership / KYB wait** — Jupiter is public, xStocks are public mints
 - ✅ **Production-ready today** (Solana mainnet)
 - ✅ **Pay Token pass-through model**: your own Solana wallet signs the swap; LemonCake never custodies USDC
-- ✅ **Sibling MCPs**: works alongside `pay-per-call-mcp` (USDC for APIs), `alpaca-guard-mcp` (Alpaca brokerage guard), `tokenized-stock-mcp` (Dinari dShares)
+- ✅ **Sibling MCPs**: works alongside `agent-payment-mcp` (USDC for APIs), `alpaca-guard-mcp` (Alpaca brokerage guard), `tokenized-stock-mcp` (Dinari dShares)
 
 ---
 
@@ -165,7 +165,7 @@ Industry-leading: lower than Dinari ($0.20 + 0.50%), much lower than Coinbase / 
 
 | MCP | What it does |
 |---|---|
-| [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) | USDC for any HTTP API (Tavily, Hunter, NTA, gBizINFO) |
+| [agent-payment-mcp](https://www.npmjs.com/package/agent-payment-mcp) | USDC for any HTTP API (Tavily, Hunter, NTA, gBizINFO) |
 | [alpaca-guard-mcp](https://www.npmjs.com/package/alpaca-guard-mcp) | Daily-cap guard for traditional Alpaca brokerage |
 | [tokenized-stock-mcp](https://www.npmjs.com/package/tokenized-stock-mcp) | Dinari dShares (centralized, regulated US BD wrapper) |
 | **xstocks-mcp** (this one) | **Fully on-chain Solana DEX path — no partnership, no KYB wait** |

@@ -266,7 +266,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             recipient:        `alpaca:${order.symbol}`,
             paymentIntentId:  order.id,
             settledAt:        new Date().toISOString(),
-            note:             "Alpaca paper-trade (or live) order, charged against the local daily cap. Same shape as pay-per-call-mcp's receipt.",
+            note:             "Alpaca paper-trade (or live) order, charged against the local daily cap. Same shape as agent-payment-mcp's receipt.",
           },
         });
       }

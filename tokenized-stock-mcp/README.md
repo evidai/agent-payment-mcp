@@ -14,7 +14,7 @@ npx -y tokenized-stock-mcp
 
 ## What this is
 
-You hand an AI agent the ability to **buy real US stocks paid in USDC** — tokenized 1:1 via [Dinari](https://dinari.com/dshares) — with a hard daily USD cap that the agent literally cannot override. Sibling to [`pay-per-call-mcp`](https://www.npmjs.com/package/pay-per-call-mcp) (API pay-per-call) and [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) (traditional broker guard).
+You hand an AI agent the ability to **buy real US stocks paid in USDC** — tokenized 1:1 via [Dinari](https://dinari.com/dshares) — with a hard daily USD cap that the agent literally cannot override. Sibling to [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) (API pay-per-call) and [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) (traditional broker guard).
 
 - **Pay Token pass-through model**: your wallet signs the buy; LemonCake does not custody your USDC. Cleaner regulatory profile, no money-transmitter exposure.
 - **Flat $0.10 per trade** LemonCake fee. Industry-normal for wrapper/aggregator (Plaid / Stripe Connect / Lightspeed pricing band).
@@ -164,7 +164,7 @@ Dinari sells tokenized US equities to non-US residents. Supported jurisdictions 
 | Phase B: LemonCake Pay Token preflight integration | ⏳ gated | [issue #4](https://github.com/evidai/lemon-cake/issues/4) — switch from local ledger to remote |
 | Phase C: live trading default-on after partner KYB approval | ⏳ | Pending Dinari partner approval |
 | Phase D: Multi-provider — add Backed/xStocks (Solana SPL) | ⏳ | v0.2 |
-| Phase E: Listed on Anthropic Connectors Directory | ⏳ | Same submission flow as pay-per-call-mcp |
+| Phase E: Listed on Anthropic Connectors Directory | ⏳ | Same submission flow as agent-payment-mcp |
 
 ---
 
@@ -174,7 +174,7 @@ MIT. Source at [github.com/evidai/lemon-cake/tree/main/tokenized-stock-mcp](http
 
 ## Related
 
-- [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) — sibling: USDC for any HTTP API
+- [agent-payment-mcp](https://www.npmjs.com/package/agent-payment-mcp) — sibling: USDC for any HTTP API
 - [alpaca-guard-mcp](https://www.npmjs.com/package/alpaca-guard-mcp) — sibling: daily-cap guard for traditional Alpaca trading
 - [Dinari Finance](https://dinari.com/) — the upstream regulated issuer
 - [LemonCake](https://www.lemoncake.xyz/start) — interactive playground & docs

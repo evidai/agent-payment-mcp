@@ -118,17 +118,22 @@ export async function quoteUsdcToXStock(opts: {
 }
 
 export async function buildSwapTransaction(opts: {
-  quote:                 Quote;
-  userPublicKey:         string;
-  dynamicComputeUnitLimit?: boolean;
+  quote:                      Quote;
+  userPublicKey:              string;
+  feePayerPublicKey?:         string;   // if set → asLegacyTransaction=true, fee payer mode
+  dynamicComputeUnitLimit?:   boolean;
   prioritizationFeeLamports?: number | "auto";
-}): Promise<string> {
+}): Promise<{ base64Tx: string; isLegacy: boolean }> {
+  // Use legacy tx format when a separate fee payer is provided, so we can
+  // modify tx.feePayer before signing. VersionedTransaction (V0) doesn't
+  // allow fee payer to be changed after construction.
+  const isLegacy = !!opts.feePayerPublicKey;
   const body = {
     quoteResponse:               opts.quote.raw,
     userPublicKey:               opts.userPublicKey,
     dynamicComputeUnitLimit:     opts.dynamicComputeUnitLimit ?? true,
     prioritizationFeeLamports:   opts.prioritizationFeeLamports ?? "auto",
-    asLegacyTransaction:         false,
+    asLegacyTransaction:         isLegacy,
   };
   const res = await fetch(`${JUP_API_BASE}/swap/v1/swap`, {
     method:  "POST",
@@ -144,5 +149,5 @@ export async function buildSwapTransaction(opts: {
   if (typeof r.swapTransaction !== "string") {
     throw new Error("Jupiter swap response missing swapTransaction");
   }
-  return r.swapTransaction as string;
+  return { base64Tx: r.swapTransaction as string, isLegacy };
 }

@@ -170,7 +170,7 @@ Read-only tools (`get_account`, `get_positions`, `get_latest_quote`) bypass the 
 
 ## Why the cap is local-file rather than LemonCake API (today)
 
-`alpaca-guard-mcp` is built by the same team as [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) at [lemoncake.xyz](https://www.lemoncake.xyz/start). The eventual goal is for the guard to live on LemonCake's Pay Token preflight endpoint — same daily cap mechanic, but server-side and shared across MCP clients.
+`alpaca-guard-mcp` is built by the same team as [agent-payment-mcp](https://www.npmjs.com/package/agent-payment-mcp) at [lemoncake.xyz](https://www.lemoncake.xyz/start). The eventual goal is for the guard to live on LemonCake's Pay Token preflight endpoint — same daily cap mechanic, but server-side and shared across MCP clients.
 
 That endpoint doesn't exist yet (see [issue #4](https://github.com/evidai/lemon-cake/issues/4)). Until it does, the local ledger is the right shape: zero network dependency, survives restarts, simple to inspect.
 
@@ -185,7 +185,7 @@ When the LemonCake API ships, `LEMON_CAKE_PAY_TOKEN` will be honored: if set, th
 | Phase A: local-ledger guard + paper trading | ✅ shipped v0.1.0 | This release |
 | Phase B: LemonCake Pay Token integration | ⏳ gated | [issue #4](https://github.com/evidai/lemon-cake/issues/4) |
 | Phase C: KYA tier multi-cap (daily + weekly + per-symbol) | ⏳ | After Phase B |
-| Phase D: Listed on Anthropic Connectors Directory | ⏳ | Same submission flow as pay-per-call-mcp |
+| Phase D: Listed on Anthropic Connectors Directory | ⏳ | Same submission flow as agent-payment-mcp |
 
 ---
 
@@ -196,5 +196,5 @@ MIT. Source at [github.com/evidai/lemon-cake/tree/main/alpaca-guard-mcp](https:/
 ## Related
 
 - [Alpaca MCP server v2](https://github.com/alpacahq/alpaca-mcp-server) — the upstream this guard wraps (logically; we talk directly to Alpaca REST so we don't depend on it at runtime)
-- [pay-per-call-mcp](https://www.npmjs.com/package/pay-per-call-mcp) — sibling MCP from the same team, where Pay Tokens originate
+- [agent-payment-mcp](https://www.npmjs.com/package/agent-payment-mcp) — sibling MCP from the same team, where Pay Tokens originate
 - [LemonCake](https://www.lemoncake.xyz/start) — interactive playground & docs

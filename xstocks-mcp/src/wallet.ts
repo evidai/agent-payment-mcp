@@ -1,70 +1,123 @@
 // Solana wallet handling for xstocks-mcp.
 //
-// Mode A (dry-run, default): no key needed. We can quote + simulate but
-//   never sign or send. Safe to install + inspect without funding.
+// Three wallet modes (in priority order):
 //
-// Mode B (live): user provides SOLANA_WALLET_PRIVATE_KEY as a base58 string
-//   (Phantom/Solflare export format) OR a JSON array of 64 bytes (Solana CLI
-//   keypair format). We load it into a Keypair and use it to sign swaps.
-//   Additionally requires XSTOCKS_ALLOW_LIVE=yes-i-understand (matches the
-//   alpaca-guard / tokenized-stock safety pattern).
+//   1. Explicit key (SOLANA_WALLET_PRIVATE_KEY env var)
+//      Base58 (Phantom/Solflare export) or JSON [u8;64] (Solana CLI).
+//      User manages their own key.
+//
+//   2. Embedded wallet (~/.xstocks/wallet.json)
+//      Auto-generated on first use when no explicit key is set.
+//      Key stored locally at 0600 permissions — user owns it, LemonCake never sees it.
+//      No Phantom/Solflare required. Fund the generated address with USDC.
+//
+//   3. Fee payer (FEEPAYER_PRIVATE_KEY env var — LemonCake hot wallet)
+//      Separate from the user wallet. Pays SOL gas on the user's behalf.
+//      Can be combined with modes 1 or 2 above.
+//
+// Live trading requires XSTOCKS_ALLOW_LIVE=yes-i-understand in all modes.
 
 import {
-  Connection, Keypair, PublicKey, VersionedTransaction, sendAndConfirmRawTransaction,
+  Connection, Keypair, PublicKey, Transaction, VersionedTransaction,
+  sendAndConfirmRawTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
-const RAW_KEY  = process.env.SOLANA_WALLET_PRIVATE_KEY ?? "";
-const RPC_URL  = process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
-const ALLOW_LIVE = process.env.XSTOCKS_ALLOW_LIVE === "yes-i-understand";
+const RAW_KEY      = process.env.SOLANA_WALLET_PRIVATE_KEY ?? "";
+const FEEPAYER_KEY = process.env.FEEPAYER_PRIVATE_KEY ?? "";
+const RPC_URL      = process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
+const ALLOW_LIVE   = process.env.XSTOCKS_ALLOW_LIVE === "yes-i-understand";
+
+const WALLET_DIR  = process.env.XSTOCKS_LEDGER_DIR ?? join(homedir(), ".xstocks");
+const WALLET_FILE = join(WALLET_DIR, "wallet.json");
 
 let cachedKeypair: Keypair | null = null;
+let cachedFeePayerKeypair: Keypair | null = null;
+
+// ── Embedded wallet helpers ────────────────────────────────────────────────
+
+export function embeddedWalletPath(): string { return WALLET_FILE; }
+export function hasEmbeddedWalletFile(): boolean { return existsSync(WALLET_FILE); }
+/** True when no explicit SOLANA_WALLET_PRIVATE_KEY → we use the embedded wallet. */
+export function isEmbeddedWallet(): boolean { return !RAW_KEY; }
+
+/** Load existing embedded wallet, or generate + persist a new one. */
+function getOrCreateEmbeddedKeypair(): Keypair {
+  mkdirSync(WALLET_DIR, { recursive: true });
+  if (existsSync(WALLET_FILE)) {
+    return loadKeypairFromString(readFileSync(WALLET_FILE, "utf8"), "embedded wallet");
+  }
+  const kp = Keypair.generate();
+  writeFileSync(WALLET_FILE, JSON.stringify(Array.from(kp.secretKey)), { mode: 0o600 });
+  return kp;
+}
+
+// ── Live mode ──────────────────────────────────────────────────────────────
 
 export function liveMode(): boolean {
-  return RAW_KEY.length > 0 && ALLOW_LIVE;
+  // Wallet is always available (explicit key or auto-generated embedded wallet).
+  // Live is gated solely by the explicit opt-in flag.
+  return ALLOW_LIVE;
 }
 
 export function dryRunReason(): string {
-  if (!RAW_KEY) return "SOLANA_WALLET_PRIVATE_KEY not set";
   if (!ALLOW_LIVE) return "XSTOCKS_ALLOW_LIVE not set to 'yes-i-understand'";
   return "live mode is enabled";
 }
 
-export function getKeypair(): Keypair {
-  if (!RAW_KEY) throw new Error("SOLANA_WALLET_PRIVATE_KEY not set");
-  if (cachedKeypair) return cachedKeypair;
+// ── Keypair loading ────────────────────────────────────────────────────────
 
-  let secret: Uint8Array;
-  const trimmed = RAW_KEY.trim();
-  if (trimmed.startsWith("[")) {
-    // Solana CLI / id.json array format
-    const arr = JSON.parse(trimmed) as number[];
-    if (!Array.isArray(arr) || arr.length !== 64) {
-      throw new Error("SOLANA_WALLET_PRIVATE_KEY (array) must be 64 bytes");
-    }
-    secret = Uint8Array.from(arr);
+export function getKeypair(): Keypair {
+  if (cachedKeypair) return cachedKeypair;
+  if (RAW_KEY) {
+    cachedKeypair = loadKeypairFromString(RAW_KEY, "SOLANA_WALLET_PRIVATE_KEY");
   } else {
-    // Base58 (Phantom / Solflare export)
-    try {
-      secret = bs58.decode(trimmed);
-    } catch {
-      throw new Error("SOLANA_WALLET_PRIVATE_KEY not valid base58");
-    }
-    if (secret.length !== 64) {
-      throw new Error(`SOLANA_WALLET_PRIVATE_KEY decoded length ${secret.length}, expected 64`);
-    }
+    cachedKeypair = getOrCreateEmbeddedKeypair();
   }
-  cachedKeypair = Keypair.fromSecretKey(secret);
   return cachedKeypair;
 }
 
-export function getPublicKey(): PublicKey | null {
-  if (!RAW_KEY) return null;
-  try {
-    return getKeypair().publicKey;
-  } catch {
-    return null;
+/** Load a keypair from a raw key string (base58 or JSON array). */
+function loadKeypairFromString(raw: string, label: string): Keypair {
+  const trimmed = raw.trim();
+  let secret: Uint8Array;
+  if (trimmed.startsWith("[")) {
+    const arr = JSON.parse(trimmed) as number[];
+    if (!Array.isArray(arr) || arr.length !== 64)
+      throw new Error(`${label}: array must be 64 bytes`);
+    secret = Uint8Array.from(arr);
+  } else {
+    try { secret = bs58.decode(trimmed); }
+    catch { throw new Error(`${label}: not valid base58`); }
+    if (secret.length !== 64)
+      throw new Error(`${label}: decoded length ${secret.length}, expected 64`);
   }
+  return Keypair.fromSecretKey(secret);
+}
+
+/** LemonCake fee-payer keypair — pays SOL gas so users don't need SOL. */
+export function getFeePayerKeypair(): Keypair | null {
+  if (!FEEPAYER_KEY) return null;
+  if (cachedFeePayerKeypair) return cachedFeePayerKeypair;
+  cachedFeePayerKeypair = loadKeypairFromString(FEEPAYER_KEY, "FEEPAYER_PRIVATE_KEY");
+  return cachedFeePayerKeypair;
+}
+
+export function getFeePayerPublicKey(): PublicKey | null {
+  return getFeePayerKeypair()?.publicKey ?? null;
+}
+
+/** True when a fee payer is configured — users don't need SOL. */
+export function hasFeePayerWallet(): boolean {
+  return FEEPAYER_KEY.length > 0;
+}
+
+export function getPublicKey(): PublicKey | null {
+  try { return getKeypair().publicKey; }
+  catch { return null; }
 }
 
 let cachedConnection: Connection | null = null;
@@ -106,22 +159,50 @@ export async function getUsdcBalance(usdcMint: string): Promise<number | null> {
 }
 
 /**
- * Sign + send a Jupiter-built swap transaction (base64-encoded versioned tx).
- * Returns the transaction signature on success.
+ * Sign + send a Jupiter swap transaction.
+ *
+ * Two modes:
+ *   - Fee payer configured (FEEPAYER_PRIVATE_KEY set):
+ *       Jupiter returns a legacy Transaction. We set feePayer = LemonCake hot
+ *       wallet, then sign with [feePayerKeypair, userKeypair]. User needs no SOL.
+ *   - No fee payer:
+ *       Jupiter returns a VersionedTransaction. User signs + pays gas themselves.
+ *
+ * @param base64Tx  base64-encoded transaction from buildSwapTransaction()
+ * @param isLegacy  true when Jupiter was asked for asLegacyTransaction (fee payer mode)
  */
-export async function signAndSendSwap(base64Tx: string): Promise<string> {
+export async function signAndSendSwap(base64Tx: string, isLegacy = false): Promise<string> {
   if (!liveMode()) throw new Error(`Refusing to send: ${dryRunReason()}`);
-  const kp   = getKeypair();
-  const conn = getConnection();
+  const userKp = getKeypair();
+  const conn   = getConnection();
+  const buf    = Buffer.from(base64Tx, "base64");
 
-  const buf  = Uint8Array.from(Buffer.from(base64Tx, "base64"));
-  const tx   = VersionedTransaction.deserialize(buf);
-  tx.sign([kp]);
+  if (isLegacy) {
+    // Fee payer mode: legacy transaction, LemonCake pays gas
+    const feePayerKp = getFeePayerKeypair();
+    if (!feePayerKp) throw new Error("isLegacy=true but FEEPAYER_PRIVATE_KEY not set");
 
-  const sig = await sendAndConfirmRawTransaction(conn, Buffer.from(tx.serialize()), {
-    skipPreflight:    false,
-    commitment:       "confirmed",
-    maxRetries:       3,
-  });
-  return sig;
+    const tx      = Transaction.from(buf);
+    tx.feePayer   = feePayerKp.publicKey;
+    // sign() compiles the message with the new feePayer, then signs with both keys
+    tx.sign(feePayerKp, userKp);
+
+    const sig = await sendAndConfirmRawTransaction(conn, tx.serialize(), {
+      skipPreflight: false,
+      commitment:    "confirmed",
+      maxRetries:    3,
+    });
+    return sig;
+  } else {
+    // Standard mode: versioned transaction, user pays gas
+    const tx = VersionedTransaction.deserialize(Uint8Array.from(buf));
+    tx.sign([userKp]);
+
+    const sig = await sendAndConfirmRawTransaction(conn, Buffer.from(tx.serialize()), {
+      skipPreflight: false,
+      commitment:    "confirmed",
+      maxRetries:    3,
+    });
+    return sig;
+  }
 }
