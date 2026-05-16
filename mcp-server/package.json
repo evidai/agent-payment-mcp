@@ -1,10 +1,12 @@
 {
-  "name": "pay-per-call-mcp",
-  "version": "0.5.1",
-  "description": "Pay-per-call USDC payments for any HTTP API. Give your AI agent a wallet — M2M finance, agent payments, Japan tax invoice check. (formerly lemon-cake-mcp)",
+  "name": "agent-payment-mcp",
+  "mcpName": "io.github.evidai/agent-payment",
+  "version": "0.6.1",
+  "description": "AI agent payment MCP server — USDC micropayments for any HTTP API, with kill switch and spend limits. No signup needed (Demo Mode). Formerly pay-per-call-mcp.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
+    "agent-payment-mcp": "./dist/index.js",
     "pay-per-call-mcp": "./dist/index.js"
   },
   "files": [
@@ -36,11 +38,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/evidai/lemon-cake.git"
+    "url": "https://github.com/evidai/agent-payment-mcp.git"
   },
   "homepage": "https://lemoncake.xyz",
   "bugs": {
-    "url": "https://github.com/evidai/lemon-cake/issues"
+    "url": "https://github.com/evidai/agent-payment-mcp/issues"
   },
   "license": "MIT",
   "scripts": {

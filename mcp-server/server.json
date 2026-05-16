@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.evidai/agent-payment",
+  "description": "USDC micropayments for AI agents. Pay-per-call any HTTP API. Kill switch + spend limits.",
+  "repository": {
+    "url": "https://github.com/evidai/agent-payment-mcp",
+    "source": "github"
+  },
+  "version": "0.6.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "agent-payment-mcp",
+      "version": "0.6.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LEMON_CAKE_BUYER_JWT",
+          "description": "Buyer JWT from lemoncake.xyz dashboard. Leave unset for Demo Mode (no charges).",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

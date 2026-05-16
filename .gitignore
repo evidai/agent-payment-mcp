@@ -38,6 +38,7 @@ __pycache__/
 !package.json
 !package-lock.json
 !**/tsconfig.json
+!**/server.json
 !**/tsconfig.*.json
 !api/prisma/schema.prisma
 !glama.json

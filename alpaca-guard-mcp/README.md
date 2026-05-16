@@ -1,8 +1,9 @@
-# 🛡️ alpaca-guard-mcp
+# alpaca-guard-mcp — Alpaca Trading Guard MCP Server
 
-> **MCP server that wraps the [Alpaca trading API](https://alpaca.markets/) with a hard daily USD cap. The guard is enforced server-side from a local JSON ledger, so an over-eager AI agent literally cannot exceed it. Paper trading by default. Live trading blocked unless you explicitly opt in.**
+> MCP server wrapping the [Alpaca trading API](https://alpaca.markets/) with a hard daily USD cap guard. Enforced server-side — an over-eager AI agent literally cannot exceed it. Paper trading by default; live trading requires explicit opt-in.
 
 [![npm version](https://img.shields.io/npm/v/alpaca-guard-mcp)](https://www.npmjs.com/package/alpaca-guard-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 

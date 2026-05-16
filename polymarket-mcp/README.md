@@ -1,13 +1,15 @@
-# polymarket-mcp
+# polymarket-guard-mcp — Polymarket Prediction Markets MCP Server
 
-MCP server for [Polymarket](https://polymarket.com) prediction markets — buy/sell positions with USDC pay-per-call billing via [LemonCake](https://lemoncake.xyz).
+> Buy/sell positions on [Polymarket](https://polymarket.com) prediction markets, paying in USDC with per-call billing via [LemonCake](https://lemoncake.xyz). Read-only mode works with no credentials.
 
-A fork of `@iqai/mcp-polymarket` that adds per-call USDC billing using `@lemon-cake/mcp-sdk`.
+[![npm version](https://img.shields.io/npm/v/polymarket-guard-mcp)](https://www.npmjs.com/package/polymarket-guard-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 ## Installation
 
 ```bash
-npx polymarket-mcp
+npx polymarket-guard-mcp
 ```
 
 Or add to your MCP client (Claude Desktop, Cursor, etc.):

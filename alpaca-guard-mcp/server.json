@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.evidai/alpaca-guard",
+  "description": "Alpaca trading API with hard daily USD cap guard. Paper trading default; live opt-in.",
+  "repository": {
+    "url": "https://github.com/evidai/agent-payment-mcp",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "alpaca-guard-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ALPACA_API_KEY",
+          "description": "Alpaca API key. Leave unset for paper trading mode.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "ALPACA_SECRET_KEY",
+          "description": "Alpaca secret key.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
