@@ -3,6 +3,7 @@
 > **MCP server to buy/sell tokenized US stocks (Dinari `dShares`) paying directly in USDC. Hard daily USD cap enforced server-side. Pay Token pass-through model — LemonCake never custodies your USDC. Sandbox is the default.**
 
 [![npm version](https://img.shields.io/npm/v/tokenized-stock-mcp)](https://www.npmjs.com/package/tokenized-stock-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 
