@@ -1,0 +1,50 @@
+{
+  "$schema": "https://open-plugins.com/schema/mcp.json",
+  "name": "agent-payment-mcp",
+  "displayName": "agent-payment-mcp",
+  "description": "USDC pay-per-call billing for AI agents. Give Claude a wallet with a hard daily spend cap. Demo Mode works with zero signup.",
+  "version": "0.6.1",
+  "license": "MIT",
+  "homepage": "https://lemoncake.xyz/start",
+  "repository": "https://github.com/evidai/agent-payment-mcp",
+  "author": {
+    "name": "evidai",
+    "email": "contact@aievid.com",
+    "url": "https://lemoncake.xyz"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "agent-wallet",
+    "payment",
+    "pay-per-call",
+    "usdc",
+    "stablecoin",
+    "micropayments",
+    "billing",
+    "web3",
+    "autonomous"
+  ],
+  "category": "finance",
+  "transport": ["stdio"],
+  "command": "npx",
+  "args": ["-y", "agent-payment-mcp"],
+  "env": {
+    "LEMON_CAKE_PAY_TOKEN": {
+      "description": "Pay Token JWT issued from lemoncake.xyz dashboard. Required for paid services. Optional in Demo Mode.",
+      "required": false
+    },
+    "LEMON_CAKE_BUYER_JWT": {
+      "description": "Buyer session JWT for balance lookups. Optional in Demo Mode.",
+      "required": false
+    }
+  },
+  "examples": [
+    "Check my USDC balance",
+    "Search for AI startups 2026 using Serper",
+    "Find the email of Anthropic's CEO with Hunter.io",
+    "Verify Japanese tax invoice number T1010401123456"
+  ],
+  "tags": ["finance", "payments", "ai", "web3", "mcp"]
+}

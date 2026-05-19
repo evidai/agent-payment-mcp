@@ -42,6 +42,7 @@ __pycache__/
 !**/tsconfig.*.json
 !api/prisma/schema.prisma
 !glama.json
+!mcp.json
 !mcp-server/claude_desktop_config.example.json
 scraper.py
 lemon_cake_slides.js
