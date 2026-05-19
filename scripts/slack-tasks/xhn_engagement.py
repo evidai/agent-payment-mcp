@@ -97,15 +97,29 @@ def _freshness_badge(age_hours: float) -> str:
 
 
 def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> str:
+    # Find the single pick_today item (if any). Show it prominently at top with full draft.
+    pick_idx = next((i for i, e in enumerate(enriched) if e.get("pick_today")), None)
+
     lines = [
-        f"{today_iso()} X/HN エンゲージメント候補 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h、返信率重視で並び替え",
+        f"{today_iso()} X/HN エンゲージメント候補 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h、返信率重視",
+        "",
+        "**ポスト再開モード (post-green careful re-entry)**",
+        "- カルマ低いので **1 日 1 件まで** 投稿。下の ⭐ マークの 1 件を選んで貼る。",
+        "- 残りは「明日以降の参考」リストとして surface のみ。",
         "",
     ]
+    if pick_idx is None:
+        lines.append("(LLM が今日の pick を選べなかった。下のリストから手動で 1 件選んで判断)")
+        lines.append("")
+
     for rank, (it, e) in enumerate(zip(items, enriched), 1):
         h = it["h"]
         age = it["age_hours"]
         skip = e.get("skip_reason") or ""
-        lines.append(f"【{rank}】(原題) {h.get('title','')}  ({h.get('points',0)}pt / {h.get('num_comments',0)}c)")
+        is_pick = e.get("pick_today") is True
+
+        marker = "⭐ 今日の 1 件" if is_pick else f"【{rank}】"
+        lines.append(f"{marker} (原題) {h.get('title','')}  ({h.get('points',0)}pt / {h.get('num_comments',0)}c)")
         lines.append(f"  投稿: {age:.1f} 時間前  {_freshness_badge(age)}")
         lines.append(f"  マッチ: {', '.join(it['m'][:5])}")
         if h.get("url"):
@@ -123,9 +137,17 @@ def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> s
         comment_jp = (e.get("comment_jp") or "").strip()
         karma = (e.get("karma_intent") or "").strip()
 
+        # For non-pick items, hide the full draft to reduce clutter (still keep title + URL).
+        if not is_pick and pick_idx is not None:
+            lines.append("  (明日以降の参考候補。ドラフトは pick が変わったら自動生成)")
+            lines.append("")
+            lines.append("─" * 40)
+            lines.append("")
+            continue
+
         if comment_en:
             lines.append("")
-            lines.append("  HN コメント案 (英、そのまま貼れる):")
+            lines.append("  HN コメント案 (英、80-150 words、観察者リード、そのまま貼れる):")
             for line in comment_en.split("\n"):
                 lines.append(f"    {line}")
             lines.append("")

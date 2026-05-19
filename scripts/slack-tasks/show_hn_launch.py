@@ -125,11 +125,12 @@ def _freshness_badge(age_hours: float) -> str:
     return "🔴 (返信率低下)"
 
 
-def _item_header(rank: int, h: dict, m: list[str], is_show: bool, age_hours: float) -> list[str]:
+def _item_header(rank: int, h: dict, m: list[str], is_show: bool, age_hours: float, marker: str | None = None) -> list[str]:
     prefix = "[Show HN] " if is_show else "[FrontPage] "
     cat = categorize(m)
+    head = marker if marker else f"【{rank}】"
     lines = [
-        f"【{rank}】{prefix}(原題) {h.get('title','')[:90]}  ({h.get('points',0)}pt / {h.get('num_comments',0)}c)",
+        f"{head} {prefix}(原題) {h.get('title','')[:90]}  ({h.get('points',0)}pt / {h.get('num_comments',0)}c)",
         f"  投稿: {age_hours:.1f} 時間前  {_freshness_badge(age_hours)}",
         f"  カテゴリ: {cat}",
         f"  マッチ: {', '.join(m[:5])}",
@@ -143,16 +144,36 @@ def _item_header(rank: int, h: dict, m: list[str], is_show: bool, age_hours: flo
 
 
 def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> str:
+    pick_idx = next((i for i, e in enumerate(enriched) if e.get("pick_today")), None)
+
     lines = [
-        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h、返信率重視で並び替え",
+        f"{today_iso()} Show HN / 新着ローンチ監視 ({len(items)} 件 / 走査 {total} 件中) — 直近 8h、返信率重視",
+        "",
+        "**ポスト再開モード (post-green careful re-entry)**",
+        "- カルマ低いので **1 日 1 件まで** 投稿。下の ⭐ マークの 1 件を選んで貼る。",
+        "- 残りは「明日以降の参考」リストとして surface のみ。",
         "",
     ]
+    if pick_idx is None:
+        lines.append("(LLM が今日の pick を選べなかった。下のリストから手動で 1 件選んで判断)")
+        lines.append("")
+
     for rank, (it, e) in enumerate(zip(items, enriched), 1):
-        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"], it["age_hours"]))
+        is_pick = e.get("pick_today") is True
+        marker = "⭐ 今日の 1 件" if is_pick else None
+        lines.extend(_item_header(rank, it["h"], it["m"], it["is_show"], it["age_hours"], marker=marker))
 
         skip = (e.get("skip_reason") or "").strip()
         if skip:
             lines.append(f"  ⏭️ スキップ推奨: {skip}")
+            lines.append("")
+            lines.append("─" * 40)
+            lines.append("")
+            continue
+
+        # For non-pick items, hide the full draft (reduce clutter).
+        if not is_pick and pick_idx is not None:
+            lines.append("  (明日以降の参考候補。ドラフトは pick が変わったら自動生成)")
             lines.append("")
             lines.append("─" * 40)
             lines.append("")
@@ -164,7 +185,7 @@ def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> s
 
         if comment_en:
             lines.append("")
-            lines.append("  HN コメント案 (英、そのまま貼れる):")
+            lines.append("  HN コメント案 (英、80-150 words、観察者リード、そのまま貼れる):")
             for line in comment_en.split("\n"):
                 lines.append(f"    {line}")
             lines.append("")
