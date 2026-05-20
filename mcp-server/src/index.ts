@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LemonCake MCP Server v0.2.0
+ * agent-payment-mcp v0.6.0
  *
  * AIエージェントにLemonCakeの決済インフラを提供するMCPサーバー。
  *
@@ -861,12 +861,32 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
         if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
-        const fetchOptions: RequestInit = { method, headers };
+        // SECURITY / RESILIENCE: previously there was no fetch timeout — a
+        // slow / hung upstream could keep the agent's call open indefinitely.
+        // (H-06 of the 2026-05 @kleosr forensic audit.)
+        // Default to 30s; callers can override per-call via
+        // LEMONCAKE_CALL_TIMEOUT_MS env var (1s–600s).
+        const timeoutRaw = parseInt(process.env.LEMONCAKE_CALL_TIMEOUT_MS ?? "30000", 10);
+        const timeoutMs = Math.min(Math.max(isNaN(timeoutRaw) ? 30000 : timeoutRaw, 1000), 600000);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        const fetchOptions: RequestInit = { method, headers, signal: controller.signal };
         if (body && ["POST", "PUT", "PATCH"].includes(method)) {
           fetchOptions.body = JSON.stringify(body);
         }
 
-        const res = await fetch(url, fetchOptions);
+        let res: Response;
+        try {
+          res = await fetch(url, fetchOptions);
+        } catch (err) {
+          if ((err as { name?: string }).name === "AbortError") {
+            throw new Error(`Upstream call exceeded ${timeoutMs}ms timeout`);
+          }
+          throw err;
+        } finally {
+          clearTimeout(timeoutId);
+        }
         const chargeId   = res.headers.get("X-Charge-Id");
         const amountUsdc = res.headers.get("X-Amount-Usdc");
 

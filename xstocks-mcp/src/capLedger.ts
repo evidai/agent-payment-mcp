@@ -11,6 +11,22 @@ const DEFAULT_DAILY_LIMIT_USD = 25;
 const LEDGER_DIR  = process.env.XSTOCKS_LEDGER_DIR ?? path.join(os.homedir(), ".xstocks");
 const LEDGER_FILE = path.join(LEDGER_DIR, "cap.json");
 
+// H-4 of 2026-05 @kleosr forensic audit — serialise read/modify/write so
+// concurrent trades don't lose each other's charge totals. Single-process
+// async mutex; switch to a file lock if you ever run multiple processes
+// against the same ledger.
+let mutexChain: Promise<unknown> = Promise.resolve();
+function withLedgerLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = mutexChain.then(fn, fn);
+  mutexChain = next.catch(() => undefined);
+  return next;
+}
+async function atomicWrite(p: string, contents: string): Promise<void> {
+  const tmp = `${p}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, contents);
+  await fs.rename(tmp, p);
+}
+
 export type LedgerState = {
   dailyLimitUsd:  number;
   todayDate:      string;
@@ -60,17 +76,19 @@ export async function load(): Promise<LedgerState> {
 
 export async function save(s: LedgerState): Promise<void> {
   await fs.mkdir(LEDGER_DIR, { recursive: true });
-  await fs.writeFile(LEDGER_FILE, JSON.stringify(s, null, 2));
+  await atomicWrite(LEDGER_FILE, JSON.stringify(s, null, 2));
 }
 
 export async function setDailyLimit(limitUsd: number): Promise<LedgerState> {
   if (!Number.isFinite(limitUsd) || limitUsd < 0) {
     throw new Error("dailyLimitUsd must be a non-negative finite number");
   }
-  const s = await load();
-  s.dailyLimitUsd = limitUsd;
-  await save(s);
-  return s;
+  return withLedgerLock(async () => {
+    const s = await load();
+    s.dailyLimitUsd = limitUsd;
+    await save(s);
+    return s;
+  });
 }
 
 export type Preflight =
@@ -99,21 +117,23 @@ export async function recordTrade(opts: {
   symbol:      string;
   side:        "buy" | "sell";
 }): Promise<LedgerState> {
-  const s = await load();
-  s.todayUsedUsd  += opts.notionalUsd;
-  s.lifetimeOrders += 1;
-  s.history.unshift({
-    date:     s.todayDate,
-    notional: opts.notionalUsd,
-    feeUsd:   opts.feeUsd,
-    txSig:    opts.txSig,
-    symbol:   opts.symbol,
-    side:     opts.side,
-    at:       new Date().toISOString(),
+  return withLedgerLock(async () => {
+    const s = await load();
+    s.todayUsedUsd  += opts.notionalUsd;
+    s.lifetimeOrders += 1;
+    s.history.unshift({
+      date:     s.todayDate,
+      notional: opts.notionalUsd,
+      feeUsd:   opts.feeUsd,
+      txSig:    opts.txSig,
+      symbol:   opts.symbol,
+      side:     opts.side,
+      at:       new Date().toISOString(),
+    });
+    s.history = s.history.slice(0, 100);
+    await save(s);
+    return s;
   });
-  s.history = s.history.slice(0, 100);
-  await save(s);
-  return s;
 }
 
 export async function status() {

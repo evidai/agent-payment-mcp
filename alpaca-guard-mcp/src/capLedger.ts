@@ -14,6 +14,31 @@ const DEFAULT_DAILY_LIMIT_USD = 10;  // safe default for paper trading
 const LEDGER_DIR  = process.env.ALPACA_GUARD_LEDGER_DIR  ?? path.join(os.homedir(), ".alpaca-guard");
 const LEDGER_FILE = path.join(LEDGER_DIR, "cap.json");
 
+// SECURITY: serialise ledger read/modify/write operations so two concurrent
+// tool calls within the same MCP server process cannot both read the same
+// state, both add their charge, and have the later writer overwrite the
+// earlier one — losing the earlier charge from the daily total.
+// (H-4 of the 2026-05 @kleosr forensic audit.)
+//
+// This is in-process only — a single MCP server has a single Node event
+// loop so an async mutex is sufficient. If you ever run multiple processes
+// against the same ledger file you must switch to an OS-level file lock.
+let mutexChain: Promise<unknown> = Promise.resolve();
+function withLedgerLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = mutexChain.then(fn, fn);
+  mutexChain = next.catch(() => undefined);
+  return next;
+}
+
+async function atomicWrite(p: string, contents: string): Promise<void> {
+  // Write to a temp file in the same directory then rename — POSIX rename
+  // is atomic on the same filesystem, so readers never see a partial file
+  // and a crash mid-write doesn't corrupt the ledger.
+  const tmp = `${p}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, contents);
+  await fs.rename(tmp, p);
+}
+
 export type LedgerState = {
   dailyLimitUsd: number;
   todayDate:     string;   // ISO YYYY-MM-DD in UTC
@@ -65,17 +90,19 @@ export async function load(): Promise<LedgerState> {
 
 export async function save(state: LedgerState): Promise<void> {
   await fs.mkdir(LEDGER_DIR, { recursive: true });
-  await fs.writeFile(LEDGER_FILE, JSON.stringify(state, null, 2));
+  await atomicWrite(LEDGER_FILE, JSON.stringify(state, null, 2));
 }
 
 export async function setDailyLimit(limitUsd: number): Promise<LedgerState> {
   if (!Number.isFinite(limitUsd) || limitUsd < 0) {
     throw new Error("dailyLimitUsd must be a non-negative finite number");
   }
-  const s = await load();
-  s.dailyLimitUsd = limitUsd;
-  await save(s);
-  return s;
+  return withLedgerLock(async () => {
+    const s = await load();
+    s.dailyLimitUsd = limitUsd;
+    await save(s);
+    return s;
+  });
 }
 
 export type Preflight =
@@ -110,21 +137,23 @@ export async function recordCharge(opts: {
   symbol:      string;
   side:        "buy" | "sell";
 }): Promise<LedgerState> {
-  const s = await load();
-  s.todayUsedUsd  += opts.notionalUsd;
-  s.lifetimeOrders += 1;
-  s.history.unshift({
-    date:     s.todayDate,
-    notional: opts.notionalUsd,
-    orderId:  opts.orderId,
-    symbol:   opts.symbol,
-    side:     opts.side,
-    at:       new Date().toISOString(),
+  return withLedgerLock(async () => {
+    const s = await load();
+    s.todayUsedUsd  += opts.notionalUsd;
+    s.lifetimeOrders += 1;
+    s.history.unshift({
+      date:     s.todayDate,
+      notional: opts.notionalUsd,
+      orderId:  opts.orderId,
+      symbol:   opts.symbol,
+      side:     opts.side,
+      at:       new Date().toISOString(),
+    });
+    // keep last 100 only
+    s.history = s.history.slice(0, 100);
+    await save(s);
+    return s;
   });
-  // keep last 100 only
-  s.history = s.history.slice(0, 100);
-  await save(s);
-  return s;
 }
 
 export async function status(): Promise<LedgerState & { remainingUsd: number; ledgerFile: string }> {

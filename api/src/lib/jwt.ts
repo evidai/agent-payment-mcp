@@ -13,13 +13,28 @@
 
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
-// 環境変数から秘密鍵を取得（32bytes以上推奨）
+// 環境変数から秘密鍵を取得（32 bytes 以上 + エントロピーチェック）
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("JWT_SECRET must be set and at least 32 characters");
+  if (!secret) {
+    throw new Error("JWT_SECRET must be set");
   }
-  return new TextEncoder().encode(secret);
+  // SECURITY: previously checked `secret.length < 32` (UTF-16 code units),
+  // which would let a string like "🔑".repeat(16) through despite having
+  // only ~16 distinct symbols. (H-07 of the 2026-05 @kleosr audit.)
+  // We now check (a) UTF-8 byte length ≥ 32, (b) at least 16 distinct
+  // characters, and (c) reject the obvious "aaaa…" / "0000…" patterns.
+  const bytes = new TextEncoder().encode(secret);
+  if (bytes.length < 32) {
+    throw new Error(`JWT_SECRET must be ≥32 UTF-8 bytes (got ${bytes.length}).`);
+  }
+  const distinct = new Set(secret).size;
+  if (distinct < 16 && process.env.NODE_ENV === "production") {
+    throw new Error(
+      `JWT_SECRET is too low-entropy (${distinct} distinct characters). Use a random 32-byte hex/base64 string.`
+    );
+  }
+  return bytes;
 }
 
 export type PayTokenScope = "SINGLE" | "ALL";
