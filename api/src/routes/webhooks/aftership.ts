@@ -10,7 +10,7 @@
  */
 
 import { Hono } from "hono";
-import { createHmac }    from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { prisma }        from "../../lib/prisma.js";
 import { transitionState, type WorkflowContext } from "../../lib/workflow-engine.js";
 import { getWorkflowQueue } from "../../lib/queue.js";
@@ -19,15 +19,34 @@ export const aftershipWebhookRouter = new Hono();
 
 aftershipWebhookRouter.post("/", async (c) => {
   // ── 1. HMAC 署名検証 ──────────────────────────────────────
+  // SECURITY: previously `if (secret && signature)` meant verification
+  // was SKIPPED when either side was empty — an attacker could just
+  // omit the signature header. Plus `!==` was timing-attack vulnerable.
+  // Fixed in v0.7.0 after the 2026-05 @kleosr audit (H-01, H-02).
   const signature = c.req.header("Aftership-Hmac-Sha256");
   const rawBody   = await c.req.text();
-  const secret    = process.env.AFTERSHIP_WEBHOOK_SECRET ?? "";
+  const secret    = process.env.AFTERSHIP_WEBHOOK_SECRET;
+  const allowUnsigned =
+    process.env.AFTERSHIP_ALLOW_UNSIGNED === "yes-i-understand" &&
+    process.env.NODE_ENV !== "production";
 
-  if (secret && signature) {
+  if (!secret) {
+    if (!allowUnsigned) {
+      console.error("[AfterShip] AFTERSHIP_WEBHOOK_SECRET is not set — rejecting webhook");
+      return c.json({ error: "Webhook not configured" }, 503);
+    }
+    console.warn("[AfterShip] Running with no secret — dev only");
+  } else {
+    if (!signature) {
+      return c.json({ error: "Missing signature header" }, 401);
+    }
     const expected = createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
-    if (signature !== expected) {
+    const a = Buffer.from(signature, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    const valid = a.length === b.length && timingSafeEqual(a, b);
+    if (!valid) {
       console.warn("[AfterShip] Invalid webhook signature");
       return c.json({ error: "Invalid signature" }, 401);
     }

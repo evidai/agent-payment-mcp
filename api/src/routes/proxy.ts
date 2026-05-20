@@ -102,8 +102,31 @@ proxyRouter.all("/:serviceId/*", async (c) => {
     });
   }
 
-  // ── 7. 冪等性キー — 未指定時は自動生成 ──────────────────────
-  const idempotencyKey = c.req.header("Idempotency-Key") ?? `proxy-${randomUUID()}`;
+  // ── 7. 冪等性キー — クライアント側から必須要求 ─────────────
+  // SECURITY: previously when no header was supplied, the server invented a
+  // random UUID per request. That defeated the whole point of idempotency:
+  // a client retrying the same logical call without setting the header
+  // would get a fresh UUID each time and be charged twice. (H-05 of the
+  // 2026-05 @kleosr forensic audit.)
+  //
+  // Now we require the caller to send their own Idempotency-Key for any
+  // paid proxy call. To keep older buyers' demo scripts working until they
+  // upgrade, an opt-in PROXY_AUTO_IDEMPOTENCY=yes-i-understand env var
+  // restores the old behaviour with a warning header.
+  const suppliedIdempotencyKey = c.req.header("Idempotency-Key");
+  let idempotencyKey: string;
+  if (suppliedIdempotencyKey) {
+    idempotencyKey = suppliedIdempotencyKey;
+  } else if (process.env.PROXY_AUTO_IDEMPOTENCY === "yes-i-understand") {
+    idempotencyKey = `proxy-${randomUUID()}`;
+    c.header("X-LemonCake-Warning", "missing-idempotency-key");
+  } else {
+    throw new HTTPException(400, {
+      message:
+        "Missing Idempotency-Key header. Set a stable client-side key to make retries safe. " +
+        "Demo callers can opt out via PROXY_AUTO_IDEMPOTENCY=yes-i-understand on the server.",
+    });
+  }
 
   // 同一キーのChargeが既に存在する場合は課金をスキップ（再試行安全性）
   const existingCharge = await prisma.charge.findUnique({ where: { idempotencyKey } });
