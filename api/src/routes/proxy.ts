@@ -114,19 +114,36 @@ proxyRouter.all("/:serviceId/*", async (c) => {
   } else {
     // ── 8. トランザクション: Charge 作成 + 残高デクリメント ───
     // sandbox トークンの場合: 残高減算をスキップ・COMPLETEDで即時確定・送金キュー投入なし
+    //
+    // SECURITY: The pre-checks above (token limit at L88-93, buyer balance
+    // at L99-103) run on stale reads outside the transaction. Two concurrent
+    // requests could both pass and both decrement, letting `usedUsdc` exceed
+    // `limitUsdc` and `balanceUsdc` go negative. (C-02 of the 2026-05
+    // @kleosr forensic audit.)
+    //
+    // We re-check inside the transaction and use a conditional updateMany
+    // so the decrement only fires if the balance/limit still permit it.
+    // Prisma's updateMany supports a WHERE on the same fields we mutate,
+    // giving us a single atomic compare-and-swap per row.
     const isSandbox = token.sandbox;
     const charge = await prisma.$transaction(async (tx) => {
-      // トランザクション内で最新のトークン状態を再確認
-      // (最初の check → ここの間に revoke された場合の二重課金防止)
+      // Re-fetch fresh state inside the transaction.
       const fresh = await tx.token.findUnique({
         where: { id: tokenId },
-        select: { revoked: true, expiresAt: true },
+        select: { revoked: true, expiresAt: true, usedUsdc: true, limitUsdc: true },
       });
       if (!fresh || fresh.revoked) {
         throw new HTTPException(422, { message: "Token has been revoked" });
       }
       if (fresh.expiresAt < new Date()) {
         throw new HTTPException(422, { message: "Token has expired" });
+      }
+      // Token limit re-check inside the transaction.
+      const wouldBeUsed = fresh.usedUsdc.add(amountDecimal);
+      if (wouldBeUsed.greaterThan(fresh.limitUsdc)) {
+        throw new HTTPException(409, {
+          message: `Token limit exceeded (concurrent): limit=${fresh.limitUsdc.toFixed(6)}, used=${fresh.usedUsdc.toFixed(6)}`,
+        });
       }
 
       const ch = await tx.charge.create({
@@ -142,15 +159,32 @@ proxyRouter.all("/:serviceId/*", async (c) => {
         },
       });
       if (!isSandbox) {
-        await tx.buyer.update({
-          where: { id: buyerId },
+        // Conditional decrement: only succeed if balance still ≥ amount.
+        // updateMany returns { count } — if count=0, another request beat
+        // us to it and the buyer no longer has enough.
+        const decRes = await tx.buyer.updateMany({
+          where: { id: buyerId, balanceUsdc: { gte: amountDecimal } },
           data:  { balanceUsdc: { decrement: amountDecimal } },
         });
+        if (decRes.count === 0) {
+          throw new HTTPException(402, {
+            message: "Insufficient balance (concurrent debit beat this request).",
+          });
+        }
       }
-      await tx.token.update({
-        where: { id: tokenId },
-        data:  { usedUsdc: { increment: amountDecimal } },
+      // Conditional usage increment — only succeed if still under limit.
+      const incRes = await tx.token.updateMany({
+        where: {
+          id: tokenId,
+          usedUsdc: { lte: fresh.limitUsdc.sub(amountDecimal) },
+        },
+        data: { usedUsdc: { increment: amountDecimal } },
       });
+      if (incRes.count === 0) {
+        throw new HTTPException(409, {
+          message: "Token limit exceeded (concurrent usage beat this request).",
+        });
+      }
       return ch;
     });
     chargeId = charge.id;

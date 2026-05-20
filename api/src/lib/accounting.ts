@@ -40,9 +40,16 @@ export function validateNetSuiteAccountId(accountId: string): void {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getEncryptionKey(): Buffer {
-  const secret = process.env.ACCOUNTING_TOKEN_SECRET ?? process.env.JWT_SECRET;
+  // SECURITY: OAuth refresh-token encryption uses a separate key from any
+  // signing secret. Previously fell back to JWT_SECRET — that's the same
+  // key used for Pay Tokens, so a leak in the token signing path would
+  // also let an attacker decrypt every customer's freee / MoneyForward
+  // OAuth refresh token. (C-07 of the 2026-05 @kleosr audit.)
+  const secret = process.env.ACCOUNTING_TOKEN_SECRET;
   if (!secret || secret.length < 32) {
-    throw new Error("ACCOUNTING_TOKEN_SECRET (or JWT_SECRET) must be at least 32 chars");
+    throw new Error(
+      "ACCOUNTING_TOKEN_SECRET must be set independently (≥32 chars). Do not share with JWT_SECRET."
+    );
   }
   // Derive a 32-byte key from the secret via SHA-256
   return crypto.createHash("sha256").update(secret).digest();

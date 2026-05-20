@@ -8,8 +8,17 @@ import { jwtVerify } from "jose";
 import { HTTPException } from "hono/http-exception";
 
 function getAdminSecret(): Uint8Array {
-  const secret = process.env.ADMIN_JWT_SECRET ?? process.env.JWT_SECRET;
-  if (!secret) throw new Error("ADMIN_JWT_SECRET is not set");
+  // SECURITY: Admin tokens must use their own signing key, never the same
+  // symmetric secret used for Pay/Buyer tokens. Previously fell back to
+  // JWT_SECRET — leaking any Pay Token's signing path would have let an
+  // attacker forge admin tokens with full system access. (C-07 / H-04 of
+  // the 2026-05 @kleosr audit.)
+  const secret = process.env.ADMIN_JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "ADMIN_JWT_SECRET must be set independently (≥32 chars). Do not share with JWT_SECRET."
+    );
+  }
   return new TextEncoder().encode(secret);
 }
 

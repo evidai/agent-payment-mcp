@@ -131,9 +131,16 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
 // 独立運用したい場合は INCIDENT_SIGNING_KEY を別途 set する。
 
 function getIncidentSecret(): Uint8Array {
-  const secret = process.env.INCIDENT_SIGNING_KEY ?? process.env.JWT_SECRET;
+  // SECURITY: Incident contract signatures sit in a separate trust boundary
+  // from Pay Tokens — leaking the Pay Token signing key must NOT let an
+  // attacker forge incident contracts (which can authorise charges).
+  // Previously fell back to JWT_SECRET; removed in v0.7.0 after the
+  // 2026-05 @kleosr audit (C-07).
+  const secret = process.env.INCIDENT_SIGNING_KEY;
   if (!secret || secret.length < 32) {
-    throw new Error("INCIDENT_SIGNING_KEY (or JWT_SECRET fallback) must be ≥32 chars");
+    throw new Error(
+      "INCIDENT_SIGNING_KEY must be set independently (≥32 chars). Do not share with JWT_SECRET."
+    );
   }
   return new TextEncoder().encode(secret);
 }

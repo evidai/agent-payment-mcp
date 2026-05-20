@@ -228,11 +228,32 @@ export function buildChargeWrapper(
             };
           }
         } catch (chargeErr) {
-          // Charge confirmation failed — log but don't override the tool result
+          // Charge confirmation failed. Previously this error was silently
+          // swallowed and the tool still returned success — meaning the agent
+          // got the result and the seller never got paid. (C-03 of the 2026-05
+          // @kleosr forensic audit.)
+          //
+          // New behaviour: when the tool itself succeeded, we propagate the
+          // charge failure to the caller so they can retry or compensate.
+          // When the tool already failed, we keep the original error (no point
+          // surfacing a charge-confirm error nobody cares about).
+          const settlementOptional =
+            process.env.LEMONCAKE_BEST_EFFORT_SETTLEMENT === "yes-i-understand";
+
           console.error(
             `[LemonCake SDK] Charge confirmation failed for chargeId=${chargeId}:`,
             chargeErr
           );
+
+          if (success && !settlementOptional) {
+            return normalizeError(
+              new Error(
+                `LemonCake: tool succeeded but charge confirmation failed (chargeId=${chargeId}). ` +
+                  `Result discarded to prevent unpaid usage. Set LEMONCAKE_BEST_EFFORT_SETTLEMENT=yes-i-understand to override.`
+              )
+            );
+          }
+          // success=false path: caller already gets an error, leave it.
         }
 
         return toolResult;

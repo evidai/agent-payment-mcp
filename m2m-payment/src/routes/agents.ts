@@ -72,13 +72,24 @@ router.post("/", async (_req: Request, res: Response) => {
     // Bootstrap reputation + budget
     await bootstrapAgent(agent.id);
 
+    // SECURITY: never include `secretKey` in HTTP responses. Reverse proxies,
+    // CDN edges, and APM tools commonly log response bodies — leaking a private
+    // key there means full control of the agent's wallet. (Reported as C-05 of
+    // the 2026-05 @kleosr forensic audit.)
+    //
+    // The key was generated above. If a caller needs it, they must use a
+    // dedicated key-export flow with extra authentication; the default agent
+    // creation endpoint must never hand it out.
+    const exposeSecret =
+      process.env.ALLOW_AGENT_SECRET_IN_RESPONSE === "yes-i-understand" &&
+      process.env.NODE_ENV !== "production";
+
     res.status(201).json({
       id: agent.id,
       publicKey: agent.publicKey,
       complianceTier: agent.complianceTier,
       createdAt: agent.createdAt,
-      // Never expose secretKey in production — test-only
-      secretKey: agent.secretKey,
+      ...(exposeSecret ? { secretKey: agent.secretKey, _warning: "secretKey returned only because ALLOW_AGENT_SECRET_IN_RESPONSE is set; never enable in production." } : {}),
     });
   } catch (err) {
     console.error("[POST /api/agents]", err);
