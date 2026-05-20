@@ -824,12 +824,59 @@ function MonitoringPage({logs, setLogs, circuits, setCircuits}: {
 }) {
   const [tab, setTab] = useState<MonitorTab>("all");
   const [halted, setHalted] = useState(false);
+  const [haltLoading, setHaltLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedLog, setExpandedLog] = useState<string|null>(null);
   const [toast, setToast] = useState<{msg:string;type:"success"|"error"|"info"}|null>(null);
   function showToast(msg:string, type:"success"|"error"|"info"="success") {
     setToast({msg,type});
     setTimeout(()=>setToast(null), 2500);
+  }
+
+  // Sync killswitch state from the backend on mount (and after toggle).
+  // Prior to v0.7.0 this button only flipped local React state and never
+  // touched the API — see C-06 of the 2026-05 @kleosr audit.
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/admin/killswitch");
+        if (!r.ok) return;
+        const d = (await r.json()) as { isHalted?: boolean };
+        if (typeof d.isHalted === "boolean") setHalted(d.isHalted);
+      } catch {
+        /* network down — keep local state */
+      }
+    })();
+  }, []);
+
+  async function toggleHalt() {
+    if (haltLoading) return;
+    setHaltLoading(true);
+    const desired = !halted;
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("buyer_token") : null;
+      const r = await fetch("/api/admin/killswitch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ halt: desired }),
+      });
+      if (!r.ok) {
+        const e = (await r.json().catch(() => ({}))) as { error?: string };
+        showToast(e.error ?? `緊急停止に失敗しました (${r.status})`, "error");
+        return;
+      }
+      const d = (await r.json()) as { isHalted?: boolean };
+      const next = d.isHalted ?? desired;
+      setHalted(next);
+      showToast(next ? "システムを停止しました" : "システムを再開しました");
+    } catch {
+      showToast("ネットワークエラー", "error");
+    } finally {
+      setHaltLoading(false);
+    }
   }
 
   const filtered = logs.filter(l => {
@@ -862,11 +909,12 @@ function MonitoringPage({logs, setLogs, circuits, setCircuits}: {
           <p className="text-xs text-gray-400 mt-0.5">全AIエージェントの送金処理を即時停止／再開します</p>
         </div>
         <button
-          onClick={()=>setHalted(h=>!h)}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${halted?"bg-green-600 hover:bg-green-700 text-white":"bg-red-600 hover:bg-red-700 text-white"}`}
+          onClick={toggleHalt}
+          disabled={haltLoading}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${halted?"bg-green-600 hover:bg-green-700 text-white":"bg-red-600 hover:bg-red-700 text-white"}`}
         >
           <Ico.Halt cls="w-4 h-4"/>
-          {halted ? "システム再開" : "緊急停止"}
+          {haltLoading ? "処理中…" : halted ? "システム再開" : "緊急停止"}
         </button>
       </div>
 

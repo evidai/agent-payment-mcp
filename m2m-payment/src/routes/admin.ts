@@ -13,26 +13,19 @@
  * GET  /api/admin/system              — system health snapshot
  */
 
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { getCircuitSummary, openCircuitCount } from "../lib/circuit-breaker";
 import { getHaltState } from "./killswitch";
+import { requireAdmin } from "../middleware/requireAdmin";
 
 const router = Router();
 
 // ── Admin key guard ───────────────────────────────────────────────────────────
-// In production replace with a proper auth mechanism (JWT, session, etc.)
-const ADMIN_KEY = process.env.ADMIN_API_KEY ?? "dev-admin-key";
-
-function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  const key = req.headers["x-admin-key"] ?? req.query.adminKey;
-  if (key !== ADMIN_KEY) {
-    res.status(401).json({ error: "Unauthorized. Valid X-Admin-Key header required." });
-    return;
-  }
-  next();
-}
-
+// Shared requireAdmin middleware (timing-safe compare, fails closed if
+// ADMIN_API_KEY is unset). Previously this file had its own copy with a
+// hardcoded "dev-admin-key" fallback — removed in v0.7.0 after the
+// 2026-05 @kleosr audit (H-03).
 router.use(requireAdmin);
 
 // ── Transactions ──────────────────────────────────────────────────────────────

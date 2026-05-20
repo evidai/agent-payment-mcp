@@ -38,7 +38,34 @@ export interface KYAVerifyResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEV_SECRET = process.env.KYA_DEV_SECRET ?? "skyfire-dev-secret-change-in-prod";
+/**
+ * KYA token signing secret. Must be supplied via the KYA_DEV_SECRET
+ * environment variable. Throws on import if unset in production.
+ *
+ * Previous versions of this file hardcoded a fallback
+ * "skyfire-dev-secret-change-in-prod" which let anyone reading the repo
+ * mint valid KYA tokens (issue H-03 of the 2026-05 @kleosr audit).
+ */
+const DEV_SECRET = (() => {
+  const v = process.env.KYA_DEV_SECRET;
+  if (!v) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "KYA_DEV_SECRET environment variable is required in production."
+      );
+    }
+    // In dev/test fall back to a random per-process value so we still
+    // run, but tokens minted in one process won't validate in another
+    // — preventing this from sneaking into production silently.
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[kyapay] KYA_DEV_SECRET not set; using ephemeral per-process secret. " +
+        "Set KYA_DEV_SECRET before deploying."
+    );
+    return require("crypto").randomBytes(32).toString("hex") as string;
+  }
+  return v;
+})();
 const SKYFIRE_ISSUER = "skyfire";
 const SELF_ISSUER = "self";
 const TOKEN_TTL_SECONDS = 3600; // 1 hour default
