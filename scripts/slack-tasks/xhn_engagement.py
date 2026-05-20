@@ -147,7 +147,7 @@ def format_with_drafts(items: list[dict], enriched: list[dict], total: int) -> s
 
         if comment_en:
             lines.append("")
-            lines.append("  HN コメント案 (英、80-150 words、観察者リード、そのまま貼れる):")
+            lines.append("  HN コメント案 (英、≤30 words、観察者リード、そのまま貼れる):")
             for line in comment_en.split("\n"):
                 lines.append(f"    {line}")
             lines.append("")

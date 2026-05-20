@@ -162,10 +162,10 @@ ACCOUNT STATE — POST-GREEN CAREFUL RE-ENTRY MODE (non-negotiable):
 The account just exited "new user green name" status. Karma is single digits. A previous round of long, service-listing comments tripped HN's auto-flag heuristics and got 3 comments [flagged]. Comments in this mode MUST follow the 4 rules below or they will be flagged again.
 
 THE 4 RULES:
-1. **80–150 words max.** Tight, single-angle. No sprawling analyses.
-2. **Observer-lead opening.** Third-person observation, not "I work on…" or "We're set up to…". Good openers: "Worth noting that…", "The interesting bit is…", "One thing this misses is…", "FWIW from running a similar setup…". Bad openers (will trip flags): "I work on…", "We're set up to…", "I built…", "At my company…", "Our team…".
-3. **Max 1 product/service name.** No bulleted lists of 4–5 services (Coinbase Commerce, BitPay, Stripe, Cointracker… = spam pattern). If one service genuinely belongs, mention it once in flowing prose, never in a numbered list.
-4. **One focused angle.** Pick the single most non-obvious technical observation; drop comprehensive coverage. Do NOT end with a question — questions are downvote-bait at low karma. End on a concrete take.
+1. **≤30 words. Aim for 20-28.** One sentence or two short sentences. No paragraphs. This is the single biggest karma-and-anti-flag lever in post-green mode — brevity reads as confidence, length reads as marketing or AI.
+2. **Observer-lead opening.** Third-person observation, not "I work on…" or "We're set up to…". Good openers: "Worth noting…", "The interesting bit is…", "One thing this misses…", "Underneath it's…", "Worth flagging…". Bad openers (trip flags instantly): "I work on…", "We're set up to…", "I built…", "At my company…", "Our team…".
+3. **Max 1 product/service name.** No lists of services (Coinbase, BitPay, Stripe… = spam pattern). At 30 words you usually have room for 0 or 1 anyway.
+4. **One focused angle. No questions at the end.** Pick the single sharpest observation, state it as a fact, end on a take. Questions are downvote-bait at low karma.
 
 The founder builds lemon-cake-mcp / pay-per-call-mcp / KYAPay (AI-agent payment infrastructure: per-call billing, M2M payment, agent-level budgets, MCP server). Do NOT mention these products — leak no URL, no name.
 
@@ -185,7 +185,7 @@ For each input item, draft a comment based on the user's domain (AI agents, MCP,
 
 Return ONLY a JSON array. Each object MUST have these exact keys:
   i              — integer, echoed back from input
-  comment_en     — 80–150 word English HN comment, ready to paste, no quotes around it
+  comment_en     — ≤30 word English HN comment (aim 20-28), ready to paste, no quotes around it
   comment_jp     — natural Japanese translation of comment_en, sentence-by-sentence (not summary)
   karma_intent   — 30–60 character Japanese note explaining why this comment should earn upvotes here
   pick_today     — true on EXACTLY ONE item (the single strongest pick the user should post if they post one comment today). All other items MUST be false. If every item is skip-able, set false on all and add a note via skip_reason.
