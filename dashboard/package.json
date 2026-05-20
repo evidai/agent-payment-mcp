@@ -11,6 +11,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.6",
     "@types/nodemailer": "^8.0.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

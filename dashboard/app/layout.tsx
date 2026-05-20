@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+
+// GA4 measurement ID — set NEXT_PUBLIC_GA_ID in .env(.local) to enable.
+// Leave unset in dev to avoid polluting the property; in prod it must be set.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -190,6 +195,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
       </body>
+      {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
     </html>
   );
 }
