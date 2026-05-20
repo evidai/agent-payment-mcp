@@ -12,6 +12,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/about`,                  lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/about/en`,               lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/integrations/freee`,     lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
+    // /hire — founder consulting / contract work landing.
+    // High priority so search engines surface it for "MCP 受託" / "AI エージェント受託" queries.
+    { url: `${BASE}/hire`,                   lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/register`,               lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/login`,                  lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/support`,                lastModified: now, changeFrequency: "monthly", priority: 0.5 },
