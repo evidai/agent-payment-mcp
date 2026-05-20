@@ -78,7 +78,12 @@ type FounderState = {
 
 const STORAGE_KEY = "lemoncake_founder_v1";
 const SESSION_AUTH_KEY = "lemoncake_founder_authed";
-const DEFAULT_PIN = process.env.NEXT_PUBLIC_FOUNDER_PIN || "DEV-ONLY";
+
+// PIN は server-side で検証する（/api/founder/auth）。
+// NEXT_PUBLIC_ をやめた理由：Vercel のビルドキャッシュで env var が
+// 反映されないことがあり、PIN を変えてもクライアントバンドルに古い値が
+// 焼かれたままになるケースがあった。
+// 副作用：JS バンドルに PIN 文字列が一切残らないのでセキュリティも上がった。
 
 const STAGES: PipelineStage[] = [
   "未接触",
@@ -151,7 +156,36 @@ function saveState(s: FounderState): void {
 
 function Auth({ onOk }: { onOk: () => void }) {
   const [pin, setPin] = useState("");
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function submit() {
+    if (loading) return;
+    setLoading(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/founder/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (r.ok) {
+        sessionStorage.setItem(SESSION_AUTH_KEY, "1");
+        onOk();
+        return;
+      }
+      if (r.status === 503) {
+        setErr("FOUNDER_PIN が Vercel に設定されていません。");
+      } else {
+        setErr("PIN が違います。");
+      }
+    } catch {
+      setErr("ネットワークエラー");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-6">
       <div className="bg-gray-800 rounded-xl p-8 max-w-sm w-full border border-gray-700">
@@ -160,33 +194,22 @@ function Auth({ onOk }: { onOk: () => void }) {
         <input
           type="password"
           value={pin}
-          onChange={(e) => { setPin(e.target.value); setErr(false); }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              if (pin === DEFAULT_PIN) {
-                sessionStorage.setItem(SESSION_AUTH_KEY, "1");
-                onOk();
-              } else setErr(true);
-            }
-          }}
+          onChange={(e) => { setPin(e.target.value); setErr(null); }}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-gray-100 mb-3 focus:border-yellow-400 outline-none"
           placeholder="PIN"
           autoFocus
         />
-        {err && <p className="text-red-400 text-xs mb-2">PIN が違います。</p>}
+        {err && <p className="text-red-400 text-xs mb-2">{err}</p>}
         <button
-          onClick={() => {
-            if (pin === DEFAULT_PIN) {
-              sessionStorage.setItem(SESSION_AUTH_KEY, "1");
-              onOk();
-            } else setErr(true);
-          }}
-          className="w-full bg-yellow-400 text-gray-900 font-bold py-2 rounded hover:bg-yellow-300"
+          onClick={submit}
+          disabled={loading}
+          className="w-full bg-yellow-400 text-gray-900 font-bold py-2 rounded hover:bg-yellow-300 disabled:opacity-50"
         >
-          ロック解除
+          {loading ? "検証中…" : "ロック解除"}
         </button>
         <p className="text-xs text-gray-500 mt-4">
-          ※ NEXT_PUBLIC_FOUNDER_PIN を Vercel に設定してください。未設定だと「DEV-ONLY」が一時的に有効です。
+          サーバー側で PIN を検証します。FOUNDER_PIN env var の変更は即時反映されます。
         </p>
       </div>
     </div>
