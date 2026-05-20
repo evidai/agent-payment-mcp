@@ -77,13 +77,13 @@ type FounderState = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "lemoncake_founder_v1";
-const SESSION_AUTH_KEY = "lemoncake_founder_authed";
 
-// PIN は server-side で検証する（/api/founder/auth）。
-// NEXT_PUBLIC_ をやめた理由：Vercel のビルドキャッシュで env var が
-// 反映されないことがあり、PIN を変えてもクライアントバンドルに古い値が
-// 焼かれたままになるケースがあった。
-// 副作用：JS バンドルに PIN 文字列が一切残らないのでセキュリティも上がった。
+// 認証は外している。理由：
+//  1. データは localStorage のみで外部にも DB にも保存されない
+//  2. ページ自体は noindex（layout.tsx の robots 設定）で検索に出ない
+//  3. URL を共有しなければ事実上 private
+//  4. Vercel の env var 反映問題で何度もハマったので素直に外した
+// 機密性が上がってきたら HTTP Basic auth (middleware.ts) で復活可能。
 
 const STAGES: PipelineStage[] = [
   "未接触",
@@ -154,67 +154,7 @@ function saveState(s: FounderState): void {
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-function Auth({ onOk }: { onOk: () => void }) {
-  const [pin, setPin] = useState("");
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function submit() {
-    if (loading) return;
-    setLoading(true);
-    setErr(null);
-    try {
-      const r = await fetch("/api/founder/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
-      if (r.ok) {
-        sessionStorage.setItem(SESSION_AUTH_KEY, "1");
-        onOk();
-        return;
-      }
-      if (r.status === 503) {
-        setErr("FOUNDER_PIN が Vercel に設定されていません。");
-      } else {
-        setErr("PIN が違います。");
-      }
-    } catch {
-      setErr("ネットワークエラー");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-6">
-      <div className="bg-gray-800 rounded-xl p-8 max-w-sm w-full border border-gray-700">
-        <h1 className="text-xl font-bold mb-2">🍋 Founder Cockpit</h1>
-        <p className="text-sm text-gray-400 mb-6">PIN を入力してください。</p>
-        <input
-          type="password"
-          value={pin}
-          onChange={(e) => { setPin(e.target.value); setErr(null); }}
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-gray-100 mb-3 focus:border-yellow-400 outline-none"
-          placeholder="PIN"
-          autoFocus
-        />
-        {err && <p className="text-red-400 text-xs mb-2">{err}</p>}
-        <button
-          onClick={submit}
-          disabled={loading}
-          className="w-full bg-yellow-400 text-gray-900 font-bold py-2 rounded hover:bg-yellow-300 disabled:opacity-50"
-        >
-          {loading ? "検証中…" : "ロック解除"}
-        </button>
-        <p className="text-xs text-gray-500 mt-4">
-          サーバー側で PIN を検証します。FOUNDER_PIN env var の変更は即時反映されます。
-        </p>
-      </div>
-    </div>
-  );
-}
+// Auth コンポーネントは削除済み（PIN ゲートを外したため）。
 
 function Card({
   title, action, children,
@@ -243,26 +183,17 @@ function Metric({ label, value, hint }: { label: string; value: string; hint?: s
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function FounderCockpit() {
-  const [authed, setAuthed] = useState(false);
   const [state, setState] = useState<FounderState>(emptyState());
 
-  // Auth check on mount
+  // Load state once on mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SESSION_AUTH_KEY) === "1") {
-      setAuthed(true);
-    }
+    setState(loadState());
   }, []);
 
-  // Load state when authed
+  // Persist on every change
   useEffect(() => {
-    if (authed) setState(loadState());
-  }, [authed]);
-
-  // Persist on change
-  useEffect(() => {
-    if (authed) saveState(state);
-  }, [state, authed]);
+    saveState(state);
+  }, [state]);
 
   // Derived metrics
   const monthYM = today().slice(0, 7);
@@ -402,8 +333,6 @@ export default function FounderCockpit() {
     reader.readAsText(file);
   }
 
-  if (!authed) return <Auth onOk={() => setAuthed(true)} />;
-
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -423,12 +352,6 @@ export default function FounderCockpit() {
                 const f = e.target.files?.[0]; if (f) importJson(f);
               }} />
             </label>
-            <button
-              onClick={() => { sessionStorage.removeItem(SESSION_AUTH_KEY); setAuthed(false); }}
-              className="px-3 py-1.5 bg-red-900 hover:bg-red-800 rounded text-sm"
-            >
-              ロック
-            </button>
           </div>
         </header>
 

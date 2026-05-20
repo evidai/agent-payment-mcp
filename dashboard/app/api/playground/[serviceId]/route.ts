@@ -183,6 +183,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ser
     mode:        "demo",
     latencyMs,
     x402Receipt: buildReceipt(serviceId, chargeId),
-    note:        "🎮 LP Demo Mode (lemoncake.xyz/start playground). Same response shape as `call_service` from `npx -y pay-per-call-mcp`. Set LEMON_CAKE_PAY_TOKEN to call real paid services.",
+    note:        "🎮 LP Demo Mode (lemoncake.xyz/start playground). Same response shape as `call_service` from `npx -y agent-payment-mcp`. Set LEMON_CAKE_PAY_TOKEN to call real paid services.",
   });
 }
