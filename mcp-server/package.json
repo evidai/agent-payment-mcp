@@ -1,8 +1,8 @@
 {
   "name": "agent-payment-mcp",
   "mcpName": "io.github.evidai/agent-payment",
-  "version": "0.6.1",
-  "description": "AI agent payment MCP server — USDC micropayments for any HTTP API, with kill switch and spend limits. No signup needed (Demo Mode). Formerly pay-per-call-mcp.",
+  "version": "0.7.0",
+  "description": "Give your AI agent a USDC wallet. Pay-per-call any API. Hard daily cap the agent can't override. Demo Mode works with zero signup — `npx -y agent-payment-mcp` and ask Claude to list services.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

@@ -1,22 +1,22 @@
-# agent-payment-mcp — AI Agent Payment MCP Server
+# agent-payment-mcp 🍋
 
-> **Give your AI agent a wallet.** Pay-per-call USDC micropayments for any HTTP API — directly from Claude Desktop, Cursor, Cline, or any MCP client. No human approval per call. Kill switch included.
+**Give your AI agent a USDC wallet. Pay-per-call any API. Hard daily cap the agent can't override.**
 
-[![npm version](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
+[![npm](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
+[![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
+[![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
-[![Listed on Glama](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/node/v/agent-payment-mcp)](https://nodejs.org)
 
 ---
 
-## Try in 30 seconds (Demo Mode — no signup)
+## ⚡ Try in 30 seconds — no signup, no API key
+
+**1.** Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (or your Cursor / Cline MCP config):
 
 ```json
 {
   "mcpServers": {
-    "pay-per-call": {
+    "lemon": {
       "command": "npx",
       "args": ["-y", "agent-payment-mcp"]
     }
@@ -24,258 +24,128 @@
 }
 ```
 
-Leave `LEMON_CAKE_BUYER_JWT` unset → **Demo Mode** activates automatically. Calls hit real Wikipedia, httpbin, and live FX rate APIs with no charges.
+**2.** Restart Claude Desktop.
 
-> 💡 Or click **"Try in Browser"** on [Glama](https://glama.ai/mcp/servers/evidai/lemon-cake) → leave both env fields empty → click **Start Inspector**.
+**3.** Ask Claude:
 
----
+> **"list the services available in lemon"**
+>
+> or
+>
+> **"use lemon to search Wikipedia for AI agents"**
 
-## What it does
-
-`agent-payment-mcp` lets an AI agent **discover, pay for, and call premium HTTP APIs** using USDC — with no human approval per call.
-
-```
-Agent (Claude / Cursor / Cline)
-  │
-  ├─ list_services()          → browse LemonCake API marketplace
-  ├─ call_service(serviceId)  → invoke paid API, USDC deducted automatically
-  ├─ check_balance()          → current USDC balance + spend limits
-  ├─ setup()                  → onboarding guide if credentials missing
-  ├─ check_tax(regNum)        → 国税庁 invoice number validation (Japan)
-  └─ get_service_stats()      → usage + revenue analytics
-```
-
-### Safety mechanisms
-- **Kill switch** — halts all charges instantly (atomic, one-call revocation)
-- **Spend caps** — session/daily USD ceiling the agent cannot exceed
-- **Pay Token (JWT)** — scoped, short-lived spend credential; no raw wallet key exposed to the agent
-- **Idempotency** — `idempotencyKey` parameter makes retries safe; no double-charges
+That's it. **Demo Mode** runs with a mock $1.00 USDC balance against real Wikipedia, real FX rate, and real httpbin APIs. No credentials needed.
 
 ---
 
-## Live mode (real USDC)
+## Unlock paid services (free signup)
 
-1. Sign up at [lemoncake.xyz](https://lemoncake.xyz)
-2. Top up with USDC (min $5) or JPYC
-3. Copy your **Buyer JWT** from the dashboard
+Demo Mode is real but limited. To use **Serper (Google search), Hunter.io (verified emails), gBizINFO (JP corporate data), NTA invoice verification**, and more — get a free Pay Token:
+
+1. Sign up at [**lemoncake.xyz/start**](https://lemoncake.xyz/start?utm_source=npm) (Google login, 30 sec)
+2. Issue a Pay Token from the dashboard
+3. Add it to the MCP config:
 
 ```json
 {
   "mcpServers": {
-    "pay-per-call": {
+    "lemon": {
       "command": "npx",
       "args": ["-y", "agent-payment-mcp"],
       "env": {
-        "LEMON_CAKE_BUYER_JWT": "eyJhbGci..."
+        "LEMON_CAKE_PAY_TOKEN": "eyJ...",
+        "LEMON_CAKE_BUYER_JWT":  "eyJ..."
       }
     }
   }
 }
 ```
 
+USDC top-up minimum: $5. Per-call pricing: $0.005–$0.05 depending on service.
+
 ---
 
-## Tools reference
+## Why "Pay Token"?
 
-### `setup`
-Returns onboarding instructions if credentials are missing.
+A Pay Token is a **scoped JWT spend credential**:
 
-**Input:** none  
-**Output:**
-```json
-{ "status": "ok", "mode": "demo", "message": "Set LEMON_CAKE_BUYER_JWT to enable live payments." }
+- 💰 **Hard daily cap** — agent literally cannot exceed it (enforced server-side, not in the JWT body the agent can see).
+- 🔪 **Kill switch** — revoke any token instantly via dashboard. Already-issued tokens stop working in <1 second.
+- 🎯 **Scope-limited** — token can be `ALL services` or a single service ID.
+- 🧾 **x402-compatible receipts** — every charge produces a verifiable on-chain receipt.
+
+This is the **opposite** of giving your agent an API key. Lost key = stolen wallet. Lost Pay Token = bounded loss + instant revoke.
+
+---
+
+## What an agent can do with it
+
+```
+Agent (Claude Desktop, Cursor, Cline, any MCP client)
+  │
+  ├─ list_services()          → browse LemonCake API marketplace
+  ├─ check_balance()          → see remaining USDC
+  ├─ call_service(...)        → pay-per-call any HTTP API
+  │   ├── demo_search         (Wikipedia, free)
+  │   ├── demo_fx             (live FX rates, free)
+  │   ├── demo_echo           (httpbin, free)
+  │   ├── serper              (Google search, $0.005)
+  │   ├── hunter              (verified emails, $0.05)
+  │   ├── gbizinfo            (JP company registry, $0.01)
+  │   ├── nta_invoice         (JP tax invoice verify, $0.005)
+  │   └── …more added monthly
+  └─ check_tax(taxid)         → verify a JP T-number (free)
 ```
 
 ---
 
-### `list_services`
-Browse the LemonCake API marketplace.
+## For developers building MCP servers
 
-**Input:** `{ "limit": 20 }`
-
-**Output:**
-```json
-{
-  "services": [
-    { "id": "serper", "name": "Serper — Google Search", "priceUsdc": "0.005" }
-  ]
-}
-```
-
----
-
-### `call_service`
-Invoke a paid API. USDC is deducted from your balance automatically.
-
-**Input:**
-```json
-{
-  "serviceId": "serper",
-  "path": "/search",
-  "method": "POST",
-  "body": { "q": "AI agent payments" },
-  "idempotencyKey": "req-abc-001"
-}
-```
-
-**Output (success):**
-```json
-{
-  "status": 200,
-  "chargeId": "ch_abc123",
-  "amountUsdc": "0.005",
-  "response": { "organic": ["..."] },
-  "x402Receipt": {
-    "scheme": "lemoncake-pay-token-v1",
-    "x402Compatible": true,
-    "amount": "0.005",
-    "asset": "USDC",
-    "settledAt": "2026-05-09T14:50:11.019Z"
-  }
-}
-```
-
-**Output (budget exceeded):**
-```json
-{ "error": "BUDGET_EXCEEDED", "remaining": "0.00", "limit": "5.00" }
-```
-
----
-
-### `check_balance`
-Returns current USDC balance and KYA tier limits.
-
-**Output:**
-```json
-{
-  "balanceUsdc": "4.995",
-  "kyaTier": "standard",
-  "dailyLimitUsdc": "50.00",
-  "sessionSpentUsdc": "0.005"
-}
-```
-
----
-
-### `check_tax`
-Validates a Japanese qualified-invoice (適格請求書) registration number against the 国税庁 API.
-
-**Input:** `{ "registrationNumber": "T1234567890123", "amountJpy": 10000 }`
-
-**Output:**
-```json
-{ "valid": true, "businessName": "株式会社Example", "registrationDate": "2023-10-01" }
-```
-
----
-
-### `get_service_stats`
-Returns aggregated usage data for all services.
-
-**Output:**
-```json
-{
-  "totalCalls": 142,
-  "totalSpentUsdc": "0.71",
-  "byService": [{ "serviceId": "serper", "calls": 80, "spentUsdc": "0.40" }]
-}
-```
-
----
-
-## Available services
-
-| Service | ID | Price | Demo |
-|---|---|---|---|
-| Serper — Google Search | `serper` | $0.005/call | ✅ |
-| Hunter.io — Email finder | `hunter` | $0.005/call | ✅ |
-| Open Exchange Rates | `openexchangerates` | $0.002/call | ✅ |
-| Jina Reader — Web scraper | `jina` | $0.002/call | ✅ |
-| 国税庁 Invoice API | `ntax` | $0.002/call | ✅ |
-| gBizINFO — 法人情報 | `gbizinfo` | $0.003/call | ✅ |
-| IPinfo — Geolocation | `ipinfo` | $0.003/call | ✅ |
-| Firecrawl — Scraping | `firecrawl` | $0.005/call | ✅ |
-| Slack — Human-in-the-loop | `slack` | $0.005/call | ✅ |
-| TRUSTDOCK — eKYC | `trustdock` | $0.05/call | ✅ |
-
-Full marketplace: [lemoncake.xyz/services](https://lemoncake.xyz/services)
-
----
-
-## x402 compatibility (since v0.5.1)
-
-This server speaks the [x402](https://www.x402.org/) protocol. Agent code written for on-chain x402 works unmodified:
-
-- `call_service` returns `x402Receipt` on every successful charge
-- Upstream `402` challenges are parsed (`WWW-Authenticate`, `X-402-*` headers, body `x402` field)
-- `PAYMENT_PENDING` semantics with `retryAfterMs` + `idempotencyKey` for async settlement
-
----
-
-## Environment variables
-
-| Variable | Required | Description |
-|---|:---:|---|
-| `LEMON_CAKE_BUYER_JWT` | ✅ live | Buyer JWT from [dashboard → API Keys](https://lemoncake.xyz/dashboard) |
-| `LEMON_CAKE_PAY_TOKEN` | — | Pre-issued Pay Token JWT (alternative) |
-| `LEMON_CAKE_API_URL` | — | API endpoint override (default: `https://api.lemoncake.xyz`) |
-
-Leave both JWT vars unset → **Demo Mode** (no charges, real demo APIs).
-
----
-
-## Tested MCP clients
-
-| Client | Status |
-|---|:---:|
-| Claude Desktop (macOS / Windows) | ✅ |
-| Cursor | ✅ |
-| Cline (VS Code) | ✅ |
-| Claude Code CLI | ✅ |
-| Continue.dev | ✅ |
-| Any MCP 1.10+ stdio client | ✅ |
-
----
-
-## For MCP server developers
-
-Add pay-per-call billing to your own MCP server in 3 lines:
-
-```bash
-npm install @lemon-cake/mcp-sdk
-```
+Want to **monetize your own MCP server**? Add USDC pay-per-call billing in 3 lines with [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk):
 
 ```typescript
-import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
-const lc = createLemonCakeSDK({ sellerKey: process.env.LEMONCAKE_SELLER_KEY });
+import { withPayment } from "@lemon-cake/mcp-sdk";
 
-execute: lc.charge({ price: 0.05 })(async (args) => myHandler(args))
+server.tool("my_premium_tool", withPayment({ price: 0.01 }, async (args) => {
+  // your existing tool logic
+  return { content: [{ type: "text", text: "result" }] };
+}));
 ```
 
-Demo Mode activates automatically when `LEMONCAKE_SELLER_KEY` is absent.
+Buyer funds their USDC wallet → agent invokes your tool → LemonCake handles billing → you collect. No Stripe setup, no KYC on your side.
 
 ---
 
-## Sibling MCPs
+## Security
 
-| Package | What it does |
+Audited May 2026 by [@kleosr](https://github.com/kleosr). All critical and high-severity findings fixed in v0.7+. See [GitHub Security Advisories](https://github.com/evidai/agent-payment-mcp/security/advisories) for details.
+
+Built-in protections:
+- Server-side hard spend cap (agent cannot raise from inside a tool call)
+- Kill switch (instant token revocation)
+- Timing-safe HMAC signature verification on all webhooks
+- Idempotency keys required on paid calls (no double-charges on retries)
+- Buyer suspension enforced in auth middleware
+
+---
+
+## Links
+
+| | |
 |---|---|
-| [xstocks-mcp](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized US stocks (xStocks) on Solana via Jupiter DEX |
-| [alpaca-guard-mcp](https://www.npmjs.com/package/alpaca-guard-mcp) | Alpaca brokerage with hard daily USD cap guard |
-| [polymarket-guard-mcp](https://www.npmjs.com/package/polymarket-guard-mcp) | Polymarket prediction markets with USDC billing |
+| **Dashboard** | [lemoncake.xyz/start](https://lemoncake.xyz/start?utm_source=npm) |
+| **Docs** | [github.com/evidai/agent-payment-mcp](https://github.com/evidai/agent-payment-mcp) |
+| **SDK for sellers** | [@lemon-cake/mcp-sdk](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) |
+| **MCP Registry** | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) |
+| **Discord** | [#showcase in MCP Discord](https://discord.com/invite/model-context-protocol-1312302100125843476) |
+| **License** | MIT |
 
 ---
 
-## Local development
+## Other LemonCake MCPs (Demo Mode all work the same way)
 
-```bash
-git clone https://github.com/evidai/agent-payment-mcp.git
-cd agent-payment-mcp/mcp-server
-npm install && npm run build && npm start
-```
+- [**alpaca-guard-mcp**](https://www.npmjs.com/package/alpaca-guard-mcp) — Alpaca paper trading with hard USD cap
+- [**xstocks-mcp**](https://www.npmjs.com/package/xstocks-mcp) — Buy tokenized stocks (AAPLx, TSLAx, etc.) on Solana with USDC
+- [**tokenized-stock-mcp**](https://www.npmjs.com/package/tokenized-stock-mcp) — Buy Dinari dShares with USDC
 
----
-
-## License
-
-MIT © [LemonCake](https://lemoncake.xyz) · contact@aievid.com
+All built on [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk).
