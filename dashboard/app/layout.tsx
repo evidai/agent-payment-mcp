@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Providers } from "./Providers";
 import "./globals.css";
 
 // GA4 measurement ID — set NEXT_PUBLIC_GA_ID in .env(.local) to enable.
@@ -191,7 +192,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Analytics />
         <SpeedInsights />
       </body>
