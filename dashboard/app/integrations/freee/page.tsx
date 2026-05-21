@@ -134,12 +134,28 @@ export default function FreeeIntegrationPage() {
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
           AIエージェントの決済を、freee に自動仕訳。
         </h1>
-        <p className="text-lg leading-relaxed mb-12 opacity-80">
-          LemonCake が発行する Pay Token で AIエージェントが外部API決済を行うたび、
+        <p className="text-lg leading-relaxed mb-6 opacity-80">
+          LemonCake が発行する Pay Token（または v2 では ERC-2612 permit）で
+          AIエージェントが外部API決済を行うたび、
           <strong>「外注費 / 通信費 ↔ 普通預金」の仕訳を自動生成</strong>
           して freee に記帳します。源泉徴収按分、適格請求書発行事業者チェック（国税庁API連携）、
           USDC → 円 換算まで一気通貫。経理担当者の月次工数をゼロに近づけます。
         </p>
+
+        {/* v2 notice — non-custodial path is FSA-confirmed */}
+        <div className="mb-12 rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm">
+          <p className="font-bold text-emerald-300">
+            🔒 v2 (非カストディ) は金融庁照会済み
+          </p>
+          <p className="mt-1 opacity-90 leading-relaxed">
+            2026-05-21 の FSA Fintech サポートデスク Q11 回答により、LemonCake が
+            USDC を一切経由しない設計（ERC-2612 permit ベース）であれば、電子決済
+            手段等取引業の登録は不要であることが確認されました。仕訳の自動化は
+            この新方式でも変わらず動作します。
+            詳細：<a href="/security" className="underline hover:opacity-80">/security</a>
+            ・<a href="/start/v2" className="underline hover:opacity-80">v2 を試す</a>
+          </p>
+        </div>
 
         {/* Feature Grid */}
         <div className="grid md:grid-cols-2 gap-6 mb-16">

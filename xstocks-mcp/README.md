@@ -5,6 +5,15 @@
 [![npm version](https://img.shields.io/npm/v/xstocks-mcp)](https://www.npmjs.com/package/xstocks-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
+[![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/security)
+[![Non-custodial](https://img.shields.io/badge/architecture-non--custodial-blueviolet)](https://lemoncake.xyz/start/v2)
+
+> 🍋 **Part of the LemonCake suite.** Japan FSA Q1–Q11 inquiry completed
+> (2026-05): "ソフトウェアの開発・配布のみ" の SDK 配布モデルは
+> 暗号資産・有価証券売買への利用があっても直ちに媒介と評価される
+> 可能性は低いとの見解を受領済み。USDC はユーザー自身のウォレットから
+> Jupiter DEX へ直接 swap され、LemonCake のアドレスを経由しません。
+> See [LemonCake security posture](https://lemoncake.xyz/security).
 
 ```bash
 npx -y xstocks-mcp

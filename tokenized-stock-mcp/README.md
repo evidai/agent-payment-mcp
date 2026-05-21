@@ -6,6 +6,14 @@
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
+[![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/security)
+[![Non-custodial](https://img.shields.io/badge/architecture-non--custodial-blueviolet)](https://lemoncake.xyz/start/v2)
+
+> 🍋 **Part of the LemonCake suite.** Japan FSA Q1–Q11 inquiry completed
+> (2026-05): pure SDK distribution model confirmed registration-exempt.
+> USDC moves directly from your wallet to Dinari's regulated broker
+> endpoint — never through LemonCake.
+> See [LemonCake security posture](https://lemoncake.xyz/security).
 
 ```bash
 npx -y tokenized-stock-mcp

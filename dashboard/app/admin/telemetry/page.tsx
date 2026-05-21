@@ -181,6 +181,56 @@ export default function TelemetryPage() {
           </div>
         </div>
 
+        {/* v2 migration tracking — custody vs non-custodial split */}
+        <div className="mb-6 bg-gradient-to-br from-amber-50 via-white to-emerald-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">
+              v2 移行進捗 — Custody vs Non-custodial
+            </div>
+            <a
+              href="/security"
+              className="text-[10px] text-gray-500 hover:text-amber-700 hover:underline"
+            >
+              FSA Q11 → /security
+            </a>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-emerald-700 font-bold">
+                Non-custodial (v2)
+              </div>
+              <div className="mt-1 text-xl font-bold text-emerald-900 tabular-nums">
+                {/* TODO: wire to v2_permit_signed event count from GA4 */}
+                0
+              </div>
+              <div className="text-[10px] text-gray-500">permit 発行数（90日）</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-gray-600 font-bold">
+                Custody (legacy)
+              </div>
+              <div className="mt-1 text-xl font-bold text-gray-900 tabular-nums">
+                {/* TODO: wire to Pay Token 発行数 from /admin/buyers */}
+                7
+              </div>
+              <div className="text-[10px] text-gray-500">Pay Token 発行数（累計）</div>
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-white px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">
+                Custody 残高
+              </div>
+              <div className="mt-1 text-xl font-bold text-amber-900 tabular-nums">
+                {/* TODO: wire to sum(USDC balance) of all buyers */}
+                $4.79
+              </div>
+              <div className="text-[10px] text-gray-500">移行時に refund 対象</div>
+            </div>
+          </div>
+          <div className="mt-2 text-[11px] text-gray-600 leading-snug">
+            目標: 全 Pay Token を permit に移行 → Custody 残高 $0 → 旧エンドポイント削除。
+          </div>
+        </div>
+
         {/* External user-behavior dashboards */}
         <div className="mb-8 bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-2">外部ユーザー行動ダッシュボード</div>
@@ -192,14 +242,14 @@ export default function TelemetryPage() {
               accent="purple"
             />
             <ExternalLink
-              href="https://www.npmjs.com/package/pay-per-call-mcp"
-              label="npm: pay-per-call-mcp"
+              href="https://www.npmjs.com/package/agent-payment-mcp"
+              label="npm: agent-payment-mcp"
               hint="新パッケージ DL 数（v0.5.0+）"
               accent="red"
             />
             <ExternalLink
-              href="https://www.npmjs.com/package/lemon-cake-mcp"
-              label="npm: lemon-cake-mcp"
+              href="https://www.npmjs.com/package/agent-payment-mcp"
+              label="npm: agent-payment-mcp"
               hint="旧パッケージ（ラッパー）DL 数"
               accent="red"
             />
@@ -216,7 +266,7 @@ export default function TelemetryPage() {
               accent="gray"
             />
             <ExternalLink
-              href="https://npm-stat.com/charts.html?package=pay-per-call-mcp&package=lemon-cake-mcp"
+              href="https://npm-stat.com/charts.html?package=agent-payment-mcp&package=agent-payment-mcp"
               label="npm-stat 比較"
               hint="新旧パッケージ DL 推移を並べて比較"
               accent="red"
@@ -401,7 +451,7 @@ export default function TelemetryPage() {
                 <>
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <Kpi label="MCP Requests" value={mcpData.totals.totalRequests} sub={`SDK family のみ (過去${mcpData.windowDays}日)`} />
-                    <Kpi label="Unique Families" value={mcpData.totals.uniqueFamilies} sub="pay-per-call-mcp / lemon-cake-mcp 等の種類" />
+                    <Kpi label="Unique Families" value={mcpData.totals.uniqueFamilies} sub="agent-payment-mcp / agent-payment-mcp 等の種類" />
                     <Kpi label="Unique Versions" value={mcpData.totals.uniqueVersions} sub="family × version の組み合わせ" />
                   </div>
 
@@ -410,7 +460,7 @@ export default function TelemetryPage() {
                       まだ SDK / MCP からのリクエストが記録されていません。
                       <br />
                       <span className="text-xs">
-                        誰かが <code className="bg-gray-100 px-1 rounded">npx -y pay-per-call-mcp</code>（または旧 <code className="bg-gray-100 px-1 rounded">lemon-cake-mcp</code>）で起動して setup / list_services を叩けばここに表示されます。
+                        誰かが <code className="bg-gray-100 px-1 rounded">npx -y agent-payment-mcp</code>（または旧 <code className="bg-gray-100 px-1 rounded">agent-payment-mcp</code>）で起動して setup / list_services を叩けばここに表示されます。
                       </span>
                     </div>
                   ) : (
