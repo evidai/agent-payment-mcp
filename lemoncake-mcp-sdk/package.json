@@ -1,6 +1,6 @@
 {
   "name": "@lemon-cake/mcp-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stripe for MCP servers — add pay-per-call USDC billing to any MCP tool in 3 lines. v0.2 adds ERC-2612 permit verification for the non-custodial path (Japan FSA Q11 confirmed registration-exempt).",
   "keywords": [
     "mcp",
