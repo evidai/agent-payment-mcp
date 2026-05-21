@@ -1,11 +1,11 @@
 {
   "$schema": "https://open-plugins.com/schema/mcp.json",
   "name": "agent-payment-mcp",
-  "displayName": "agent-payment-mcp",
-  "description": "USDC pay-per-call billing for AI agents. Give Claude a wallet with a hard daily spend cap. Demo Mode works with zero signup.",
-  "version": "0.6.1",
+  "displayName": "agent-payment-mcp 🍋 (non-custodial)",
+  "description": "USDC pay-per-call billing for AI agents. v2 non-custodial mode confirmed registration-exempt by Japan FSA (Q11, 2026-05-21) — your USDC stays in your own wallet. ERC-2612 permit replaces JWT-style Pay Tokens. Demo Mode works with zero signup.",
+  "version": "0.7.1",
   "license": "MIT",
-  "homepage": "https://lemoncake.xyz/start",
+  "homepage": "https://lemoncake.xyz/start/v2",
   "repository": "https://github.com/evidai/agent-payment-mcp",
   "author": {
     "name": "evidai",
@@ -24,19 +24,28 @@
     "micropayments",
     "billing",
     "web3",
-    "autonomous"
+    "autonomous",
+    "non-custodial",
+    "erc-2612",
+    "permit",
+    "fsa-confirmed",
+    "japan"
   ],
   "category": "finance",
   "transport": ["stdio"],
   "command": "npx",
   "args": ["-y", "agent-payment-mcp"],
   "env": {
+    "LEMON_CAKE_PERMIT": {
+      "description": "ERC-2612 permit blob from lemoncake.xyz/start/v2. New v2 non-custodial path (FSA Q11 confirmed). Recommended.",
+      "required": false
+    },
     "LEMON_CAKE_PAY_TOKEN": {
-      "description": "Pay Token JWT issued from lemoncake.xyz dashboard. Required for paid services. Optional in Demo Mode.",
+      "description": "Legacy Pay Token JWT from lemoncake.xyz/start. Custody mode — use v2 (LEMON_CAKE_PERMIT) instead.",
       "required": false
     },
     "LEMON_CAKE_BUYER_JWT": {
-      "description": "Buyer session JWT for balance lookups. Optional in Demo Mode.",
+      "description": "Buyer session JWT for balance lookups in legacy mode. Optional in Demo Mode.",
       "required": false
     }
   },
@@ -46,5 +55,5 @@
     "Find the email of Anthropic's CEO with Hunter.io",
     "Verify Japanese tax invoice number T1010401123456"
   ],
-  "tags": ["finance", "payments", "ai", "web3", "mcp"]
+  "tags": ["finance", "payments", "ai", "web3", "mcp", "non-custodial"]
 }
