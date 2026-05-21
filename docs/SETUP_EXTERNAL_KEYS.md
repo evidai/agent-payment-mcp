@@ -59,33 +59,26 @@ Google ログインボタンが実際に Privy 認証モーダルを開きます
 
 ---
 
-## 2. Stripe Crypto on-ramp（30分・必須・要審査）
+## 2. USDC オンランプ（保留中・2026-05-22 時点）
 
-USDC 入金の摩擦をゼロにする鍵。
+**結論：現状は外部取引所案内のみで運用**。`/start/v2` Step 2 は「USDC を既に持っている → 次へ」を主導線にし、無い人には Coincheck / bitFlyer / Coinbase へのリンクを表示する設計に切り替え済み。
 
-### 取得手順
+### 検討した選択肢
 
-1. https://stripe.com にアカウント（ない場合）
-2. https://dashboard.stripe.com/test/crypto/onramp で
-   **「Apply for early access」**
-3. アプリケーション情報：
-   - Use case: "Pay-per-call USDC billing for AI agents"
-   - Expected monthly volume: $5,000 (初期目安、調整可)
-   - Customer geography: Global (JP / US / EU)
-4. 通常 1〜5 営業日で承認連絡
-5. 承認後、**Publishable key**（`pk_live_...`）をコピー
+| プロバイダ | JP 対応 | 状態 |
+|---|---|---|
+| Stripe Crypto on-ramp | ❌ US/EU only | 2026-05-22 確認：日本アカウントでは申請不可 |
+| MoonPay | ✅ JPY 対応 | 未申請 |
+| Coinbase Onramp（CDP） | ✅ Coinbase Japan 経由 | 候補本命（FSA 登録 #00029 と整合） |
 
-### Vercel への設定
+### Coinbase Onramp 採用時の手順（未着手）
 
-```bash
-echo "pk_live_xxxxxxxx" | vercel env add NEXT_PUBLIC_STRIPE_ONRAMP_PUBLISHABLE_KEY production
-```
+1. https://portal.cdp.coinbase.com/products/onramp で開発者アカウント
+2. App ID 取得
+3. `start/v2/page.tsx` に Coinbase Pay SDK 統合
+4. 環境変数 `NEXT_PUBLIC_COINBASE_APP_ID` 追加
 
-### 代替（Stripe 審査が長い場合）
-
-Coinbase Pay も同じ位置で使えます：
-- https://www.coinbase.com/cloud/products/pay
-- 環境変数を別途追加し、`start/v2/page.tsx` の `handleTopup` を分岐
+実装は別タスク。今は外部リンクのみで PLG ユーザー（USDC を既に持つ開発者層）には十分。
 
 ---
 
