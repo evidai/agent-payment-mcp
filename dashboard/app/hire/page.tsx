@@ -10,6 +10,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import HireCtaTracker from "./HireCtaTracker";
 
 export const metadata: Metadata = {
   title: "受託・業務委託 | LemonCake — MCP / AI エージェント実装",
@@ -28,23 +29,30 @@ export const metadata: Metadata = {
 
 const PROOF_POINTS = [
   { label: "公開 MCP", value: "5本", note: "agent-payment / alpaca-guard / xstocks / tokenized-stock / SDK" },
-  { label: "Glama スコア", value: "AAB", note: "92% プロファイル充足" },
-  { label: "セキュリティ監査", value: "クリア", note: "@kleosr 2026年5月、CRITICAL/HIGH 全件修正" },
+  { label: "FSA 照会", value: "Q1-Q11 完了", note: "金融庁 Fintech サポートデスク 照会完了" },
+  { label: "セキュリティ監査", value: "クリア", note: "@kleosr 2026年5月、CRITICAL/HIGH 主要件修正" },
   { label: "対応 MCP クライアント", value: "5+", note: "Claude Desktop / Cursor / Cline / Codex / Continue" },
 ];
 
+const SLOTS_THIS_MONTH = {
+  remaining: 2,
+  total: 3,
+  nextAvailable: "2026年6月初週",
+};
+
 const PACKAGES = [
   {
-    name: "MCP 化受託",
+    name: "MCP 化フィクスト",
     audience: "既存 SaaS / API を AI エージェントから呼べるようにしたい企業",
     deliverables: [
       "貴社 API → MCP サーバー実装（TypeScript / Python）",
       "Claude Desktop / Cursor / Cline 向け設定 JSON",
       "Glama / cursor.directory / mcp.directory 等への登録代行",
       "ドキュメント・サンプルコード一式",
+      "30日間の無償バグ修正サポート",
     ],
-    duration: "2〜3週間",
-    price: "¥50〜150万",
+    duration: "3週間",
+    price: "¥80万 固定",
     feature: true,
   },
   {
@@ -129,20 +137,28 @@ export default function HirePage() {
             貴社の AI エージェント実装を請負います。
           </h1>
           <p className="mt-5 max-w-2xl text-base text-gray-700 sm:text-lg">
-            Claude Desktop / Cursor / Cline から呼べる MCP サーバーを 2〜3週間で実装。
+            Claude Desktop / Cursor / Cline から呼べる MCP サーバーを 3週間で実装。
             セキュリティ監査クリア済み・@lemon-cake/mcp-sdk 開発者。
             金融庁への AI 決済法令照会も完了しています。
           </p>
 
+          {/* Scarcity strip — 受託可能枠の見える化 */}
+          <div className="mt-6 inline-flex items-center gap-3 rounded-full bg-amber-100 px-5 py-2 text-sm font-bold text-amber-900 border border-amber-300">
+            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            今月の受付：あと <span className="text-base">{SLOTS_THIS_MONTH.remaining}</span> 枠（次回は {SLOTS_THIS_MONTH.nextAvailable}）
+          </div>
+
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="mailto:contact@aievid.com?subject=%E5%8F%97%E8%A8%97%E3%81%AE%E3%81%94%E7%9B%B8%E8%AB%87"
+              data-cta="email_hero"
               className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-amber-600"
             >
               📧 contact@aievid.com にメール
             </a>
             <a
               href="https://twitter.com/messages/compose?recipient_id=aievid"
+              data-cta="x_dm_hero"
               target="_blank"
               rel="noopener"
               className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-900 hover:border-amber-500"
@@ -150,6 +166,7 @@ export default function HirePage() {
               X で DM（@aievid）
             </a>
           </div>
+          <HireCtaTracker />
 
           <p className="mt-3 text-xs text-gray-500">
             営業日 24 時間以内に返信します。NDA 提示後の詳細打合せ可。

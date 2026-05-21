@@ -30,6 +30,7 @@
 
 import { useState } from "react";
 import { encodePermit, permitDeadlineFromNow, type SignedPermit } from "@/lib/permit";
+import { trackEvent } from "@/lib/analytics";
 
 // The marketplace spender — for the prototype, hardcode a single
 // LemonCake-controlled (but USDC-untouching) paymaster address. In
@@ -58,6 +59,7 @@ export default function StartV2Page() {
   async function handleSignIn() {
     // Real impl: const { user, login } = usePrivy(); await login();
     // For the prototype just advance the step.
+    trackEvent("v2_signin_started", { path: "wallet_create" });
     setStep(2);
   }
 
@@ -66,6 +68,7 @@ export default function StartV2Page() {
     // Real impl: open Stripe Crypto onramp targeting the user's embedded
     // wallet address on Base. The USDC arrives directly in the user's
     // wallet — LemonCake never sees it.
+    trackEvent("v2_topup_clicked", { provider: "stripe_crypto" });
     setStep(3);
   }
 
@@ -97,14 +100,17 @@ export default function StartV2Page() {
       };
       setPermit(fake);
       setEncodedPermit(encodePermit(fake));
+      trackEvent("v2_permit_signed", { chain_id: 8453, cap_usdc: 25, validity_days: 90 });
       setStep(4);
     } catch (e) {
+      trackEvent("v2_permit_sign_failed", { error: e instanceof Error ? e.message : "unknown" });
       setError(e instanceof Error ? e.message : "署名に失敗しました");
     }
   }
 
   async function copyToken() {
     await navigator.clipboard.writeText(encodedPermit);
+    trackEvent("v2_permit_copied");
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -212,8 +218,30 @@ export default function StartV2Page() {
               <h2 className="text-xl font-bold">Step 4 · 完了 🎉</h2>
               <p className="mt-2 text-sm text-gray-600">
                 以下のトークンを MCP クライアントの設定にコピペして使ってください。
-                90 日後に更新通知が届きます。それまで完全ノーサインです。
+                <strong>90 日後の期限切れ 7 日前にメール + ブラウザ通知</strong>が届き、
+                ワンクリックで延長できます。それまで完全ノーサインで AI が API を呼びます。
               </p>
+
+              {/* Auto-renewal status */}
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <span className="text-xl leading-none">🔔</span>
+                <div className="text-sm">
+                  <p className="font-bold text-emerald-900">自動更新通知 ON</p>
+                  <p className="mt-0.5 text-emerald-800">
+                    期限切れ 7 日前 / 3 日前 / 当日にメール通知。ブラウザ通知も許可するとさらに見逃しゼロに。
+                  </p>
+                  <button
+                    className="mt-2 text-xs font-bold text-emerald-700 hover:underline"
+                    onClick={async () => {
+                      if (typeof window !== "undefined" && "Notification" in window) {
+                        await Notification.requestPermission();
+                      }
+                    }}
+                  >
+                    ブラウザ通知を許可する →
+                  </button>
+                </div>
+              </div>
 
               <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-amber-700">

@@ -15,6 +15,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // /hire — founder consulting / contract work landing.
     // High priority so search engines surface it for "MCP 受託" / "AI エージェント受託" queries.
     { url: `${BASE}/hire`,                   lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
+    // /security — public audit + FSA inquiry posture. Brand trust signal
+    // for enterprise / integration partners.
+    { url: `${BASE}/security`,               lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    // /start/v2 — non-custodial path landing (FSA Q11 confirmed).
+    { url: `${BASE}/start/v2`,               lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/register`,               lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/login`,                  lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/support`,                lastModified: now, changeFrequency: "monthly", priority: 0.5 },
