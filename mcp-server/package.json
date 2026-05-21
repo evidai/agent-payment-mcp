@@ -1,7 +1,7 @@
 {
   "name": "agent-payment-mcp",
   "mcpName": "io.github.evidai/agent-payment",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Give your AI agent a USDC wallet. Pay-per-call any API. Hard daily cap the agent can't override. NEW: v2 non-custodial mode (Japan FSA Q11 confirmed — registration-exempt). Demo Mode works with zero signup — `npx -y agent-payment-mcp`.",
   "type": "module",
   "main": "dist/index.js",

@@ -580,8 +580,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 const PROMPTS = [
   {
     name: "explore-demo",
-    title: "🎮 Try the demo (no signup)",
-    description: "Walk through demo_search → demo_fx → demo_echo with no auth required.",
+    title: "👉 START HERE — Try the demo (no signup, no API key)",
+    description: "[FREE · no auth needed] Walks Claude through demo_search → demo_fx → demo_echo against real upstreams. Best first step on Glama Inspector to verify the server is alive.",
     template: [
       "Use the LemonCake MCP server (pay-per-call-mcp) in demo mode (no auth needed) to:",
       "1. Run `setup` to confirm we're in demo mode.",
@@ -592,19 +592,9 @@ const PROMPTS = [
     ].join("\n"),
   },
   {
-    name: "discover-marketplace",
-    title: "🛍 Discover marketplace services",
-    description: "List approved services and pick one that matches a use case.",
-    template: [
-      "Using this server's `list_services` tool, list every approved service with its category and price.",
-      "Then recommend the top 3 for an AI agent that needs to: (a) find recent news, (b) verify a Japanese invoice number, (c) translate text.",
-      "For each recommendation, show the exact `call_service` arguments to invoke it.",
-    ].join("\n"),
-  },
-  {
     name: "japan-tax-check",
-    title: "🇯🇵 Validate a Japanese invoice number",
-    description: "Use the check_tax tool to verify a 適格請求書発行事業者番号 against the NTA registry.",
+    title: "🇯🇵 Validate a Japanese invoice number (FREE)",
+    description: "[FREE · no auth needed] Uses the check_tax tool to verify a 適格請求書発行事業者番号 against the NTA registry. ChatGPT/Gemini cannot do this — they hallucinate registration numbers. Real second demo.",
     arguments: [
       { name: "registrationNumber", description: "T + 13 digit number. Leave empty to use a sample (T1234567890123).", required: false },
       { name: "amountJpy", description: "Gross amount in JPY. Defaults to 110000.", required: false },
@@ -616,9 +606,19 @@ const PROMPTS = [
     ].join("\n"),
   },
   {
+    name: "discover-marketplace",
+    title: "🛍 Discover marketplace services (FREE browse)",
+    description: "[FREE · no auth needed] Lists every approved service with its category and price. Useful before deciding whether to grab a Pay Token.",
+    template: [
+      "Using this server's `list_services` tool, list every approved service with its category and price.",
+      "Then recommend the top 3 for an AI agent that needs to: (a) find recent news, (b) verify a Japanese invoice number, (c) translate text.",
+      "For each recommendation, show the exact `call_service` arguments to invoke it.",
+    ].join("\n"),
+  },
+  {
     name: "spend-with-budget",
-    title: "💰 Spend with a strict budget cap",
-    description: "Pattern: check_balance → call_service → check_balance again, demonstrating KYA/Pay-Token spending limits.",
+    title: "💰 Spend with a strict budget cap (Pay Token required)",
+    description: "[REQUIRES Pay Token — get one free at lemoncake.xyz/start/v2] Pattern: check_balance → call_service → check_balance again, demonstrating KYA/Pay-Token spending limits.",
     arguments: [
       { name: "serviceId", description: "Marketplace service ID (omit for demo_search)", required: false },
       { name: "query", description: "Search query (for search/data services)", required: false },
@@ -637,8 +637,8 @@ const PROMPTS = [
   },
   {
     name: "real-vs-demo",
-    title: "🔄 Compare demo vs real upstream",
-    description: "Hit the same logical query against demo_search (Wikipedia) and a real marketplace search service to see the difference.",
+    title: "🔄 Compare demo vs real upstream (Pay Token required for real)",
+    description: "[FREE for demo half · Pay Token needed for real half] Hits the same logical query against demo_search (Wikipedia, free) and a real marketplace search service to see the difference. Gracefully skips the paid half if no token.",
     template: [
       "Compare LemonCake's demo vs real search:",
       "1. Call `call_service` with serviceId='demo_search', body={\"q\":\"Model Context Protocol\"}. Note the Wikipedia results.",
@@ -649,8 +649,8 @@ const PROMPTS = [
   },
   {
     name: "japan-finance-bundle",
-    title: "🏯 Japan finance research bundle",
-    description: "Combine gBizINFO 法人情報 + 国税庁 invoice check + e-Gov 法令 in one workflow.",
+    title: "🏯 Japan finance research bundle (Pay Token required)",
+    description: "[REQUIRES Pay Token for gBizINFO + e-Gov · check_tax part is free] Combines gBizINFO 法人情報 + 国税庁 invoice check + e-Gov 法令 in one workflow.",
     arguments: [
       { name: "corporateNumber", description: "13-digit corporate number (法人番号)", required: false },
     ],
