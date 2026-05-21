@@ -61,7 +61,7 @@ const randHash  = () => `sf_${Array.from({ length: 28 }, () => "0123456789abcdef
 type TxStatus = "confirmed" | "failed" | "pending" | "blocked";
 type Tier     = "none" | "kya" | "kyc";
 type Role     = "buyer" | "seller";
-type Page     = "home" | "transactions" | "agents" | "usdc" | "jpyc" | "fraud" | "directory" | "account"
+type Page     = "home" | "transactions" | "agents" | "fraud" | "directory" | "account"
               | "accounting"
               | "seller-services" | "seller-directory" | "seller-account" | "seller-stats";
 
@@ -260,17 +260,6 @@ function IconPlayground({ cls }: { cls?: string }) {
     </svg>
   );
 }
-function IconUSDC({ cls }: { cls?: string }) {
-  // extract size classes (w-* h-*) from cls; ignore color/transition classes for img
-  const sizeMatch = (cls ?? "").match(/(w-\S+)\s+(h-\S+)/);
-  const sizeClass = sizeMatch ? `${sizeMatch[1]} ${sizeMatch[2]}` : "w-5 h-5";
-  return <img src="/usdc.png" alt="USDC" className={`${sizeClass} rounded-full flex-shrink-0 object-cover`} />;
-}
-function IconJPYC({ cls }: { cls?: string }) {
-  const sizeMatch = (cls ?? "").match(/(w-\S+)\s+(h-\S+)/);
-  const sizeClass = sizeMatch ? `${sizeMatch[1]} ${sizeMatch[2]}` : "w-5 h-5";
-  return <img src="/jpyc.png" alt="JPYC" className={`${sizeClass} rounded-full flex-shrink-0 object-cover`} />;
-}
 function IconAccounting({ cls }: { cls?: string }) {
   return (
     <svg className={cls} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
@@ -349,8 +338,6 @@ const NAV_BUYER: NavItem[] = [
   { id: "transactions", label: "トークン発行",          Icon: IconToken },
   { id: "agents",       label: "販売者向けAPIキー",     Icon: IconApiKey },
   { id: "fraud",        label: "課金履歴",              Icon: IconClaim },
-  { id: "usdc",         label: "USDCチャージ",          Icon: IconUSDC },
-  { id: "jpyc",         label: "JPYCチャージ",          Icon: IconJPYC },
   { id: "accounting",   label: "会計連携",              Icon: IconAccounting },
 ];
 
@@ -387,8 +374,6 @@ function Sidebar({
     { id: "transactions", label: t("トークン発行", "Issue Token"),       Icon: IconToken },
     { id: "agents",       label: t("販売者向けAPIキー", "API Keys"),      Icon: IconApiKey },
     { id: "fraud",        label: t("課金履歴", "Charges"),               Icon: IconClaim },
-    { id: "usdc",         label: t("USDCチャージ", "USDC Deposit"),      Icon: IconUSDC },
-    { id: "jpyc",         label: t("JPYCチャージ", "JPYC Deposit"),      Icon: IconJPYC },
     { id: "accounting",   label: t("会計連携", "Accounting"),             Icon: IconAccounting },
   ];
   const navSeller: NavItem[] = [
@@ -1336,9 +1321,9 @@ function TokensPage({ buyerToken, onTokenIssued }: { buyerToken: string; onToken
 
               <div className="grid sm:grid-cols-3 gap-3 mb-6">
                 {[
-                  { num: "1", label: t("USDC残高をチャージ","Top up USDC balance"), hint: t("カード/銀行/暗号資産対応","Card / bank / crypto") },
-                  { num: "2", label: t("Pay Tokenを発行","Issue a Pay Token"),     hint: t("ALLスコープ推奨","ALL scope recommended") },
-                  { num: "3", label: t("エージェントから利用","Use from your agent"), hint: t("npx create-lemon-agent","npx create-lemon-agent") },
+                  { num: "1", label: t("Google でサインイン","Sign in with Google"), hint: t("Privy 経由でウォレット自動作成","Privy auto-creates a wallet") },
+                  { num: "2", label: t("90 日 Permit に署名","Sign a 90-day permit"),  hint: t("ガス代不要・1 回だけ","No gas, one time") },
+                  { num: "3", label: t("エージェントから利用","Use from your agent"), hint: t("npx -y agent-payment-mcp","npx -y agent-payment-mcp") },
                 ].map(({ num, label, hint }) => (
                   <div key={num} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
                     <div className="text-[10px] text-gray-400 font-mono mb-1">STEP {num}</div>
@@ -1627,521 +1612,6 @@ function FraudPage({ blockedTx, avgRisk }: { blockedTx: number; avgRisk: number 
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── USDC Deposit Page ────────────────────────────────────────────────────────
-
-type DepositCurrency = "usd" | "jpy" | "eur" | "gbp";
-
-interface BankDetails {
-  type:           "zengin" | "aba" | "iban" | "sort_code" | null;
-  accountNumber?: string; bankName?: string; branchCode?: string;
-  routingNumber?: string; accountType?: string;
-  iban?: string; bic?: string; sortCode?: string;
-}
-
-const CURRENCY_META: Record<DepositCurrency, {
-  symbol: string; label: string; min: number; step: number;
-  presets: number[]; toUsdc: (amt: number, rate: number) => number;
-}> = {
-  usd: { symbol: "$",  label: "USD", min: 1,   step: 1,    presets: [5, 10, 25, 50],            toUsdc: (a) => a },
-  jpy: { symbol: "¥",  label: "JPY", min: 500, step: 100,  presets: [1000, 3000, 5000, 10000],   toUsdc: (a, r) => a / r },
-  eur: { symbol: "€",  label: "EUR", min: 1,   step: 1,    presets: [5, 10, 25, 50],            toUsdc: (a) => a * 1.08 },
-  gbp: { symbol: "£",  label: "GBP", min: 1,   step: 1,    presets: [5, 10, 20, 50],            toUsdc: (a) => a * 1.27 },
-};
-
-function USDCDepositPage({ buyerToken }: { buyerToken: string }) {
-  const t   = useT();
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-  const hdrs = { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` };
-
-  type USDCTab = "card" | "bank" | "onchain";
-  const [tab,      setTab]      = useState<USDCTab>("card");
-  const [currency, setCurrency] = useState<DepositCurrency>("usd");
-
-  // ── Profile ──────────────────────────────────────────────────
-  const [buyerName,     setBuyerName]     = useState("");
-  const [buyerEmail,    setBuyerEmail]    = useState("");
-  const [profileLoaded, setProfileLoaded] = useState(false);
-
-  // ── Card ─────────────────────────────────────────────────────
-  const [jpycRate,    setJpycRate]    = useState(150);
-  const [cardAmount,  setCardAmount]  = useState("10");
-  const [cardLoading, setCardLoading] = useState(false);
-  const [cardErr,     setCardErr]     = useState("");
-
-  // ── Bank ─────────────────────────────────────────────────────
-  // key = currency, value = fetched bank details
-  const [bankDetailsMap, setBankDetailsMap] = useState<Partial<Record<DepositCurrency, BankDetails | null>>>({});
-  const [bankLoading, setBankLoading] = useState(false);
-  const [bankErr,     setBankErr]     = useState("");
-  const [bankRetry,   setBankRetry]   = useState(0); // increment to retry
-
-  useEffect(() => {
-    fetch(`${API}/api/auth/me`, { headers: hdrs })
-      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
-      .then((d: UserProfile) => { setBuyerName(d.name); setBuyerEmail(d.email); })
-      .catch(() => {})
-      .finally(() => setProfileLoaded(true));
-    fetch(`${API}/api/jpyc/info`).then(r => r.json())
-      .then((d: JpycInfo) => setJpycRate(d.jpycRate ?? 150))
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function friendlyBankError(msg: string): string {
-    if (/401|unauthorized|認証/i.test(msg))
-      return t("セッションが切れました。再ログインしてください。", "Session expired. Please log in again.");
-    if (/network|fetch|ECONNREFUSED/i.test(msg))
-      return t("ネットワークエラーが発生しました。接続を確認して再試行してください。", "Network error. Please check your connection and retry.");
-    if (/500|internal/i.test(msg))
-      return t("サーバーエラーが発生しました。しばらくしてから再試行してください。", "Server error. Please try again later.");
-    if (/stripe/i.test(msg))
-      return t("Stripe との通信でエラーが発生しました。しばらくしてから再試行してください。", "Error communicating with Stripe. Please try again later.");
-    return msg || t("予期しないエラーが発生しました。", "An unexpected error occurred.");
-  }
-
-  // fetch bank details when tab=bank, currency changes, or retry triggered
-  useEffect(() => {
-    if (tab !== "bank") return;
-    if (!profileLoaded) return;
-    if (!buyerEmail) {
-      setBankErr(t("アカウント情報を取得できませんでした。再ログインしてください。", "Could not load account info. Please log in again."));
-      return;
-    }
-    if (bankDetailsMap[currency] !== undefined && bankRetry === 0) return; // already fetched
-    setBankLoading(true); setBankErr("");
-    fetch(`${API}/api/stripe/bank-transfer`, {
-      method: "POST", headers: hdrs,
-      body: JSON.stringify({ email: buyerEmail, name: buyerName, currency }),
-    })
-      .then(async r => {
-        const d = await r.json() as { bankDetails?: BankDetails; error?: string };
-        if (!r.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
-        if (d.error) throw new Error(d.error);
-        setBankDetailsMap(prev => ({ ...prev, [currency]: d.bankDetails ?? null }));
-      })
-      .catch((e: Error) => setBankErr(friendlyBankError(e.message)))
-      .finally(() => setBankLoading(false));
-  }, [tab, currency, profileLoaded, buyerEmail, bankRetry]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleCardCheckout(e: React.FormEvent) {
-    e.preventDefault();
-    const meta = CURRENCY_META[currency];
-    const amt  = parseFloat(cardAmount);
-    if (!amt || amt < meta.min) { setCardErr(`Minimum ${meta.symbol}${meta.min}`); return; }
-    setCardLoading(true); setCardErr("");
-    try {
-      const origin = window.location.origin;
-      const res = await fetch(`${API}/api/stripe/card-checkout`, {
-        method: "POST", headers: hdrs,
-        body: JSON.stringify({ amount: amt, currency, successUrl: `${origin}/?charge=success`, cancelUrl: `${origin}/?charge=cancel` }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t("エラーが発生しました", "An error occurred"));
-      window.location.href = data.url;
-    } catch (err: unknown) {
-      setCardErr(err instanceof Error ? err.message : t("エラーが発生しました", "An error occurred"));
-      setCardLoading(false);
-    }
-  }
-
-  // ─── Coinbase Commerce (USDC 直接決済) ────────────────────
-  const [coinbaseAmount, setCoinbaseAmount] = useState("10");
-  const [coinbaseLoading, setCoinbaseLoading] = useState(false);
-  const [coinbaseErr, setCoinbaseErr] = useState("");
-
-  async function handleCoinbaseCheckout(e: React.FormEvent) {
-    e.preventDefault();
-    const amt = parseFloat(coinbaseAmount);
-    if (!amt || amt < 1) { setCoinbaseErr("Minimum $1"); return; }
-    setCoinbaseLoading(true); setCoinbaseErr("");
-    try {
-      const origin = window.location.origin;
-      const res = await fetch(`${API}/api/coinbase/checkout`, {
-        method: "POST", headers: hdrs,
-        body: JSON.stringify({ amountUsd: amt, successUrl: `${origin}/?charge=success`, cancelUrl: `${origin}/?charge=cancel` }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "checkout failed");
-      window.location.href = data.hostedUrl;
-    } catch (err: unknown) {
-      setCoinbaseErr(err instanceof Error ? err.message : "error");
-      setCoinbaseLoading(false);
-    }
-  }
-
-  const meta = CURRENCY_META[currency];
-
-  // render bank detail rows based on type
-  function renderBankDetails(d: BankDetails) {
-    const rows: { label: string; value: string }[] = [];
-    if (d.bankName)      rows.push({ label: t("銀行名", "Bank"),              value: d.bankName });
-    if (d.branchCode)    rows.push({ label: t("支店コード", "Branch Code"),    value: d.branchCode });
-    if (d.routingNumber) rows.push({ label: t("ルーティング番号", "Routing No."), value: d.routingNumber });
-    if (d.accountNumber) rows.push({ label: t("口座番号", "Account No."),       value: d.accountNumber });
-    if (d.accountType)   rows.push({ label: t("口座種別", "Account Type"),      value: d.accountType });
-    if (d.iban)          rows.push({ label: "IBAN",                              value: d.iban });
-    if (d.bic)           rows.push({ label: "BIC / SWIFT",                       value: d.bic });
-    if (d.sortCode)      rows.push({ label: t("ソートコード", "Sort Code"),      value: d.sortCode });
-    return rows;
-  }
-
-  const usdcPreview = !isNaN(parseFloat(cardAmount)) && parseFloat(cardAmount) >= meta.min
-    ? meta.toUsdc(parseFloat(cardAmount), jpycRate).toFixed(4)
-    : null;
-
-  return (
-    <div className="flex flex-col gap-5 max-w-2xl">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">{t("USDCチャージ", "USDC Deposit")}</h2>
-        <p className="text-sm text-gray-500 mt-1">{t("残高に USDC を追加します。", "Add USDC to your balance.")}</p>
-      </div>
-
-      {/* Currency selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-gray-400">{t("通貨", "Currency")}:</span>
-        <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
-          {(["usd", "jpy", "eur", "gbp"] as DepositCurrency[]).map(c => (
-            <button key={c} onClick={() => { setCurrency(c); setCardAmount(String(CURRENCY_META[c].presets[1])); }}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all uppercase ${currency === c ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-              {CURRENCY_META[c].symbol} {CURRENCY_META[c].label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Method tabs */}
-      <div className="flex rounded-xl bg-gray-100 p-1 gap-1 w-fit">
-        {([
-          { id: "card"    as USDCTab, label: t("💳 カード", "💳 Card") },
-          { id: "bank"    as USDCTab, label: t("🏦 銀行振込", "🏦 Bank Transfer") },
-          { id: "onchain" as USDCTab, label: t("🔗 オンチェーン", "🔗 On-chain") },
-        ]).map(({ id, label }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Card ── */}
-      {tab === "card" && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <p className="text-sm font-semibold text-gray-900 mb-1">{t("クレジット／デビットカード", "Credit / Debit Card")}</p>
-          <p className="text-xs text-gray-500 mb-5">
-            {t("Stripe の安全なページで決済。完了後すぐに USDC 残高に反映されます。", "Pay securely via Stripe. USDC balance is credited immediately after payment.")}
-          </p>
-          <form onSubmit={handleCardCheckout} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                {t("入金金額", "Amount")} ({meta.label})
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{meta.symbol}</span>
-                <input type="number" value={cardAmount} onChange={e => setCardAmount(e.target.value)}
-                  min={meta.min} step={meta.step}
-                  className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900/20"
-                  required />
-              </div>
-              {usdcPreview && (
-                <p className="text-[10px] text-gray-400 mt-1">
-                  ≈ {usdcPreview} USDC
-                  {currency === "usd" && <span className="ml-1 text-emerald-500">{t("(1:1)", "(1:1)")}</span>}
-                </p>
-              )}
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {meta.presets.map(v => (
-                  <button key={v} type="button" onClick={() => setCardAmount(String(v))}
-                    className="px-2 py-1 rounded-lg border border-gray-200 text-[11px] text-gray-600 hover:bg-gray-50 transition-colors">
-                    {meta.symbol}{v.toLocaleString()}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {cardErr && <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{cardErr}</div>}
-            <button type="submit" disabled={cardLoading}
-              className="w-full py-2.5 bg-lemon hover:bg-lemon-hover text-text-primary text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-              {cardLoading ? t("リダイレクト中…", "Redirecting…") : <>💳 {t("Stripe で決済する", "Pay with Stripe")}</>}
-            </button>
-            <p className="text-[10px] text-gray-400 text-center">{t("Stripe の安全な決済ページへ遷移します", "You will be redirected to Stripe's secure payment page")}</p>
-          </form>
-        </div>
-      )}
-
-      {/* ── Bank Transfer ── */}
-      {tab === "bank" && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <p className="text-sm font-semibold text-gray-900 mb-1">{t("銀行振込", "Bank Transfer")}</p>
-          <p className="text-xs text-gray-500 mb-5">
-            {t("下記の口座に振込すると、Stripe が自動検知して USDC 残高に反映します。", "Transfer to the account below. Stripe detects it automatically and credits your USDC balance.")}
-          </p>
-          {bankLoading && (
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-              {t("口座情報を取得中…", "Fetching account info…")}
-            </div>
-          )}
-          {bankErr && (
-            <div className="flex flex-col gap-3 items-start bg-red-50 border border-red-200 rounded-xl px-4 py-4">
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"/>
-                </svg>
-                <p className="text-sm text-red-700">{bankErr}</p>
-              </div>
-              <button
-                onClick={() => { setBankErr(""); setBankDetailsMap(prev => { const n = { ...prev }; delete n[currency]; return n; }); setBankRetry(r => r + 1); }}
-                className="text-xs font-medium text-red-600 hover:text-red-800 underline underline-offset-2"
-              >
-                {t("再試行する", "Retry")}
-              </button>
-            </div>
-          )}
-          {!bankLoading && !bankErr && (() => {
-            const d = bankDetailsMap[currency];
-            if (d === undefined) return null;
-            if (d === null) return (
-              <div className="flex flex-col gap-3 items-start bg-amber-50 border border-amber-200 rounded-xl px-4 py-4">
-                <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
-                  </svg>
-                  <p className="text-sm text-amber-700">{t("この通貨の振込口座を取得できませんでした。別の通貨を試すか、カード決済をご利用ください。", "Could not retrieve bank account for this currency. Try another currency or use card payment.")}</p>
-                </div>
-                <button
-                  onClick={() => { setBankDetailsMap(prev => { const n = { ...prev }; delete n[currency]; return n; }); setBankRetry(r => r + 1); }}
-                  className="text-xs font-medium text-amber-600 hover:text-amber-800 underline underline-offset-2"
-                >
-                  {t("再試行する", "Retry")}
-                </button>
-              </div>
-            );
-            const rows = renderBankDetails(d);
-            return (
-              <div className="flex flex-col gap-3">
-                {rows.map(({ label, value }) => (
-                  <div key={label} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-                    <div>
-                      <p className="text-[10px] text-gray-400 mb-0.5">{label}</p>
-                      <p className="text-sm font-mono font-semibold text-gray-800 break-all">{value}</p>
-                    </div>
-                    <CopyButton text={value} />
-                  </div>
-                ))}
-                <p className="text-[11px] text-gray-400 mt-1">
-                  {t("※ 振込後、反映まで数分〜数時間かかる場合があります。", "※ It may take a few minutes to hours after transfer to reflect in your balance.")}
-                </p>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ── On-chain ── */}
-      {tab === "onchain" && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-semibold text-gray-900">{t("USDC で直接チャージ", "Direct USDC payment")}</p>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">{t("手数料 1%", "1% fee")}</span>
-          </div>
-          <p className="text-xs text-gray-500 mb-5">
-            {t("Coinbase Commerce 経由で USDC / ETH / Bitcoin を直接送金。Stripe (3.6%) より大幅に安く、確認後すぐ残高反映。", "Pay USDC/ETH/Bitcoin directly via Coinbase Commerce. Much cheaper than Stripe (3.6%), credited immediately on confirmation.")}
-          </p>
-          <form onSubmit={handleCoinbaseCheckout} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("入金金額 (USD)", "Amount (USD)")}</label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">$</span>
-                <input type="number" value={coinbaseAmount} onChange={e=>setCoinbaseAmount(e.target.value)} min={1} step={1}
-                  className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900/20" required/>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-1">≈ {coinbaseAmount} USDC <span className="ml-1 text-emerald-500">(1:1)</span></p>
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {[5, 10, 50, 100, 500].map(v => (
-                  <button key={v} type="button" onClick={()=>setCoinbaseAmount(String(v))}
-                    className="px-2 py-1 rounded-lg border border-gray-200 text-[11px] text-gray-600 hover:bg-gray-50 transition-colors">${v.toLocaleString()}</button>
-                ))}
-              </div>
-            </div>
-            {coinbaseErr && <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{coinbaseErr}</div>}
-            <button type="submit" disabled={coinbaseLoading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-              {coinbaseLoading ? t("リダイレクト中…", "Redirecting…") : <>🪙 {t("Coinbase Commerce で支払う", "Pay with Coinbase Commerce")}</>}
-            </button>
-            <p className="text-[10px] text-gray-400 text-center">{t("Coinbase の決済ページへ遷移します（USDC/ETH/Bitcoin 対応）", "You will be redirected to Coinbase's checkout page (USDC/ETH/Bitcoin supported)")}</p>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── JPYC Deposit Page (real API) ─────────────────────────────────────────────
-
-interface JpycDepositReq {
-  id: string; buyerId: string; txHash: string;
-  amountJpyc: string; amountUsdc: string | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reviewNote: string | null; reviewedAt: string | null; createdAt: string;
-}
-
-interface JpycInfo { platformWallet: string; jpycRate: number; network: string; }
-
-// レートは /api/jpyc/info から取得（CoinGecko経由）
-
-function JPYCDepositPage({ buyerToken }: { buyerToken: string }) {
-  const t = useT();
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-  const hdrs = { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` };
-
-  const [info,       setInfo]       = useState<JpycInfo | null>(null);
-  const [requests,   setRequests]   = useState<JpycDepositReq[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [txHash,     setTxHash]     = useState("");
-  const [amountJpyc, setAmountJpyc] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitOk,   setSubmitOk]   = useState(false);
-  const [submitErr,  setSubmitErr]  = useState("");
-
-
-  function load() {
-    setLoading(true);
-    Promise.all([
-      fetch(`${API}/api/jpyc/info`).then(r => r.json()),
-      fetch(`${API}/api/jpyc/deposits?limit=50`, { headers: hdrs }).then(r => r.json()),
-    ]).then(([inf, dep]) => {
-      setInfo(inf as JpycInfo);
-      setRequests((dep as { data: JpycDepositReq[] }).data ?? []);
-    }).catch(console.error).finally(() => setLoading(false));
-  }
-
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!txHash.trim() || !amountJpyc.trim()) return;
-    setSubmitting(true); setSubmitErr(""); setSubmitOk(false);
-    try {
-      const res = await fetch(`${API}/api/jpyc/deposits`, {
-        method: "POST",
-        headers: hdrs,
-        body: JSON.stringify({ txHash: txHash.trim(), amountJpyc: amountJpyc.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "申請に失敗しました");
-      setSubmitOk(true);
-      setTxHash(""); setAmountJpyc("");
-      load();
-    } catch (err: unknown) {
-      setSubmitErr(err instanceof Error ? err.message : "申請に失敗しました");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const statusBadge = (s: "PENDING" | "APPROVED" | "REJECTED"): React.ReactElement => {
-    if (s === "PENDING")  return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 border border-amber-200 text-amber-700">{t("審査中","Under Review")}</span>;
-    if (s === "APPROVED") return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 border border-green-200 text-green-700">{t("承認済み","Approved")}</span>;
-    return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">{t("却下","Rejected")}</span>;
-  };
-
-  if (loading) return <div className="text-sm text-text-muted p-8 text-center">{t("読み込み中…","Loading…")}</div>;
-
-  return (
-    <div className="flex flex-col gap-5 max-w-2xl">
-      <>
-
-      {/* Platform wallet info */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <p className="text-sm font-semibold text-gray-900 mb-1">{t("JPYCチャージの手順","JPYC Deposit Instructions")}</p>
-        <p className="text-xs text-gray-500 mb-4">
-          {t("以下のウォレットアドレスにJPYCを送金し、TXハッシュを入力してください。オンチェーンで自動検証され、即座にUSDC残高に反映されます。","Send JPYC to the wallet address below, then enter your TX hash. It will be verified on-chain automatically and your USDC balance will be updated instantly.")}
-        </p>
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] text-gray-400 mb-1">{t("送金先ウォレット","Destination Wallet")}（{info?.network ?? "Polygon"}）</p>
-            <p className="text-sm font-mono text-gray-800 break-all">{info?.platformWallet ?? "—"}</p>
-          </div>
-          {info && <CopyButton text={info.platformWallet} />}
-        </div>
-        <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-          <span>{t("換算レート","Rate")}: <span className="font-semibold text-gray-700">{info?.jpycRate ?? 150} JPYC = 1 USDC</span></span>
-          <span>{t("ネットワーク","Network")}: <span className="font-semibold text-violet-600">{info?.network ?? "Polygon"}</span></span>
-        </div>
-      </div>
-
-      {/* Submit form */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <p className="text-sm font-semibold text-gray-900 mb-4">{t("チャージ申請","Deposit Request")}</p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("TXハッシュ","TX Hash")}</label>
-            <input
-              type="text" value={txHash} onChange={e => setTxHash(e.target.value)}
-              placeholder="0x..."
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-mono text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/20"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("送金したJPYC金額","JPYC Amount Sent")}</label>
-            <input
-              type="number" value={amountJpyc} onChange={e => setAmountJpyc(e.target.value)}
-              placeholder={t("例: 15000","e.g. 15000")}
-              min="1" step="1"
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/20"
-              required
-            />
-            {amountJpyc && !isNaN(parseFloat(amountJpyc)) && (
-              <p className="text-[10px] text-gray-400 mt-1">
-                {t("換算後","Converted")}: ≈ {(parseFloat(amountJpyc) / (info?.jpycRate ?? 150)).toFixed(4)} USDC
-              </p>
-            )}
-          </div>
-          {submitErr && <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{submitErr}</div>}
-          {submitOk  && <div className="px-4 py-2 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700">✅ {t("オンチェーン検証完了。USDC残高に即座に反映されました。","On-chain verification complete. Your USDC balance has been updated instantly.")}</div>}
-          <button type="submit" disabled={submitting}
-            className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
-            {submitting ? t("申請中…","Submitting…") : t("チャージを申請する","Submit Deposit Request")}
-          </button>
-        </form>
-      </div>
-
-      {/* Request history */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-900">{t("申請履歴","Request History")}</span>
-          <button onClick={load} className="text-xs text-gray-500 hover:text-gray-700">{t("更新","Refresh")}</button>
-        </div>
-        {requests.length === 0
-          ? <div className="px-5 py-8 text-center text-sm text-gray-400">{t("申請履歴がありません","No requests")}</div>
-          : (
-            <div className="divide-y divide-gray-100">
-              {requests.map(r => (
-                <div key={r.id} className="px-5 py-3 flex items-center gap-3 text-xs">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-mono text-gray-500 text-[10px] truncate">{r.txHash}</p>
-                    <p className="text-gray-700 mt-0.5">
-                      <span className="font-semibold">{parseFloat(r.amountJpyc).toLocaleString()} JPYC</span>
-                      {r.amountUsdc && <span className="text-gray-400 ml-1">→ {parseFloat(r.amountUsdc).toFixed(4)} USDC</span>}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {statusBadge(r.status)}
-                    <p className="text-[10px] text-gray-400 mt-1">{new Date(r.createdAt).toLocaleDateString("ja-JP")}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        }
-      </div>
-
-      </>
     </div>
   );
 }
@@ -4518,7 +3988,7 @@ export default function Dashboard() {
       ? new URLSearchParams(window.location.search).get("page")
       : null;
     const validPages: readonly string[] = [
-      "home","transactions","agents","usdc","jpyc","fraud","directory","account","accounting",
+      "home","transactions","agents","fraud","directory","account","accounting",
       "seller-services","seller-directory","seller-account","seller-stats",
     ];
     const initialPage: Page = urlPage && validPages.includes(urlPage)
@@ -4736,10 +4206,8 @@ export default function Dashboard() {
           {/* ── バイヤーページ ── */}
           {page === "home"         && <HomePage buyerToken={buyerToken} onNavigate={navigateTo} refreshKey={homeRefreshKey} />}
           {page === "transactions" && <TokensPage buyerToken={buyerToken} onTokenIssued={() => setHomeRefreshKey(k => k + 1)} />}
-          {page === "agents"       && <ApiKeysPage keys={apiKeys} onAdd={() => navigateTo("jpyc")} onRevoke={revokeApiKey} />}
+          {page === "agents"       && <ApiKeysPage keys={apiKeys} onAdd={() => navigateTo("home")} onRevoke={revokeApiKey} />}
           {page === "fraud"        && <ChargesPage buyerToken={buyerToken} />}
-          {page === "usdc"         && <USDCDepositPage buyerToken={buyerToken} />}
-          {page === "jpyc"         && <JPYCDepositPage buyerToken={buyerToken} />}
           {page === "accounting"   && <AccountingPage buyerToken={buyerToken} />}
           {page === "directory"    && <DirectoryPage />}
           {page === "account"      && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} />}
