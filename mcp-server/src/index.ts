@@ -33,6 +33,15 @@ const API_URL   = (process.env.LEMON_CAKE_API_URL  ?? "https://api.lemoncake.xyz
 const PAY_TOKEN = process.env.LEMON_CAKE_PAY_TOKEN ?? "";
 const BUYER_JWT = process.env.LEMON_CAKE_BUYER_JWT ?? "";
 
+// Non-custodial path (post-FSA-Q11 architecture). If a permit blob is
+// supplied, the MCP server runs in NON-CUSTODIAL mode: LemonCake never
+// holds the buyer's USDC, the agent's calls settle directly against the
+// buyer's wallet via ERC-2612 permit. The legacy Pay Token JWT path
+// remains supported in parallel until the migration finishes.
+// See dashboard/app/lib/permit.ts and lemoncake-mcp-sdk/src/permit.ts.
+const PERMIT_TOKEN = process.env.LEMON_CAKE_PERMIT ?? "";
+const NON_CUSTODIAL_MODE = PERMIT_TOKEN.length > 0;
+
 // ── バージョン・ユーザーエージェント ─────────────────────────────────────
 // 単一ソース化: package.json の version を読む。ESM の import attributes を
 // 使わずに createRequire 経由にすることで、バンドラなしで Node 22 でも動く。
@@ -42,7 +51,9 @@ const MCP_VERSION: string = (requireFromHere("../package.json") as { version: st
 const USER_AGENT  = `pay-per-call-mcp/${MCP_VERSION} (node/${process.versions.node}; ${process.platform} ${process.arch})`;
 
 // ── デモモード（認証情報なしで Glama Inspector / 新規ユーザーが試せるように） ──
-const DEMO_MODE = !PAY_TOKEN && !BUYER_JWT;
+// LEMON_CAKE_PERMIT があれば non-custodial 本番モード（FSA Q11 準拠の新方式）。
+// なければ既存の Pay Token / Buyer JWT パス。両方なければ Demo Mode。
+const DEMO_MODE = !PAY_TOKEN && !BUYER_JWT && !NON_CUSTODIAL_MODE;
 
 type DemoHandler = (path: string, body: Record<string, unknown> | undefined) => Promise<unknown> | unknown;
 
@@ -160,12 +171,18 @@ const DOCS_URL       = `https://lemoncake.xyz/docs/quickstart?${UTM}`;
 
 const hasPayToken = PAY_TOKEN.length > 0;
 const hasBuyerJwt = BUYER_JWT.length > 0;
+const hasPermit   = NON_CUSTODIAL_MODE;
 
 console.error("[LemonCake MCP] Starting...");
 console.error(`[LemonCake MCP]   API URL     : ${API_URL}`);
-console.error(`[LemonCake MCP]   PAY_TOKEN   : ${hasPayToken ? "✓ set" : "✗ NOT SET — call_service will be unavailable"}`);
-console.error(`[LemonCake MCP]   BUYER_JWT   : ${hasBuyerJwt ? "✓ set" : "✗ NOT SET — check_balance will be unavailable"}`);
-console.error(`[LemonCake MCP]   MODE        : ${DEMO_MODE ? "🎮 DEMO (try-without-signup; demo_* services + mock balance)" : "LIVE"}`);
+console.error(`[LemonCake MCP]   PERMIT      : ${hasPermit   ? "✓ set (non-custodial mode, FSA Q11 compliant)" : "✗ not set"}`);
+console.error(`[LemonCake MCP]   PAY_TOKEN   : ${hasPayToken ? "✓ set (legacy custody mode)"                  : "✗ not set"}`);
+console.error(`[LemonCake MCP]   BUYER_JWT   : ${hasBuyerJwt ? "✓ set"                                         : "✗ not set"}`);
+const modeLabel =
+  hasPermit   ? "🍋 NON-CUSTODIAL (recommended; LemonCake never touches your USDC)" :
+  DEMO_MODE   ? "🎮 DEMO (try-without-signup; demo_* services + mock balance)"      :
+                "LIVE (legacy custody)";
+console.error(`[LemonCake MCP]   MODE        : ${modeLabel}`);
 
 if (DEMO_MODE) {
   console.error("[LemonCake MCP]");

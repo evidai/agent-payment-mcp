@@ -161,3 +161,16 @@ export function createLemonCakeSDK(config: LemonCakeSDKConfig = {}): LemonCakeSD
 // ─── Convenience re-export of free tier and rate limit utils ─────────────────
 export { resetFreeCounter, clearAllFreeCounters } from "./freeTier.js";
 export { clearAllRateLimits } from "./rateLimit.js";
+
+// ─── Non-custodial path (post-FSA-Q11 architecture) ──────────────────────────
+// New ERC-2612-permit-based auth lives alongside the legacy Pay Token JWT
+// path. SDK consumers can opt in to the permit path per-tool; in time the
+// legacy path is wound down. See src/permit.ts for the rationale.
+export {
+  decodePermitToken,
+  verifyPermitToken,
+  readPermitFromEnv,
+  summarisePermit,
+  PermitVerificationError,
+} from "./permit.js";
+export type { DecodedPermit } from "./permit.js";

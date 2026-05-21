@@ -40,7 +40,9 @@
     "example:basic": "tsx examples/basic.ts",
     "example:advanced": "tsx examples/advanced.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "viem": "^2.50.4"
+  },
   "peerDependencies": {
     "@modelcontextprotocol/sdk": ">=1.10.0"
   },

@@ -4,12 +4,12 @@ import { CopyCommand } from "./CopyCommand";
 import { TerminalDemo } from "./TerminalDemo";
 import { DemoPlayground } from "./DemoPlayground";
 
-const NPM_COMMAND = "npx -y pay-per-call-mcp";
-const NPM_URL     = "https://www.npmjs.com/package/pay-per-call-mcp";
+const NPM_COMMAND = "npx -y agent-payment-mcp";
+const NPM_URL     = "https://www.npmjs.com/package/agent-payment-mcp";
 const GLAMA_URL   = "https://glama.ai/mcp/servers/evidai/lemon-cake";
 const GITHUB_URL  = "https://github.com/evidai/lemon-cake";
 
-const OG_TITLE = "pay-per-call-mcp — Pay-per-call USDC for any HTTP API";
+const OG_TITLE = "agent-payment-mcp — Pay-per-call USDC for any HTTP API";
 const OG_DESC  = "Give your AI agent a wallet. One npm command, no signup, no API keys. Demo Mode hits real Wikipedia / FX / httpbin in 30 seconds.";
 
 export const metadata: Metadata = {
@@ -39,7 +39,7 @@ const JSON_LD = {
     {
       "@type":            "SoftwareApplication",
       "@id":              "https://www.lemoncake.xyz/start#app",
-      "name":             "pay-per-call-mcp",
+      "name":             "agent-payment-mcp",
       "alternateName":    "LemonCake MCP server",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem":  "macOS, Linux, Windows (Node.js 20+)",
@@ -77,7 +77,7 @@ const JSON_LD = {
           "name":          "Do I need to sign up to try it?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text":  "No. Run npx -y pay-per-call-mcp with no env vars and Demo Mode hits real Wikipedia / FX / httpbin without an account. The /start landing page also has an in-browser playground that works with zero setup.",
+            "text":  "No. Run npx -y agent-payment-mcp with no env vars and Demo Mode hits real Wikipedia / FX / httpbin without an account. The /start landing page also has an in-browser playground that works with zero setup.",
           },
         },
         {
@@ -85,7 +85,7 @@ const JSON_LD = {
           "name":          "How is this different from Cursor / Cline / official MCP servers?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text":  "pay-per-call-mcp is a billing proxy: it lets your agent call paid APIs (Tavily, Serper, Hunter.io, gBizINFO, the Japanese NTA invoice API) without you handing over per-vendor API keys. One Pay Token JWT with a hard USDC spending cap covers all of them.",
+            "text":  "agent-payment-mcp is a billing proxy: it lets your agent call paid APIs (Tavily, Serper, Hunter.io, gBizINFO, the Japanese NTA invoice API) without you handing over per-vendor API keys. One Pay Token JWT with a hard USDC spending cap covers all of them.",
           },
         },
         {
@@ -109,13 +109,29 @@ export default function StartPage() {
         // Next.js requires dangerouslySetInnerHTML for raw script content
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
+
+      {/* ───── v2 announcement banner — non-custodial path is the new default ───── */}
+      <div className="bg-[#fffd43] text-[#06060a] border-b border-yellow-500">
+        <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4 text-sm">
+          <span>
+            🍋 <strong>v2 (非カストディ版)</strong> がプレビュー中：金融庁照会済み・USDCをLemonCakeに預けない新方式
+          </span>
+          <Link
+            href="/start/v2"
+            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#06060a] text-[#fffd43] px-3 py-1 text-xs font-bold hover:bg-gray-800 transition"
+          >
+            v2 を試す →
+          </Link>
+        </div>
+      </div>
+
       {/* ───── Top strip ───── */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-[#06060a]/85 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-[#fffd43] text-xl">🍋</span>
             <span className="font-semibold tracking-tight">LemonCake</span>
-            <span className="hidden sm:inline text-[11px] font-mono text-white/30 ml-1">pay-per-call-mcp</span>
+            <span className="hidden sm:inline text-[11px] font-mono text-white/30 ml-1">agent-payment-mcp</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3">
             <a href={GLAMA_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-[13px] text-white/50 hover:text-white/90 transition">Try in browser ↗</a>
@@ -194,7 +210,7 @@ export default function StartPage() {
             <div className="lg:sticky lg:top-20">
               <TerminalDemo />
               <p className="text-[11px] text-white/30 mt-3 text-center font-mono">
-                ↑ live capture · this is what `npx -y pay-per-call-mcp` actually outputs
+                ↑ live capture · this is what `npx -y agent-payment-mcp` actually outputs
               </p>
             </div>
           </div>
@@ -204,7 +220,7 @@ export default function StartPage() {
       {/* ───── INTERACTIVE PLAYGROUND ───── */}
       <Section title="Try it on this page — no install, no signup" eyebrow="Live demo">
         <p className="text-white/50 text-sm mb-6 max-w-2xl">
-          The widget below hits the same Wikipedia / FX / httpbin upstreams that <code className="font-mono text-[#fffd43]/80">npx -y pay-per-call-mcp</code> uses in Demo Mode. Same response shape, same x402-compatible receipt, $0 charged. If this convinces you the call shape is right, install the MCP server and your agent gets the same JSON back.
+          The widget below hits the same Wikipedia / FX / httpbin upstreams that <code className="font-mono text-[#fffd43]/80">npx -y agent-payment-mcp</code> uses in Demo Mode. Same response shape, same x402-compatible receipt, $0 charged. If this convinces you the call shape is right, install the MCP server and your agent gets the same JSON back.
         </p>
         <DemoPlayground />
       </Section>
@@ -240,7 +256,7 @@ export default function StartPage() {
   "mcpServers": {
     "pay-per-call": {
       "command": "npx",
-      "args": ["-y", "pay-per-call-mcp"]
+      "args": ["-y", "agent-payment-mcp"]
     }
   }
 }`}</pre>
@@ -254,7 +270,7 @@ export default function StartPage() {
             body={
               <>
                 <p className="text-white/60">Open Claude Desktop and type:</p>
-                <pre className="mt-3 rounded-xl bg-black/60 border border-white/10 p-4 overflow-x-auto text-[13px] md:text-[14px] text-[#fffd43]/90">&quot;Search Wikipedia for &lsquo;Model Context Protocol&rsquo; via pay-per-call-mcp and summarise.&quot;</pre>
+                <pre className="mt-3 rounded-xl bg-black/60 border border-white/10 p-4 overflow-x-auto text-[13px] md:text-[14px] text-[#fffd43]/90">&quot;Search Wikipedia for &lsquo;Model Context Protocol&rsquo; via agent-payment-mcp and summarise.&quot;</pre>
                 <p className="text-[12px] text-white/40 mt-2">Claude picks <code className="font-mono">call_service</code>, fires <code className="font-mono">demo_search</code>, returns the summary. No API key required.</p>
               </>
             }
