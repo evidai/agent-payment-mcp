@@ -6,6 +6,16 @@
 [![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
+[![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/start/v2)
+[![Non-custodial v2](https://img.shields.io/badge/v2_non--custodial-preview-blueviolet)](https://lemoncake.xyz/start/v2)
+
+> **🍋 v2 (non-custodial) is in preview.** The 2026-05-21 Japan FSA Fintech
+> Support Desk ruling confirmed that LemonCake can operate **without
+> electronic-payment-means-business registration** as long as we never touch
+> user USDC. The new path uses ERC-2612 permit signatures (90-day, one click)
+> instead of a LemonCake-issued JWT. Try it at
+> [lemoncake.xyz/start/v2](https://lemoncake.xyz/start/v2). Legacy custody
+> path below remains supported until migration completes.
 
 ---
 
@@ -38,7 +48,54 @@ That's it. **Demo Mode** runs with a mock $1.00 USDC balance against real Wikipe
 
 ---
 
-## Unlock paid services (free signup)
+## 🆕 v2: Non-custodial mode (recommended, FSA-confirmed)
+
+The new path keeps your USDC in **your own wallet**. LemonCake never sees,
+holds, or moves your funds — confirmed registration-exempt by Japan's FSA
+Fintech Support Desk (Q11, 2026-05-21).
+
+How it works:
+
+1. Visit [**lemoncake.xyz/start/v2**](https://lemoncake.xyz/start/v2)
+2. Sign in with Google (Privy creates an embedded wallet — keys stay on your device)
+3. Top up USDC via credit card (Stripe / Coinbase on-ramp)
+4. **Sign one ERC-2612 permit** ("up to $25/day, valid 90 days") — one click
+5. Copy the resulting `LEMON_CAKE_PERMIT` blob
+
+Then your MCP config becomes:
+
+```json
+{
+  "mcpServers": {
+    "lemon": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"],
+      "env": {
+        "LEMON_CAKE_PERMIT": "<paste the permit blob here>"
+      }
+    }
+  }
+}
+```
+
+After that, every API call settles **directly from your wallet to the API
+provider** with no signing prompts for 90 days. LemonCake's address never
+appears in the transaction path.
+
+> ⚖️ **Why this matters legally.** The 2026-05-21 FSA reply (Q11) stated
+> that if LemonCake never touches USDC and never operates the smart
+> contract, the "electronic payment means management" registration is
+> NOT required. The pure SDK distribution model is also confirmed NOT
+> to constitute 媒介 (brokerage). See
+> [docs/MIGRATION_NON_CUSTODIAL_v2.md](https://github.com/evidai/agent-payment-mcp/blob/main/docs/MIGRATION_NON_CUSTODIAL_v2.md)
+> for the full migration plan.
+
+---
+
+## Unlock paid services (free signup) — legacy custody mode
+
+> ℹ️ The legacy path below stays supported for backwards compatibility,
+> but new buyers should use **v2 (non-custodial)** above.
 
 Demo Mode is real but limited. To use **Serper (Google search), Hunter.io (verified emails), gBizINFO (JP corporate data), NTA invoice verification**, and more — get a free Pay Token:
 

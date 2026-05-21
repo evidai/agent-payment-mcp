@@ -2,12 +2,33 @@
 
 **Stripe for MCP servers.** Add pay-per-call USDC billing to any MCP tool in three lines of code.
 
+[![npm](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
+[![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/start/v2)
+[![Non-custodial v2](https://img.shields.io/badge/v2_non--custodial-preview-blueviolet)](https://lemoncake.xyz/start/v2)
+
 ```typescript
 import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
 
 const lc = createLemonCakeSDK({ sellerKey: process.env.LEMONCAKE_SELLER_KEY });
 
 server.tool("search_patents", lc.charge({ price: 0.05 })(handler));
+```
+
+> **🍋 v2 (non-custodial) verifier shipped.** As of the 2026-05-21 Japan
+> FSA Fintech Support Desk ruling (Q11), LemonCake operates as a pure SDK
+> provider — we never touch user USDC. Buyers sign one ERC-2612 permit
+> (90-day validity) and your MCP server can verify it in ~10ms with no
+> RPC calls. The legacy custody path stays supported alongside.
+
+```typescript
+// Non-custodial path (new) — verify the buyer's ERC-2612 permit:
+import { verifyPermitToken } from "@lemon-cake/mcp-sdk";
+
+const permit = await verifyPermitToken(process.env.LEMON_CAKE_PERMIT!, {
+  expectedSpender: "0xYourReceiverAddress",
+  minValueBaseUnits: 50_000n, // $0.05 minimum
+});
+// permit.owner / permit.value / permit.deadline are now safe to use.
 ```
 
 ---
