@@ -1,7 +1,7 @@
 {
   "name": "tokenized-stock-mcp",
   "mcpName": "io.github.evidai/tokenized-stock",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "MCP server to buy/sell tokenized US stocks (Dinari dShares) paying directly in USDC. Daily USD cap guard built in. Sandbox-only by default. Sibling to alpaca-guard-mcp and pay-per-call-mcp.",
   "type": "module",
   "main": "dist/index.js",
