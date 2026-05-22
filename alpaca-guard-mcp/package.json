@@ -1,7 +1,7 @@
 {
   "name": "alpaca-guard-mcp",
   "mcpName": "io.github.evidai/alpaca-guard",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MCP server that wraps the Alpaca trading API with a hard daily USD cap. Paper trading by default. Live trading blocked unless explicit opt-in.",
   "type": "module",
   "main": "dist/index.js",

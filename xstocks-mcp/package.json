@@ -1,7 +1,7 @@
 {
   "name": "xstocks-mcp",
   "mcpName": "io.github.evidai/xstocks",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "MCP server to buy/sell tokenized US stocks (xStocks by Backed) on Solana, paying directly in USDC via Jupiter DEX. Hard daily USD cap guard. Dry-run by default; opt-in for real-money swaps.",
   "main": "dist/index.mjs",
   "bin": {
