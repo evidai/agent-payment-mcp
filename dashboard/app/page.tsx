@@ -60,10 +60,11 @@ const randHash  = () => `sf_${Array.from({ length: 28 }, () => "0123456789abcdef
 
 type TxStatus = "confirmed" | "failed" | "pending" | "blocked";
 type Tier     = "none" | "kya" | "kyc";
-type Role     = "buyer" | "seller";
-type Page     = "home" | "transactions" | "agents" | "fraud" | "directory" | "account"
-              | "accounting"
-              | "seller-services" | "seller-directory" | "seller-account" | "seller-stats";
+// v2 unified dashboard pages. Buyer / seller split was retired with
+// the move to non-custodial permits (2026-05-22): nearly every user
+// is both a buyer AND a publisher, so a single task-oriented nav
+// reflects reality better than a role toggle.
+type Page = "overview" | "permits" | "usage" | "marketplace" | "publish" | "settings";
 
 // ── Service (Directory) ───────────────────────────────────────────────────────
 interface Service {
@@ -328,58 +329,24 @@ function IconChart({ cls }: { cls?: string }) {
   );
 }
 
-// ── Sidebar component (Skyfire-exact style) ───────────────────────────────────
+// ── Sidebar component (v2 unified, task-oriented) ─────────────────────────────
 type NavItem = { id: Page; label: string; Icon: (p: { cls?: string }) => React.ReactElement };
 
-// ── バイヤー用ナビ ────────────────────────────────────────────
-const NAV_BUYER: NavItem[] = [
-  { id: "home",         label: "ホーム",               Icon: IconHome },
-  { id: "directory",    label: "サービス一覧",          Icon: IconDirectory },
-  { id: "transactions", label: "トークン発行",          Icon: IconToken },
-  { id: "agents",       label: "販売者向けAPIキー",     Icon: IconApiKey },
-  { id: "fraud",        label: "課金履歴",              Icon: IconClaim },
-  { id: "accounting",   label: "会計連携",              Icon: IconAccounting },
-];
-
-// ── セラー用ナビ ──────────────────────────────────────────────
-const NAV_SELLER: NavItem[] = [
-  { id: "seller-services",   label: "マイサービス",    Icon: IconStore },
-  { id: "seller-stats",      label: "売上統計",        Icon: IconChart },
-  { id: "seller-directory",  label: "ディレクトリ",    Icon: IconDirectory },
-];
-
-// 後方互換（旧コードが参照している場合用）
-const NAV_PRIMARY  = NAV_BUYER;
-const NAV_SECONDARY: NavItem[] = [{ id: "directory", label: "ディレクトリ", Icon: IconDirectory }];
-
 function Sidebar({
-  page, setPage, role, setRole, isDemoMode, onModeToggle, isHalted,
-  connStatus, clock, uptime, openFlags, sellerProfile, onSellerSetup,
-  lang, setLang,
+  page, setPage, lang, setLang,
 }: {
   page: Page; setPage: (p: Page) => void;
-  role: Role; setRole: (r: Role) => void;
-  isDemoMode: boolean; onModeToggle: () => void;
-  isHalted: boolean; connStatus: "connecting" | "ok" | "error";
-  clock: string; uptime: number; openFlags: number;
-  sellerProfile: SellerProfile | null;
-  onSellerSetup: () => void;
   lang: "ja" | "en"; setLang: (l: "ja" | "en") => void;
 }) {
   const t = useT();
 
-  const navBuyer: NavItem[] = [
-    { id: "home",         label: t("ホーム", "Home"),                 Icon: IconHome },
-    { id: "directory",    label: t("サービス一覧", "Services"),         Icon: IconDirectory },
-    { id: "transactions", label: t("トークン発行", "Issue Token"),       Icon: IconToken },
-    { id: "agents",       label: t("販売者向けAPIキー", "API Keys"),      Icon: IconApiKey },
-    { id: "fraud",        label: t("課金履歴", "Charges"),               Icon: IconClaim },
-    { id: "accounting",   label: t("会計連携", "Accounting"),             Icon: IconAccounting },
-  ];
-  const navSeller: NavItem[] = [
-    { id: "seller-services",  label: t("マイサービス", "My Services"),   Icon: IconStore },
-    { id: "seller-stats",     label: t("売上統計", "Statistics"),         Icon: IconChart },
-    { id: "seller-directory", label: t("ディレクトリ", "Directory"),      Icon: IconDirectory },
+  // 単一の task-oriented ナビ。permit ベース v2 では「開発者」一種類しかいない。
+  const nav: NavItem[] = [
+    { id: "overview",    label: t("ホーム",            "Overview"),     Icon: IconHome },
+    { id: "permits",     label: t("マイ Permit",       "My Permits"),   Icon: IconToken },
+    { id: "usage",       label: t("利用履歴",          "Usage"),        Icon: IconClaim },
+    { id: "marketplace", label: t("マーケットプレイス", "Marketplace"),  Icon: IconDirectory },
+    { id: "publish",     label: t("APIを公開する",     "Publish API"),  Icon: IconStore },
   ];
 
   function NavBtn({ id, label, Icon }: NavItem) {
@@ -397,14 +364,11 @@ function Sidebar({
     );
   }
 
-  const nav = role === "buyer" ? navBuyer : navSeller;
-
   return (
     <aside className="w-[260px] sm:w-64 flex-shrink-0 flex flex-col bg-white border-r border-gray-200 h-full">
       {/* ── Header: ロゴ + 言語切り替え ── */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-2 flex-shrink-0">
         <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-        {/* 言語切り替えボタン */}
         <div className="flex rounded-md border border-gray-200 overflow-hidden text-[10px] font-semibold">
           <button
             onClick={() => setLang("ja")}
@@ -417,48 +381,12 @@ function Sidebar({
         </div>
       </div>
 
-      {/* ── ロール切り替えタブ: バイヤー / セラー ── */}
-      <div className="px-4 pb-3">
-        <div className="flex rounded-xl bg-gray-100 p-0.5 gap-0.5">
-          {(["buyer", "seller"] as Role[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setRole(r);
-                setPage(r === "buyer" ? "home" : "seller-services");
-              }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                role === r
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {r === "buyer" ? "BUYER" : "SELLER"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── ナビ ── */}
-      <nav className="px-3 flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0">
+      <nav className="px-3 flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0 pt-2">
         {nav.map((item) => <NavBtn key={item.id} {...item} />)}
-
-        {/* セラー: プロフィール未設定の場合はセットアップ誘導 */}
-        {role === "seller" && !sellerProfile && (
-          <div className="mt-3 mx-1 rounded-2xl bg-[#faf7f2] border border-[#f0e8d8] px-4 py-4">
-            <p className="text-[12px] font-bold text-gray-900">{t("販売者プロフィール", "Seller Profile")}</p>
-            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{t("サービスを掲載するにはプロフィールを作成してください。", "Create a profile to list your services.")}</p>
-            <button
-              onClick={onSellerSetup}
-              className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              {t("プロフィールを作成する →", "Create Profile →")}
-            </button>
-          </div>
-        )}
       </nav>
 
-      {/* ── Bottom: サポート + アカウント（バイヤーのみ） ── */}
+      {/* ── Bottom: サポート + アカウント設定 ── */}
       <div className="px-3 pb-3 flex flex-col gap-0.5">
         <div className="mx-1 mb-1 border-t border-gray-100" />
         <a
@@ -473,13 +401,13 @@ function Sidebar({
             <path d="M11 3h6v6M17 3l-8 8M8 5H5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3"/>
           </svg>
         </a>
-        <button onClick={() => setPage(role === "seller" ? "seller-account" : "account")}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors focus:outline-none group ${(page === "account" || page === "seller-account") ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"}`}>
-          <svg className={`w-5 h-5 flex-shrink-0 transition-colors ${(page === "account" || page === "seller-account") ? "text-gray-700" : "text-gray-400 group-hover:text-gray-600"}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+        <button onClick={() => setPage("settings")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors focus:outline-none group ${page === "settings" ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"}`}>
+          <svg className={`w-5 h-5 flex-shrink-0 transition-colors ${page === "settings" ? "text-gray-700" : "text-gray-400 group-hover:text-gray-600"}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
             <circle cx="10" cy="7" r="3"/>
             <path d="M3 17a7 7 0 0114 0"/>
           </svg>
-          <span className="font-medium text-[13.5px]">{t("アカウント設定", "Account Settings")}</span>
+          <span className="font-medium text-[13.5px]">{t("アカウント設定", "Settings")}</span>
         </button>
       </div>
     </aside>
@@ -1002,8 +930,8 @@ function BuyerOverviewCard({ buyerToken, onNavigate, refreshKey }: { buyerToken:
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: t("USDC 残高", "USDC Balance"),       value: profile.buyer ? parseFloat(profile.buyer.balanceUsdc).toFixed(4) : "—",  unit: "USDC", action: null },
-            { label: t("発行済みトークン", "Issued Tokens"),  value: tokenCount !== null ? String(tokenCount) : "—",                          unit: t("件","items"),   action: () => onNavigate("transactions") },
-            { label: "Buyer ID",         value: profile.buyer?.id ? profile.buyer.id.slice(0,10)+"…" : "—",              unit: "",     action: null },
+            { label: t("有効 permit", "Active Permits"),    value: tokenCount !== null ? String(tokenCount) : "—",                          unit: t("件","items"),   action: () => onNavigate("permits") },
+            { label: "Wallet",             value: profile.buyer?.id ? profile.buyer.id.slice(0,10)+"…" : "—",              unit: "",     action: null },
           ].map(c => (
             <div key={c.label}
               onClick={c.action ?? undefined}
@@ -1021,9 +949,9 @@ function BuyerOverviewCard({ buyerToken, onNavigate, refreshKey }: { buyerToken:
         <h3 className="text-sm font-bold text-gray-900 mb-4">{t("クイックアクション", "Quick Actions")}</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: t("トークンを発行する", "Issue Token"),  desc: t("サービスのPay Tokenを発行", "Issue a Pay Token for a service"),  page: "transactions" as Page,
+            { label: t("permit を確認", "View Permits"),  desc: t("90日間有効な署名トークン", "90-day signed authorizations"),  page: "permits" as Page,
               icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.75}><rect x="1.5" y="6" width="17" height="8" rx="2"/><line x1="6" y1="8.5" x2="6" y2="11.5"/><line x1="10" y1="8.5" x2="10" y2="11.5"/><line x1="14" y1="8.5" x2="14" y2="11.5"/></svg> },
-            { label: t("課金履歴を確認", "View Charges"),       desc: t("使用履歴と消費額を確認", "Check usage history and spend"),     page: "fraud" as Page,
+            { label: t("利用履歴を確認", "View Usage"),       desc: t("API call 数と消費額", "API calls and spend"),     page: "usage" as Page,
               icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.75}><rect x="2" y="5" width="16" height="12" rx="1.5"/><path d="M2 9h16"/><circle cx="6" cy="13" r="1" fill="currentColor"/></svg> },
           ].map(a => (
             <button key={a.label} onClick={() => onNavigate(a.page)}
@@ -1045,6 +973,73 @@ function HomePage({ buyerToken, onNavigate, refreshKey }: { buyerToken: string; 
   return (
     <div className="flex flex-col gap-5">
       <BuyerOverviewCard buyerToken={buyerToken} onNavigate={onNavigate} refreshKey={refreshKey} />
+    </div>
+  );
+}
+
+// ── My Permits page (v2) ──────────────────────────────────────────────────────
+// ERC-2612 permit を一覧表示する。MVP 段階ではユーザーが /start/v2 で生成した
+// LEMON_CAKE_PERMIT を localStorage から取り出して見せる。将来はサーバー側で
+// permit の active/revoked 状態を管理する。
+function MyPermitsPage() {
+  const t = useT();
+  const [permit, setPermit] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("LEMON_CAKE_PERMIT");
+      setPermit(stored);
+    } catch {
+      setPermit(null);
+    }
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-gray-900">{t("マイ Permit", "My Permits")}</h2>
+        <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+          {t(
+            "ERC-2612 permit はあなたの USDC を AI エージェントが直接 API 提供者に支払うための署名トークンです。LemonCake は permit を一切保持しません。",
+            "ERC-2612 permits authorize AI agents to pay API providers directly from your USDC. LemonCake never holds your permits.",
+          )}
+        </p>
+
+        {permit ? (
+          <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
+              LEMON_CAKE_PERMIT
+            </p>
+            <p className="mt-2 break-all font-mono text-xs text-gray-800">{permit}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => navigator.clipboard.writeText(permit)}
+                className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-gray-800"
+              >
+                {t("コピー", "Copy")}
+              </button>
+              <a
+                href="/start/v2"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:border-gray-400"
+              >
+                {t("再発行", "Re-issue")}
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+            <p className="text-sm text-gray-600">
+              {t("まだ permit が発行されていません。", "No permits issued yet.")}
+            </p>
+            <a
+              href="/start/v2"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600"
+            >
+              {t("permit を発行する →", "Issue Permit →")}
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -3921,8 +3916,7 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [page,        setPage]       = useState<Page>("home");
-  const [role,        setRole]       = useState<Role>("buyer");
+  const [page,        setPage]       = useState<Page>("overview");
   const [buyerToken,  setBuyerToken] = useState<string>("");
   const [authReady,   setAuthReady]  = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -3975,7 +3969,7 @@ export default function Dashboard() {
 
   // ホームに戻るたびに残高を再取得
   function navigateTo(p: Page) {
-    if (p === "home") setHomeRefreshKey(k => k + 1);
+    if (p === "overview") setHomeRefreshKey(k => k + 1);
     setPage(p);
   }
 
@@ -3988,12 +3982,27 @@ export default function Dashboard() {
       ? new URLSearchParams(window.location.search).get("page")
       : null;
     const validPages: readonly string[] = [
-      "home","transactions","agents","fraud","directory","account","accounting",
-      "seller-services","seller-directory","seller-account","seller-stats",
+      "overview","permits","usage","marketplace","publish","settings",
     ];
+    // Migrate legacy localStorage values from the v1 buyer/seller split.
+    const LEGACY_MAP: Record<string, Page> = {
+      home:               "overview",
+      transactions:       "overview",   // token issuing is dead
+      agents:             "overview",   // legacy api-keys page is dead
+      fraud:              "usage",
+      accounting:         "settings",
+      directory:          "marketplace",
+      account:            "settings",
+      "seller-services":  "publish",
+      "seller-stats":     "publish",
+      "seller-directory": "marketplace",
+      "seller-account":   "settings",
+    };
+    const stored = load("buyer_page", "overview");
+    const remapped = LEGACY_MAP[stored as string] ?? (stored as Page);
     const initialPage: Page = urlPage && validPages.includes(urlPage)
       ? (urlPage as Page)
-      : load("buyer_page", "home" as Page);
+      : remapped;
     setPage(initialPage);
     setApiKeys(load("buyer_apiKeys", []));
     setShowOnboarding(load("buyer_showOnboarding", true));
@@ -4133,11 +4142,12 @@ export default function Dashboard() {
   // Page title for mobile top bar (local t — Dashboard is the LangContext provider so useT can't see it from here)
   const _t = (ja: string, en: string) => lang === "en" ? en : ja;
   const pageLabels: Record<string, string> = {
-    home: _t("ホーム","Home"), directory: _t("サービス","Services"), transactions: _t("トークン発行","Tokens"),
-    agents: _t("APIキー","API Keys"), fraud: _t("課金履歴","Charges"), usdc: _t("USDC","USDC"),
-    jpyc: _t("JPYC","JPYC"), accounting: _t("会計","Accounting"), account: _t("アカウント","Account"),
-    "seller-services": _t("マイサービス","My Services"), "seller-stats": _t("売上統計","Stats"),
-    "seller-directory": _t("ディレクトリ","Directory"), "seller-account": _t("アカウント","Account"),
+    overview:    _t("ホーム",            "Overview"),
+    permits:     _t("マイ Permit",       "My Permits"),
+    usage:       _t("利用履歴",          "Usage"),
+    marketplace: _t("マーケットプレイス", "Marketplace"),
+    publish:     _t("APIを公開する",     "Publish API"),
+    settings:    _t("アカウント設定",    "Settings"),
   };
   const currentTitle = pageLabels[page as string] ?? "LemonCake";
 
@@ -4176,12 +4186,6 @@ export default function Dashboard() {
         </button>
         <Sidebar
           page={page} setPage={navigateAndClose}
-          role={role} setRole={setRole}
-          isDemoMode={isDemoMode} onModeToggle={() => switchMode(!isDemoMode)}
-          isHalted={isHalted} connStatus={connStatus}
-          clock={clock} uptime={uptime} openFlags={openFlags}
-          sellerProfile={sellerProfile}
-          onSellerSetup={() => sellerProfile ? setSellerView("myservices") : setSellerView("onboarding")}
           lang={lang} setLang={setLang}
         />
       </div>
@@ -4203,23 +4207,17 @@ export default function Dashboard() {
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-7 pt-4 md:pt-8 pb-5">
-          {/* ── バイヤーページ ── */}
-          {page === "home"         && <HomePage buyerToken={buyerToken} onNavigate={navigateTo} refreshKey={homeRefreshKey} />}
-          {page === "transactions" && <TokensPage buyerToken={buyerToken} onTokenIssued={() => setHomeRefreshKey(k => k + 1)} />}
-          {page === "agents"       && <ApiKeysPage keys={apiKeys} onAdd={() => navigateTo("home")} onRevoke={revokeApiKey} />}
-          {page === "fraud"        && <ChargesPage buyerToken={buyerToken} />}
-          {page === "accounting"   && <AccountingPage buyerToken={buyerToken} />}
-          {page === "directory"    && <DirectoryPage />}
-          {page === "account"      && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} />}
-          {/* ── セラーページ ── */}
-          {page === "seller-services"  && (
+          {/* ── v2 unified pages ── */}
+          {page === "overview"    && <HomePage buyerToken={buyerToken} onNavigate={navigateTo} refreshKey={homeRefreshKey} />}
+          {page === "permits"     && <MyPermitsPage />}
+          {page === "usage"       && <ChargesPage buyerToken={buyerToken} />}
+          {page === "marketplace" && <DirectoryPage />}
+          {page === "publish"     && (
             sellerProfile
               ? <SellerServicesPage profile={sellerProfile} services={myServices} onEditProfile={() => setSellerView("profile")} onCreateService={() => setSellerView("wizard")} />
               : <SellerSetupPrompt onStart={() => setSellerView("onboarding")} />
           )}
-          {page === "seller-stats"     && <SellerStatsPage services={myServices} />}
-          {page === "seller-directory" && <DirectoryPage />}
-          {page === "seller-account"   && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} isSeller />}
+          {page === "settings"    && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} />}
         </div>
       </main>
 
