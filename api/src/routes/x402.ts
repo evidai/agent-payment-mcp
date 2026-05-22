@@ -265,6 +265,62 @@ x402Router.openapi(
   handleVerify,
 );
 
+// ─── POST /api/x402/record ────────────────────────────────────
+// Hybrid mode 用: CDP / 他 facilitator で既に settle した支払いを LemonCake の
+// メータリング DB（PermitCharge）に「事後記録」する。これによって freee 仕訳
+// / インボイス自動発行は LemonCake のサブスク経路のままで、流量は Coinbase
+// Bazaar から呼べる "両取り" 構造になる。
+//
+// 入力は on-chain で確定済みの settle 結果（txHash 必須）+ serviceId + buyer/amount。
+// idempotencyKey は txHash で重複防止。
+
+const RecordBody = z.object({
+  serviceId:    z.string().min(1),
+  txHash:       z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  ownerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  amountUsdc:   z.string().regex(/^\d+(\.\d{1,6})?$/),
+  facilitator:  z.enum(["coinbase", "lemoncake", "other"]).default("other"),
+});
+
+x402Router.openapi(
+  createRoute({
+    method:  "post",
+    path:    "/record",
+    tags:    ["x402"],
+    summary: "外部 facilitator で確定した支払いをメータリングに記録（hybrid mode）",
+    request: { body: { content: { "application/json": { schema: RecordBody } }, required: true } },
+    responses: {
+      200: { content: { "application/json": { schema: z.object({ ok: z.boolean(), chargeId: z.string() }) } }, description: "Recorded" },
+      404: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Provider not found" },
+    },
+  }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (c: any) => {
+    const body = c.req.valid("json");
+    const provider = await prisma.providerV2.findUnique({ where: { id: body.serviceId } });
+    if (!provider) return c.json({ error: "Provider not found" }, 404);
+
+    // txHash で冪等化（同じ tx の重複 POST は黙って成功）
+    const idempotencyKey = `x402-${body.txHash}`;
+    const existing = await prisma.permitCharge.findUnique({ where: { idempotencyKey } });
+    if (existing) return c.json({ ok: true, chargeId: existing.id });
+
+    const charge = await prisma.permitCharge.create({
+      data: {
+        ownerAddress:   body.ownerAddress,
+        serviceId:      body.serviceId,
+        amountUsdc:     body.amountUsdc,
+        status:         "COMPLETED",
+        txHash:         body.txHash,
+        idempotencyKey,
+        completedAt:    new Date(),
+      },
+    });
+
+    return c.json({ ok: true, chargeId: charge.id });
+  },
+);
+
 // ─── GET /api/x402/supported ──────────────────────────────────
 // x402 Bazaar / クライアントが「この facilitator は何をサポートしてる？」を問う
 
