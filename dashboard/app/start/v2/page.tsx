@@ -255,12 +255,7 @@ export default function StartV2Page() {
       <div className="mx-auto max-w-3xl px-6 py-16">
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
-          <p className="font-bold">🍋 LemonCake は USDC を一切預かりません</p>
-          <p className="mt-1 leading-relaxed">
-            金融庁 Fintech サポートデスクへの照会（Q1–Q11）を完了し、非カストディ設計が
-            <strong>登録不要</strong>であることを確認しました。お客様の USDC はお客様自身の
-            ウォレットに残ったまま、AI エージェントが直接 API 提供者に支払います。
-          </p>
+          <p className="font-bold">🍋 LemonCake は USDC を一切預かりません。AI エージェントが直接 API 提供者に支払います。</p>
         </div>
 
         <h1 className="text-3xl font-bold text-gray-900">2 分で始める</h1>
