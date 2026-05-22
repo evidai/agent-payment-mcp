@@ -4,6 +4,7 @@
  */
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { getAddress } from "viem";
 import { prisma } from "../lib/prisma.js";
 
 export const providersV2Router = new OpenAPIHono();
@@ -54,7 +55,8 @@ providersV2Router.openapi(
       },
     },
   }),
-  async (c) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (c: any) => {
     const body = c.req.valid("json");
 
     // 重複チェック
@@ -71,11 +73,19 @@ providersV2Router.openapi(
       return c.json({ error: `${field} is already registered` }, 409);
     }
 
+    // EIP-55 チェックサム正規化（大文字小文字混在を統一し、不正アドレスを排除）
+    let checksumAddress: string;
+    try {
+      checksumAddress = getAddress(body.baseWalletAddress);
+    } catch {
+      return c.json({ error: "Invalid Ethereum address (checksum failed)" }, 400);
+    }
+
     const provider = await prisma.providerV2.create({
       data: {
         name:              body.name,
         email:             body.email,
-        baseWalletAddress: body.baseWalletAddress,
+        baseWalletAddress: checksumAddress,
         apiEndpointUrl:    body.apiEndpointUrl ?? null,
         pricePerCallUsdc:  body.pricePerCallUsdc,
         freeCallsPerMonth: body.freeCallsPerMonth,

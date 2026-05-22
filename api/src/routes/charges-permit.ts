@@ -90,23 +90,8 @@ chargesPermitRouter.openapi(
     const body = c.req.valid("json");
     const { permit, serviceId, amountUsdc, idempotencyKey } = body;
 
-    // ── 冪等性チェック ────────────────────────────────────────
-    const existing = await prisma.permitCharge.findUnique({
-      where: { idempotencyKey },
-    });
-    if (existing) {
-      return c.json({
-        chargeId:       existing.id,
-        status:         existing.status,
-        amountUsdc:     existing.amountUsdc.toString(),
-        permitTxHash:   null,
-        transferTxHash: existing.txHash ?? null,
-        quotaRemaining: 0,
-        createdAt:      existing.createdAt.toISOString(),
-      });
-    }
-
-    // ── Provider v2 取得 ──────────────────────────────────────
+    // ── Provider v2 取得（冪等性チェックより先にやる）────────
+    // suspended check を DB write より必ず前に実行するためここに置く
     const provider = await prisma.providerV2.findUnique({
       where: { id: serviceId },
     });
@@ -117,7 +102,7 @@ chargesPermitRouter.openapi(
       return c.json({ error: "Provider is suspended" }, 400);
     }
 
-    // ── メータリング: 今月の call 数 ─────────────────────────
+    // ── メータリング: 今月の call 数（冪等性チェック前に計算）─
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
@@ -127,12 +112,29 @@ chargesPermitRouter.openapi(
         ownerAddress: permit.owner,
         serviceId,
         createdAt: { gte: monthStart },
-        status: { in: ["COMPLETED"] },
+        status: "COMPLETED",
       },
     });
 
     const quotaRemaining = Math.max(0, provider.freeCallsPerMonth - monthlyCallCount);
     const isFree = monthlyCallCount < provider.freeCallsPerMonth;
+
+    // ── 冪等性チェック ────────────────────────────────────────
+    // 既存レコードがある場合は現在のクォータを計算し直して返す
+    const existing = await prisma.permitCharge.findUnique({
+      where: { idempotencyKey },
+    });
+    if (existing) {
+      return c.json({
+        chargeId:       existing.id,
+        status:         existing.status,
+        amountUsdc:     existing.amountUsdc.toString(),
+        permitTxHash:   null,
+        transferTxHash: existing.txHash ?? null,
+        quotaRemaining,   // 再計算した最新値
+        createdAt:      existing.createdAt.toISOString(),
+      });
+    }
 
     // 無料枠内なら amountUsdc を 0 に上書き
     const effectiveAmount = isFree ? "0" : amountUsdc;
@@ -160,7 +162,7 @@ chargesPermitRouter.openapi(
         amountUsdc:     "0",
         permitTxHash:   null,
         transferTxHash: null,
-        quotaRemaining: quotaRemaining - 1,
+        quotaRemaining: Math.max(0, quotaRemaining - 1),
         createdAt:      updated.createdAt.toISOString(),
       });
     }
@@ -200,7 +202,8 @@ chargesPermitRouter.openapi(
         amountUsdc:     effectiveAmount,
         permitTxHash:   permitTxHash,
         transferTxHash: transferTxHash,
-        quotaRemaining: 0,
+        quotaRemaining: 0,   // 有料パス = 無料枠は既に 0
+
         createdAt:      completed.createdAt.toISOString(),
       });
     } catch (err) {
@@ -212,7 +215,8 @@ chargesPermitRouter.openapi(
         },
       });
       console.error("[ChargesPermit] execution failed:", err);
-      return c.json({ error: "On-chain execution failed" }, 500);
+      // 503 = retriable (network/RPC issue). Client should retry with same idempotencyKey.
+      return c.json({ error: "On-chain execution failed — please retry" }, 503);
     }
   },
 );

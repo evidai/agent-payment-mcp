@@ -12,7 +12,11 @@
 
 import { useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+// NEXT_PUBLIC_API_URL が未設定でも本番 Railway にフォールバック。
+// "" になると fetch("/api/providers/v2") が Next.js 自身に向いてしまうため必須。
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://skillful-blessing-production.up.railway.app";
 
 interface RegisterResult {
   id:              string;
