@@ -1,6 +1,9 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 
+# Cache bust: 2026-05-22-v2-deploy
+ARG CACHE_BUST=2026-05-22-v2
+
 # OpenSSL (Prisma requirement on Alpine)
 RUN apk add --no-cache openssl
 
