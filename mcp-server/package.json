@@ -1,8 +1,8 @@
 {
   "name": "agent-payment-mcp",
   "mcpName": "io.github.evidai/agent-payment",
-  "version": "0.8.1",
-  "description": "Give your AI agent a USDC wallet. Pay-per-call any API. Non-custodial — one ERC-2612 permit signature gives a 90-day, $25/day hard cap that the agent literally cannot exceed. USDC stays in your own wallet. Demo Mode works with zero signup — `npx -y agent-payment-mcp`.",
+  "version": "0.9.0",
+  "description": "Stripe-style drop-in USDC billing for any HTTP API or MCP. 8 free real-API demo services (search / translate / weather / geocode / time / dictionary / fx / echo) work instantly with zero signup, zero env vars. Upgrade to paid services with one ERC-2612 permit (90 days, on-chain $25/day cap). Non-custodial — your USDC never touches LemonCake. x402-compatible.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

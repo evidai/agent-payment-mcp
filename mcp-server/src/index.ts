@@ -158,6 +158,160 @@ const DEMO_SERVICES: Array<{ id: string; name: string; provider: string; type: "
       return { base: "USD", rates: { JPY: 150.42, EUR: 0.92, GBP: 0.79, CNY: 7.12 }, asOf: new Date().toISOString().slice(0, 10), upstream: "canned (er-api unreachable)" };
     },
   },
+  {
+    id:           "demo_translate",
+    name:         "Demo Translate (MyMemory, free)",
+    provider:     "LemonCake DEMO → MyMemory",
+    type:         "API",
+    pricePerCall: "0.00 USDC (free demo, real upstream)",
+    description:  "Translate text between 80+ languages via MyMemory (free, no auth, 5000 chars/day per IP). Body: { text, from, to } where from/to are ISO codes (en/ja/es/fr/de/zh/ko/etc). Defaults to en→ja.",
+    example:      { path: "/translate", method: "POST", body: { text: "Hello, world", from: "en", to: "ja" } },
+    handler: async (_path, body) => {
+      const text = (body?.text as string | undefined) ?? "Hello, world";
+      const from = (body?.from as string | undefined) ?? "en";
+      const to   = (body?.to   as string | undefined) ?? "ja";
+      const data = await tryFetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`,
+      ) as any;
+      if (data?.responseData?.translatedText) {
+        return {
+          source:        text,
+          translated:    data.responseData.translatedText,
+          from, to,
+          matchQuality:  data.responseData.match ?? null,
+          upstream:      "api.mymemory.translated.net (real)",
+        };
+      }
+      return {
+        source: text, translated: `[demo] ${text} (${from}→${to})`,
+        from, to, upstream: "canned (MyMemory unreachable)",
+      };
+    },
+  },
+  {
+    id:           "demo_weather",
+    name:         "Demo Weather (Open-Meteo, free)",
+    provider:     "LemonCake DEMO → Open-Meteo",
+    type:         "API",
+    pricePerCall: "0.00 USDC (free demo, real upstream)",
+    description:  "Current weather for any coordinates via Open-Meteo (free, no auth, no limit). Body: { latitude, longitude }. Returns temperature, wind, weather code. Defaults to Tokyo.",
+    example:      { path: "/current", method: "POST", body: { latitude: 35.6812, longitude: 139.7671 } },
+    handler: async (_path, body) => {
+      const lat = (body?.latitude  as number | undefined) ?? 35.6812;
+      const lon = (body?.longitude as number | undefined) ?? 139.7671;
+      const data = await tryFetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`,
+      ) as any;
+      if (data?.current) {
+        const codeMap: Record<number, string> = {
+          0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast",
+          45: "fog", 48: "rime fog", 51: "light drizzle", 53: "drizzle", 55: "heavy drizzle",
+          61: "light rain", 63: "rain", 65: "heavy rain", 71: "light snow", 73: "snow", 75: "heavy snow",
+          80: "light showers", 81: "showers", 82: "heavy showers", 95: "thunderstorm",
+        };
+        return {
+          latitude:    lat,
+          longitude:   lon,
+          temperatureC: data.current.temperature_2m,
+          humidityPct:  data.current.relative_humidity_2m,
+          windKmh:      data.current.wind_speed_10m,
+          condition:    codeMap[data.current.weather_code] ?? `code-${data.current.weather_code}`,
+          asOf:         data.current.time,
+          upstream:     "api.open-meteo.com (real)",
+        };
+      }
+      return { latitude: lat, longitude: lon, temperatureC: 20, condition: "unknown", upstream: "canned (Open-Meteo unreachable)" };
+    },
+  },
+  {
+    id:           "demo_geocode",
+    name:         "Demo Geocode (Nominatim/OSM, free)",
+    provider:     "LemonCake DEMO → Nominatim",
+    type:         "API",
+    pricePerCall: "0.00 USDC (free demo, real upstream)",
+    description:  "Convert a place name to lat/lon via OpenStreetMap's Nominatim (free, no auth, 1 req/sec policy). Pair with demo_weather for end-to-end location → weather flows. Body: { q }.",
+    example:      { path: "/search", method: "POST", body: { q: "Shibuya, Tokyo" } },
+    handler: async (_path, body) => {
+      const q = (body?.q as string | undefined) ?? "Tokyo";
+      const data = await tryFetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=3`,
+        { headers: { "User-Agent": "agent-payment-mcp/demo (https://lemoncake.xyz)" } },
+      ) as any[];
+      if (Array.isArray(data) && data.length > 0) {
+        return {
+          query: q,
+          results: data.slice(0, 3).map((r) => ({
+            displayName: r.display_name,
+            latitude:    Number(r.lat),
+            longitude:   Number(r.lon),
+            type:        r.type,
+            class:       r.class,
+          })),
+          upstream: "nominatim.openstreetmap.org (real)",
+        };
+      }
+      return { query: q, results: [], upstream: "canned (Nominatim unreachable)" };
+    },
+  },
+  {
+    id:           "demo_time",
+    name:         "Demo World Time (worldtimeapi, free)",
+    provider:     "LemonCake DEMO → worldtimeapi.org",
+    type:         "API",
+    pricePerCall: "0.00 USDC (free demo, real upstream)",
+    description:  "Current time + timezone + DST status for any IANA timezone (Asia/Tokyo, America/New_York, …). Useful for scheduling agents. Body: { timezone }.",
+    example:      { path: "/timezone", method: "POST", body: { timezone: "Asia/Tokyo" } },
+    handler: async (_path, body) => {
+      const tz = (body?.timezone as string | undefined) ?? "Asia/Tokyo";
+      const data = await tryFetch(`https://worldtimeapi.org/api/timezone/${encodeURIComponent(tz)}`) as any;
+      if (data?.datetime) {
+        return {
+          timezone:    data.timezone,
+          datetime:    data.datetime,
+          utcOffset:   data.utc_offset,
+          isDst:       data.dst,
+          dayOfWeek:   data.day_of_week,
+          weekNumber:  data.week_number,
+          unixtime:    data.unixtime,
+          upstream:    "worldtimeapi.org (real)",
+        };
+      }
+      const now = new Date();
+      return { timezone: tz, datetime: now.toISOString(), upstream: "canned (worldtimeapi unreachable)" };
+    },
+  },
+  {
+    id:           "demo_dictionary",
+    name:         "Demo Dictionary (dictionaryapi.dev, free)",
+    provider:     "LemonCake DEMO → dictionaryapi.dev",
+    type:         "API",
+    pricePerCall: "0.00 USDC (free demo, real upstream)",
+    description:  "English dictionary: definitions, parts of speech, examples, synonyms, phonetics. Free, no auth. Body: { word }.",
+    example:      { path: "/define", method: "POST", body: { word: "ephemeral" } },
+    handler: async (_path, body) => {
+      const word = (body?.word as string | undefined) ?? "ephemeral";
+      const data = await tryFetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`,
+      ) as any[];
+      if (Array.isArray(data) && data.length > 0) {
+        const entry = data[0];
+        return {
+          word:        entry.word,
+          phonetic:    entry.phonetic ?? entry.phonetics?.[0]?.text ?? null,
+          meanings:    (entry.meanings ?? []).slice(0, 3).map((m: any) => ({
+            partOfSpeech: m.partOfSpeech,
+            definitions:  (m.definitions ?? []).slice(0, 2).map((d: any) => ({
+              definition: d.definition,
+              example:    d.example ?? null,
+            })),
+            synonyms:     (m.synonyms ?? []).slice(0, 5),
+          })),
+          upstream:    "api.dictionaryapi.dev (real)",
+        };
+      }
+      return { word, meanings: [], upstream: "canned (dictionaryapi unreachable)" };
+    },
+  },
 ];
 
 function findDemoService(id: string) {
@@ -199,7 +353,7 @@ if (DEMO_MODE) {
   console.error("[LemonCake MCP]");
   console.error("[LemonCake MCP]   🎮 Demo mode active — you can try these without any signup:");
   console.error("[LemonCake MCP]     • list_services      → real marketplace + 3 demo services");
-  console.error("[LemonCake MCP]     • call_service       → demo_search / demo_echo / demo_fx — real upstreams, no auth");
+  console.error("[LemonCake MCP]     • call_service       → 8 demo services (search / echo / fx / translate / weather / geocode / time / dictionary) — real upstreams, no auth");
   console.error("[LemonCake MCP]     • check_balance      → mock $1.00 demo balance");
   console.error("[LemonCake MCP]     • check_tax / get_service_stats → real (no auth needed)");
   console.error("[LemonCake MCP]");
@@ -353,8 +507,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "Call this tool FIRST to learn what is missing and how to obtain a permit.",
         "",
         "If LEMON_CAKE_PERMIT is not set, the server is in DEMO MODE: list_services returns",
-        "three demo services (demo_search / demo_echo / demo_fx) and call_service / check_balance",
-        "respond with mock data so you can verify integration before signing.",
+        "8 free demo services (search / echo / fx / translate / weather / geocode / time / dictionary)",
+        "powered by real upstreams (Wikipedia, httpbin, Open-Meteo, Nominatim, etc.). call_service",
+        "and check_balance respond with mock data so you can verify integration before signing.",
         "",
         "Returns the current credential status (permit presence), demo-mode flag, and",
         "step-by-step instructions for getting a permit at /start/v2, including a sample MCP",
@@ -381,10 +536,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "",
         "Use this BEFORE call_service to discover serviceId values and per-call USDC pricing.",
         "",
-        "When LEMON_CAKE_PERMIT is missing, three demo services are prepended",
-        "(demo_search → Wikipedia, demo_echo → httpbin, demo_fx → open.er-api) so you",
-        "can try call_service without signing up. Live users (permit set) see only",
-        "real marketplace entries; demo_* IDs remain callable directly.",
+        "When LEMON_CAKE_PERMIT is missing, 8 demo services are prepended:",
+        "  demo_search     → Wikipedia opensearch",
+        "  demo_echo       → httpbin.org/anything",
+        "  demo_fx         → live FX rates (open.er-api)",
+        "  demo_translate  → 80+ languages (MyMemory)",
+        "  demo_weather    → current weather any lat/lon (Open-Meteo)",
+        "  demo_geocode    → place name → lat/lon (OpenStreetMap Nominatim)",
+        "  demo_time       → IANA timezone time + DST (worldtimeapi)",
+        "  demo_dictionary → English definitions / synonyms (dictionaryapi.dev)",
+        "All real upstreams, no auth, free. Live users (permit set) see real",
+        "marketplace entries; demo_* IDs remain callable directly.",
         "",
         "Each item: { id, name, provider, type ('API' | 'MCP'), pricePerCall, [usage], [mode] }.",
         "Errors: HTTP-level errors are returned as `Error: API <status>: <body>`.",
@@ -423,9 +585,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "  • LEMON_CAKE_PERMIT env var must be set for real services. Get one in ~30 seconds at",
         "    https://lemoncake.xyz/start/v2 (sign in with Google, sign 1 EIP-712 permit, copy the blob).",
         "    If missing, the tool returns a structured PERMIT_MISSING error with how-to-fix steps.",
-        "  • DEMO MODE: serviceId values starting with `demo_` (demo_search / demo_echo / demo_fx)",
-        "    work WITHOUT any permit and return canned responses — useful for Glama Inspector",
-        "    or new-user trial. They are clearly marked with `mode: \"demo\"` and incur no charge.",
+        "  • DEMO MODE: any serviceId starting with `demo_` works WITHOUT a permit and hits real",
+        "    free upstreams (Wikipedia / httpbin / Open-Meteo / Nominatim / MyMemory / dictionaryapi /",
+        "    worldtimeapi / open.er-api). 8 demos cover search / echo / fx / translate / weather /",
+        "    geocode / time / dictionary — useful for Glama Inspector or new-user trial. They are",
+        "    marked with `mode: \"demo\"` and incur no charge.",
         "  • serviceId must come from list_services.",
         "",
         "BEHAVIOR:",
@@ -600,14 +764,19 @@ const PROMPTS = [
   {
     name: "explore-demo",
     title: "👉 START HERE — Try the demo (no signup, no API key)",
-    description: "[FREE · no auth needed] Walks Claude through demo_search → demo_fx → demo_echo against real upstreams. Best first step on Glama Inspector to verify the server is alive.",
+    description: "[FREE · no auth needed] Walks Claude through all 8 demo services (search, fx, translate, weather, geocode, time, dictionary, echo). Best first step on Glama Inspector to confirm the server is alive and useful even without a permit.",
     template: [
-      "Use the LemonCake MCP server (pay-per-call-mcp) in demo mode (no auth needed) to:",
+      "Use the LemonCake MCP server (agent-payment-mcp) in demo mode (no auth needed) to:",
       "1. Run `setup` to confirm we're in demo mode.",
-      "2. Run `list_services` and tell me which entries are demos.",
-      "3. Call `call_service` with serviceId='demo_search' and body={\"q\":\"Model Context Protocol\"} — show me the Wikipedia results.",
-      "4. Call `call_service` with serviceId='demo_fx' and report current USD/JPY.",
-      "Then summarize what LemonCake is, in 2 sentences.",
+      "2. Run `list_services` — note the 8 demo_* entries.",
+      "3. demo_search: q='Model Context Protocol' → show Wikipedia results.",
+      "4. demo_fx: report current USD/JPY.",
+      "5. demo_translate: text='Pay-per-call API access for AI agents', from='en', to='ja'.",
+      "6. demo_geocode: q='Akihabara, Tokyo' → get lat/lon.",
+      "7. demo_weather: use the lat/lon from step 6 to report current weather.",
+      "8. demo_time: timezone='Asia/Tokyo' → current time + DST.",
+      "9. demo_dictionary: word='ephemeral' → definitions.",
+      "Then in 3 sentences, summarize what LemonCake adds vs raw API access (hint: USDC per-call, permit-bound spending cap, no JWT juggling).",
     ].join("\n"),
   },
   {
