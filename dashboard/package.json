@@ -11,8 +11,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@coinbase/onchainkit": "^1.1.2",
+    "@coinbase/wallet-sdk": "^4.3.7",
     "@next/third-parties": "^16.2.6",
     "@privy-io/react-auth": "^2.25.0",
+    "@tanstack/react-query": "^5.100.11",
     "@types/nodemailer": "^8.0.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -24,7 +27,8 @@
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
     "resend": "^6.10.0",
-    "viem": "^2.50.4"
+    "viem": "^2.50.4",
+    "wagmi": "^2.19.5"
   },
   "overrides": {
     "uuid": "^14.0.0"

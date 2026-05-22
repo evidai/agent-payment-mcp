@@ -23,6 +23,17 @@ import { useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createWalletClient, custom, type WalletClient } from "viem";
 import { base } from "viem/chains";
+// FundButton's declared return type includes Promise, which trips the
+// JSX "cannot be used as component" check. Cast to a plain FC to fix.
+import { FundButton as FundButtonRaw } from "@coinbase/onchainkit/fund";
+import type { FC } from "react";
+const FundButton = FundButtonRaw as unknown as FC<{
+  openIn?: "popup" | "tab";
+  children?: React.ReactNode;
+  className?: string;
+  onPopupClose?: () => void;
+  onClick?: () => void;
+}>;
 import {
   encodePermit,
   permitDeadlineFromNow,
@@ -31,7 +42,7 @@ import {
   type SignedPermit,
 } from "@/lib/permit";
 import { trackEvent } from "@/lib/analytics";
-import { PRIVY_ENABLED } from "@/Providers";
+import { PRIVY_ENABLED, COINBASE_ENABLED } from "@/Providers";
 
 // Marketplace spender — temporary placeholder until per-service
 // receivers are surfaced from the marketplace API. This address never
@@ -252,18 +263,47 @@ export default function StartV2Page() {
                 </p>
               )}
 
+              {/* Apple Pay primary path — Coinbase Onramp. Falls back to
+                  the "持っていない" exchange list when the project ID is
+                  missing or the user prefers to bridge manually. */}
+              {COINBASE_ENABLED && userWallet?.address && (
+                <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50/50 p-5">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl leading-none"></span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">
+                        Apple Pay でいますぐ USDC を購入
+                      </p>
+                      <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                        Coinbase の安全な経路で、お手元の Apple Pay / Google Pay /
+                        クレジットカードから直接 Base 上の USDC を取得できます。
+                        LemonCake は決済経路に介在しません。
+                      </p>
+                      <div className="mt-3">
+                        <FundButton openIn="popup">
+                          $20 を Apple Pay で追加
+                        </FundButton>
+                      </div>
+                      <p className="mt-2 text-[11px] text-gray-500">
+                        所要時間 30 秒〜3 分（初回 KYC が必要な場合あり）
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-6 flex flex-wrap gap-2">
                 <button
                   onClick={handleHasUsdc}
                   className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600"
                 >
-                  USDC は持っている → 次へ
+                  USDC は準備済み → 次へ
                 </button>
                 <button
                   onClick={() => setShowExchanges((v) => !v)}
                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 hover:border-gray-400"
                 >
-                  まだ持っていない
+                  他の方法を見る
                 </button>
               </div>
 

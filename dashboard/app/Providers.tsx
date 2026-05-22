@@ -3,34 +3,78 @@
 /**
  * Top-level client-side provider tree.
  *
- * Why this file:
- *   The root layout is a server component (for SEO + metadata), so the
- *   wallet provider tree has to live in a client island. Anything that
- *   needs access to Privy hooks (`usePrivy`, `useWallets`, etc.) is
- *   rendered below this component.
+ * Composes three layers:
+ *   1. PrivyProvider — Google / Email login → embedded wallet (existing
+ *      onboarding path; works without USDC).
+ *   2. WagmiProvider — bridges Privy's embedded wallet to viem hooks
+ *      and lets us drop in Coinbase Smart Wallet as a parallel connector.
+ *   3. OnchainKitProvider — gives the FundCard / `<Buy>` flows access to
+ *      Coinbase Onramp (Apple Pay → USDC in ≈30s when configured).
  *
- *   The wrapper is intentionally conditional on `NEXT_PUBLIC_PRIVY_APP_ID`
- *   so we can ship the code path before the App ID is provisioned:
- *     - With the env var set → real Privy auth + embedded wallet.
- *     - Without it → children render as-is (legacy /start, /start/v2 in
- *       mocked-signature mode, every other page unaffected).
+ *   Each layer is guarded by its own env var. The page tree degrades
+ *   gracefully when keys are missing:
+ *     - No PRIVY_APP_ID  → bare children, /start/v2 will show a clear
+ *       "auth not configured" state (no more silent mock signing).
+ *     - No COINBASE_PROJECT_ID → Wagmi + Privy still work; the Apple
+ *       Pay onramp UI hides.
  *
- *   When the App ID is added in Vercel → no code change needed; the
- *   provider activates on the next deploy.
+ *   Why both Privy and Wagmi? Privy owns the auth/wallet creation UX
+ *   and stays the source of truth for the user's address. Wagmi exists
+ *   purely so we can hand the same address to OnchainKit's hooks
+ *   without writing a custom adapter.
  */
 
 import type { ReactNode } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { WagmiProvider, createConfig, http } from "wagmi";
+import { base } from "wagmi/chains";
+import { coinbaseWallet } from "wagmi/connectors";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { OnchainKitProvider } from "@coinbase/onchainkit";
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+const PRIVY_APP_ID         = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+const COINBASE_PROJECT_ID  = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
+
+// Single wagmi config — Base only for now. Coinbase Smart Wallet is the
+// primary connector; users who already have MetaMask still go through
+// Privy's wallet-connect path, which mounts above wagmi.
+const wagmiConfig = createConfig({
+  chains: [base],
+  connectors: [
+    coinbaseWallet({
+      appName: "LemonCake",
+      appLogoUrl: "https://lemoncake.xyz/logo.png",
+      preference: "smartWalletOnly", // forces passkey / Apple Pay path
+    }),
+  ],
+  transports: {
+    [base.id]: http("https://mainnet.base.org"),
+  },
+});
+
+const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
   if (!PRIVY_APP_ID) {
     // No Privy app id configured yet — render the app without the
     // auth provider so unrelated pages keep working. /start/v2 will
-    // detect this and stay in mocked-signature mode.
+    // surface a configuration warning instead of silently mocking.
     return <>{children}</>;
   }
+
+  const wrapped = (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        {COINBASE_PROJECT_ID ? (
+          <OnchainKitProvider apiKey={COINBASE_PROJECT_ID} chain={base}>
+            {children}
+          </OnchainKitProvider>
+        ) : (
+          children
+        )}
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
 
   return (
     <PrivyProvider
@@ -83,13 +127,14 @@ export function Providers({ children }: { children: ReactNode }) {
         ],
       }}
     >
-      {children}
+      {wrapped}
     </PrivyProvider>
   );
 }
 
 /**
- * Helper for downstream components to check whether Privy is actually
- * wired up (vs the stub `<>{children}</>` branch above).
+ * Helper for downstream components to check whether the relevant
+ * upstream services are wired up.
  */
-export const PRIVY_ENABLED = PRIVY_APP_ID.length > 0;
+export const PRIVY_ENABLED    = PRIVY_APP_ID.length > 0;
+export const COINBASE_ENABLED = COINBASE_PROJECT_ID.length > 0;
