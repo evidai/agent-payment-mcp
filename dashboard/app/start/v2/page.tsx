@@ -41,7 +41,11 @@ import { PRIVY_ENABLED, COINBASE_ENABLED } from "@/Providers";
 // receivers are surfaced from the marketplace API. This address never
 // holds USDC; it only acts as the allowed `transferFrom` caller, so
 // FSA Q11's "non-custodial" condition still applies.
-const MARKETPLACE_SPENDER = "0x000000000000000000000000000000000000dEaD" as const;
+// Real marketplace spender wallet (generated 2026-05-22).
+// This address is set as `spender` in every ERC-2612 permit so the
+// LemonCake charge API can call transferFrom on behalf of the user.
+// Private key → BASE_SPENDER_PRIVATE_KEY in Railway env (never committed).
+const MARKETPLACE_SPENDER = "0x23e0D435b62d8eABE2b239c461Ec6fb2E8B7E965" as const;
 
 // NB: this env holds the CDP **Project ID (UUID)** — not the client API
 // key. Onramp's `appId` is the project identifier; the client API key

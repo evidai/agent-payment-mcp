@@ -41,6 +41,9 @@ import { telemetryRouter }          from "./routes/telemetry.js";
 import { adminRouter }              from "./routes/admin.js";
 import { adminRevenueRouter }       from "./routes/admin-revenue.js";
 import { coinbaseRouter }           from "./routes/coinbase.js";
+import { chargesPermitRouter }      from "./routes/charges-permit.js";
+import { providersV2Router }        from "./routes/providers-v2.js";
+import { sdkRouter }                from "./routes/sdk.js";
 import { mcpAccessLog }                from "./middleware/mcpAccessLog.js";
 import { startUsdcTransferWorker, handleFailedJob } from "./workers/usdcTransfer.js";
 import { startProviderPayoutCron, stopProviderPayoutCron } from "./workers/providerPayout.js";
@@ -101,6 +104,9 @@ app.route("/api/telemetry",              telemetryRouter);
 app.route("/api/admin",                  adminRouter);
 app.route("/api/admin/revenue",          adminRevenueRouter);
 app.route("/api/coinbase",               coinbaseRouter);
+app.route("/api/charges/permit",         chargesPermitRouter);
+app.route("/api/providers/v2",           providersV2Router);
+app.route("/api/sdk",                    sdkRouter);
 
 // ─── OpenAPI ドキュメント定義 ────────────────────────────────
 app.doc("/openapi.json", {
