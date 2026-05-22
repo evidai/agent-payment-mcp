@@ -23,17 +23,7 @@ import { useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createWalletClient, custom, type WalletClient } from "viem";
 import { base } from "viem/chains";
-// FundButton's declared return type includes Promise, which trips the
-// JSX "cannot be used as component" check. Cast to a plain FC to fix.
-import { FundButton as FundButtonRaw } from "@coinbase/onchainkit/fund";
-import type { FC } from "react";
-const FundButton = FundButtonRaw as unknown as FC<{
-  openIn?: "popup" | "tab";
-  children?: React.ReactNode;
-  className?: string;
-  onPopupClose?: () => void;
-  onClick?: () => void;
-}>;
+import { FundButton } from "@coinbase/onchainkit/fund";
 import {
   encodePermit,
   permitDeadlineFromNow,
@@ -280,9 +270,10 @@ export default function StartV2Page() {
                         LemonCake は決済経路に介在しません。
                       </p>
                       <div className="mt-3">
-                        <FundButton openIn="popup">
-                          $20 を Apple Pay で追加
-                        </FundButton>
+                        <FundButton
+                          text="$20 を Apple Pay で追加"
+                          openIn="popup"
+                        />
                       </div>
                       <p className="mt-2 text-[11px] text-gray-500">
                         所要時間 30 秒〜3 分（初回 KYC が必要な場合あり）

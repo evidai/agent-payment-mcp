@@ -11,7 +11,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@coinbase/onchainkit": "^1.1.2",
+    "@coinbase/onchainkit": "^0.38.19",
     "@coinbase/wallet-sdk": "^4.3.7",
     "@next/third-parties": "^16.2.6",
     "@privy-io/react-auth": "^2.25.0",
