@@ -45,24 +45,28 @@ const MARKETPLACE_SPENDER = "0x000000000000000000000000000000000000dEaD" as cons
 
 const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 
-// Build the Coinbase Pay (Onramp v1) URL with a destination wallet
-// already attached. This keeps the entire purchase inside one popup —
-// no "Connect Wallet" step, no exchange tab-switching. The shape of
-// destinationWallets is documented at
-// https://docs.cdp.coinbase.com/onramp/docs/api-reference#building-the-coinbase-onramp-url
+// Build the Coinbase Pay onramp URL. We match the parameter shape used
+// by OnchainKit's official `getOnrampBuyUrl` helper:
+//   • `addresses` is a Record<address, network[]>, NOT the legacy
+//     `destinationWallets` array (the legacy form 500s on pay.coinbase.com).
+//   • `assets` is a JSON array of symbols.
+//   • `presetFiatAmount` + `fiatCurrency` is what actually pre-fills
+//     the amount; `presetCryptoAmount` would expect a crypto-denominated
+//     value and the URL otherwise drops the user on an empty form.
 function buildOnrampUrl(walletAddress: string, presetUsd: number): string {
-  const destWallets = JSON.stringify([
-    { address: walletAddress, blockchains: ["base"], assets: ["USDC"] },
-  ]);
-  const params = new URLSearchParams({
-    appId: COINBASE_PROJECT_ID,
-    destinationWallets: destWallets,
-    defaultAsset: "USDC",
-    defaultNetwork: "base",
-    presetCryptoAmount: String(presetUsd),
-    defaultExperience: "buy",
-  });
-  return `https://pay.coinbase.com/buy/select-asset?${params.toString()}`;
+  const url = new URL("https://pay.coinbase.com/buy/select-asset");
+  url.searchParams.set("appId", COINBASE_PROJECT_ID);
+  url.searchParams.set(
+    "addresses",
+    JSON.stringify({ [walletAddress]: ["base"] }),
+  );
+  url.searchParams.set("assets", JSON.stringify(["USDC"]));
+  url.searchParams.set("defaultAsset", "USDC");
+  url.searchParams.set("defaultNetwork", "base");
+  url.searchParams.set("presetFiatAmount", String(presetUsd));
+  url.searchParams.set("fiatCurrency", "USD");
+  url.searchParams.set("defaultExperience", "buy");
+  return url.toString();
 }
 
 // $25.00 USDC daily cap (USDC uses 6 decimals).
