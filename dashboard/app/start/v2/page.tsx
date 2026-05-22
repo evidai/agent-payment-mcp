@@ -127,9 +127,9 @@ const DEFAULT_DAILY_CAP_USDC_BASE = BigInt(25_000_000);
 
 const STEPS = [
   { id: 1, label: "サインイン",      detail: "Google で 1 クリック / wallet 自動作成" },
-  { id: 2, label: "USDC を確認",     detail: "Base 上にあれば OK / 無ければ取引所案内" },
+  { id: 2, label: "USDC（任意）",    detail: "後で入金 OK / 今入れたければ Apple Pay / 銀行振込" },
   { id: 3, label: "1 回だけ署名",     detail: "ERC-2612 permit — 90日間有効" },
-  { id: 4, label: "完了",            detail: "以降は完全ノーサイン" },
+  { id: 4, label: "完了",            detail: "permit blob をコピー / 以降ノーサイン" },
 ] as const;
 
 // First 6 + last 4 — keeps full address out of the rendered DOM while
@@ -315,10 +315,10 @@ export default function StartV2Page() {
 
           {step === 2 && (
             <>
-              <h2 className="text-xl font-bold">Step 2 · USDC を確認</h2>
+              <h2 className="text-xl font-bold">Step 2 · USDC（任意）</h2>
               <p className="mt-2 text-sm text-gray-600">
-                Base チェーン上の USDC を使います。LemonCake は経由しないので、
-                あなたのウォレットに直接 USDC があれば OK。
+                permit 署名は USDC 残高がなくても発行できます。<strong>まず署名だけ取って試したい場合はスキップ可</strong>。
+                USDC は後で入金しても、無料デモサービスはすぐ使えます。
               </p>
               {userWallet?.address && (
                 <p className="mt-4 text-xs text-gray-500">
@@ -329,6 +329,46 @@ export default function StartV2Page() {
                   <span className="text-gray-400">(Base 8453)</span>
                 </p>
               )}
+
+              {/* 巨大 skip CTA — Glama 訪問者の摩擦削減の最重要 button.
+                  USDC 入金は permit 取得に必須ではない（permit は上限を
+                  署名するだけ。残高ゼロでも署名できる）ので、最上部に
+                  目立つ skip ボタンを置く。 */}
+              <div className="mt-6 rounded-2xl border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">🎁</span>
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-gray-900">
+                      とりあえず permit だけ欲しい人はこちら
+                    </p>
+                    <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                      USDC 入金をスキップして直接署名へ。発行された permit で：
+                      <br />
+                      ✓ 無料デモサービス（Wikipedia / FX / httpbin）が使える
+                      <br />
+                      ✓ list_services / check_tax など無料機能も全部試せる
+                      <br />
+                      ✓ paid サービスを使いたくなった時に戻って USDC 入金すれば即解禁
+                    </p>
+                    <button
+                      onClick={() => {
+                        trackEvent("v2_skipped_usdc_funding");
+                        handleHasUsdc();
+                      }}
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800"
+                    >
+                      USDC スキップ → 署名へ進む →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* divider */}
+              <div className="mt-8 mb-4 flex items-center gap-3">
+                <span className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">または 今すぐ USDC を取得</span>
+                <span className="flex-1 h-px bg-gray-200" />
+              </div>
 
               {/* Apple Pay primary path — Coinbase Onramp. Falls back to
                   the "持っていない" exchange list when the project ID is
@@ -431,13 +471,13 @@ export default function StartV2Page() {
                   onClick={handleHasUsdc}
                   className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600"
                 >
-                  USDC は準備済み → 次へ
+                  USDC 入金完了 → 署名へ進む
                 </button>
                 <button
                   onClick={() => setShowExchanges((v) => !v)}
                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 hover:border-gray-400"
                 >
-                  他の方法を見る
+                  他の入手方法を見る
                 </button>
               </div>
 
@@ -526,6 +566,9 @@ export default function StartV2Page() {
                 「90 日間、最大 $25/日まで LemonCake マーケットに使ってよい」と署名します。
                 これはオンチェーン取引ではなく <strong>EIP-712 形式の署名</strong>のみ。
                 ガス代は発生しません。
+                <span className="block mt-2 text-[11px] text-gray-500">
+                  ※ USDC 残高ゼロでも署名 OK。実際に USDC が動くのは AI が paid サービスを呼んだ瞬間だけ。
+                </span>
               </p>
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs font-mono leading-relaxed text-gray-700">
                 <div>chain:    Base (8453)</div>
