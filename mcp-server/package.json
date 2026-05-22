@@ -1,7 +1,7 @@
 {
   "name": "agent-payment-mcp",
   "mcpName": "io.github.evidai/agent-payment",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Give your AI agent a USDC wallet. Pay-per-call any API. Non-custodial — one ERC-2612 permit signature gives a 90-day, $25/day hard cap that the agent literally cannot exceed. USDC stays in your own wallet. Demo Mode works with zero signup — `npx -y agent-payment-mcp`.",
   "type": "module",
   "main": "dist/index.js",
