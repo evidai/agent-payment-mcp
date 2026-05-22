@@ -300,7 +300,10 @@ export default function StartV2Page() {
                     Coinbase 経由（FSA 暗号資産交換業 #00029）、LemonCake は決済経路に一切介在しません。
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {[10, 20, 50].map((amt) => (
+                    {/* Sandbox cap is $5/tx until we get full Onramp
+                        access from Coinbase. The $1/$3/$5 preset keeps
+                        every click within the test limit. */}
+                    {[1, 3, 5].map((amt) => (
                       <button
                         key={amt}
                         onClick={() => {
