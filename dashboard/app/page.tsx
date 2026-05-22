@@ -3342,8 +3342,8 @@ function SubscriptionPanel() {
 
 // プラン公開設定（lib/plans.ts のミラー — 月額のみ）
 const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS", { monthlyJpy: number }> = {
-  PRO:      { monthlyJpy: 2980 },
-  BUSINESS: { monthlyJpy: 9800 },
+  PRO:      { monthlyJpy: 4980 },
+  BUSINESS: { monthlyJpy: 14800 },
 };
 
 // ── OfframpPanel: USDC → JPY オフランプ（Business 以上） ──────────────────────

@@ -46,7 +46,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
     stripePriceEnv:    null,
   },
   PRO: {
-    monthlyJpy:         2980,
+    monthlyJpy:         4980,
     freeCallsPerMonth:  10000,
     overagePerCallUsdc: "0.001",
     features: {
@@ -59,7 +59,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
     stripePriceEnv:    "STRIPE_PRICE_PRO",
   },
   BUSINESS: {
-    monthlyJpy:         9800,
+    monthlyJpy:         14800,
     freeCallsPerMonth:  100000,
     overagePerCallUsdc: "0.0008",
     features: {
