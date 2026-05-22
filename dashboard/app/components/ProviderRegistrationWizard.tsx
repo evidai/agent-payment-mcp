@@ -253,7 +253,7 @@ export function ProviderRegistrationWizard({
               <input
                 type="text" autoFocus value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Evid AI / 山田太郎"
+                placeholder="例: Acme Inc."
                 className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
               />
             </div>
