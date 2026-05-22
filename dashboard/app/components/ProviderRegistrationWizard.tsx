@@ -51,7 +51,10 @@ export function ProviderRegistrationWizard({
   onSuccess,
 }: ProviderRegistrationWizardProps) {
   const [step, setStep]                   = useState<Step>("identity");
-  const [name, setName]                   = useState("");
+  // companyName (任意) と personalName (必須) を分離。submit 時に "Company / Person"
+  // 形で 1 フィールドに結合してバックエンドの providers/v2.name に送る。
+  const [companyName, setCompanyName]     = useState("");
+  const [personalName, setPersonalName]   = useState("");
   const [email, setEmail]                 = useState("");
   const [baseWallet, setBaseWallet]       = useState("");
   const [apiEndpoint, setApiEndpoint]     = useState("");
@@ -64,13 +67,21 @@ export function ProviderRegistrationWizard({
   const [copiedField, setCopiedField]     = useState<string | null>(null);
   const [secretShown, setSecretShown]     = useState(false);
 
+  // バックエンドへ送る統合された name フィールド
+  const combinedName = useMemo(() => {
+    const c = companyName.trim();
+    const p = personalName.trim();
+    if (c && p) return `${c} / ${p}`;
+    return c || p;
+  }, [companyName, personalName]);
+
   const canAdvance = useMemo<Record<Step, boolean>>(() => ({
-    identity: name.trim().length >= 1 && /\S+@\S+\.\S+/.test(email),
+    identity: personalName.trim().length >= 1 && /\S+@\S+\.\S+/.test(email),
     wallet:   /^0x[a-fA-F0-9]{40}$/.test(baseWallet),
     pricing:  parseFloat(pricePerCall) >= 0.001,
     tax:      true,
     review:   true,
-  }), [name, email, baseWallet, pricePerCall]);
+  }), [personalName, email, baseWallet, pricePerCall]);
 
   const revenueSim = useMemo(() => {
     const price = parseFloat(pricePerCall);
@@ -90,7 +101,7 @@ export function ProviderRegistrationWizard({
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
+          name: combinedName,
           email,
           baseWalletAddress:  baseWallet,
           apiEndpointUrl:     apiEndpoint || undefined,
@@ -136,7 +147,7 @@ export function ProviderRegistrationWizard({
 
   const mcpConfig = result ? JSON.stringify({
     mcpServers: {
-      [name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) || "my-api"]: {
+      [combinedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) || "my-api"]: {
         command: "npx",
         args: ["-y", "agent-payment-mcp"],
         env: {
@@ -246,14 +257,27 @@ export function ProviderRegistrationWizard({
       {step === "identity" && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-900">あなたについて</h3>
-          <p className="mt-1 text-sm text-gray-500">2 つだけ。あとで変更できます。</p>
+          <p className="mt-1 text-sm text-gray-500">あとで変更できます。</p>
           <div className="mt-6 space-y-5">
             <div>
-              <label className="block text-sm font-bold text-gray-800 mb-1.5">会社名 / 個人名</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                会社名 <span className="text-gray-400 font-normal text-xs ml-1">（個人開発者は空欄で OK）</span>
+              </label>
               <input
-                type="text" autoFocus value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="text" autoFocus value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="例: Acme Inc."
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                あなたの氏名 / ハンドル名
+              </label>
+              <input
+                type="text" value={personalName}
+                onChange={(e) => setPersonalName(e.target.value)}
+                placeholder="例: Taro Tanaka"
                 className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
               />
             </div>
@@ -406,7 +430,8 @@ export function ProviderRegistrationWizard({
           <p className="mt-1 text-sm text-gray-500">登録ボタンを押すと、serviceId と API key が即時発行されます。</p>
           <div className="mt-6 space-y-2 text-sm">
             {[
-              { label: "名前 / 会社名",    value: name },
+              { label: "会社名",          value: companyName || "(個人)" },
+              { label: "氏名",            value: personalName },
               { label: "メールアドレス",  value: email },
               { label: "受取ウォレット",  value: baseWallet, mono: true },
               { label: "API エンドポイント", value: apiEndpoint || "(未設定)" },
