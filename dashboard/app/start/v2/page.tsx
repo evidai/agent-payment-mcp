@@ -57,7 +57,10 @@ const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 //     the amount; `presetCryptoAmount` would expect a crypto-denominated
 //     value and the URL otherwise drops the user on an empty form.
 function buildOnrampUrl(walletAddress: string, presetUsd: number): string {
-  const url = new URL("https://pay.coinbase.com/buy/select-asset");
+  // Endpoint is /buy — OnchainKit's official constant. The
+  // /buy/select-asset path is the in-app navigation target, not the
+  // public landing URL, and using it directly trips a /error redirect.
+  const url = new URL("https://pay.coinbase.com/buy");
   url.searchParams.set("appId", COINBASE_PROJECT_ID);
   url.searchParams.set(
     "addresses",
