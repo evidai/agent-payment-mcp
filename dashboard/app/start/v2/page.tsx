@@ -23,7 +23,10 @@ import { useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createWalletClient, custom, type WalletClient } from "viem";
 import { base } from "viem/chains";
-import { FundButton } from "@coinbase/onchainkit/fund";
+// We construct the Coinbase Onramp URL manually so we can hand it the
+// Privy embedded-wallet address. The OnchainKit `<FundButton />` would
+// otherwise gate the flow behind a wagmi connector and force the user
+// through a redundant "Connect Wallet" step.
 import {
   encodePermit,
   permitDeadlineFromNow,
@@ -39,6 +42,28 @@ import { PRIVY_ENABLED, COINBASE_ENABLED } from "@/Providers";
 // holds USDC; it only acts as the allowed `transferFrom` caller, so
 // FSA Q11's "non-custodial" condition still applies.
 const MARKETPLACE_SPENDER = "0x000000000000000000000000000000000000dEaD" as const;
+
+const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
+
+// Build the Coinbase Pay (Onramp v1) URL with a destination wallet
+// already attached. This keeps the entire purchase inside one popup —
+// no "Connect Wallet" step, no exchange tab-switching. The shape of
+// destinationWallets is documented at
+// https://docs.cdp.coinbase.com/onramp/docs/api-reference#building-the-coinbase-onramp-url
+function buildOnrampUrl(walletAddress: string, presetUsd: number): string {
+  const destWallets = JSON.stringify([
+    { address: walletAddress, blockchains: ["base"], assets: ["USDC"] },
+  ]);
+  const params = new URLSearchParams({
+    appId: COINBASE_PROJECT_ID,
+    destinationWallets: destWallets,
+    defaultAsset: "USDC",
+    defaultNetwork: "base",
+    presetCryptoAmount: String(presetUsd),
+    defaultExperience: "buy",
+  });
+  return `https://pay.coinbase.com/buy/select-asset?${params.toString()}`;
+}
 
 // $25.00 USDC daily cap (USDC uses 6 decimals).
 const DEFAULT_DAILY_CAP_USDC_BASE = BigInt(25_000_000);
@@ -257,29 +282,39 @@ export default function StartV2Page() {
                   the "持っていない" exchange list when the project ID is
                   missing or the user prefers to bridge manually. */}
               {COINBASE_ENABLED && userWallet?.address && (
-                <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50/50 p-5">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl leading-none"></span>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-900">
-                        Apple Pay でいますぐ USDC を購入
-                      </p>
-                      <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                        Coinbase の安全な経路で、お手元の Apple Pay / Google Pay /
-                        クレジットカードから直接 Base 上の USDC を取得できます。
-                        LemonCake は決済経路に介在しません。
-                      </p>
-                      <div className="mt-3">
-                        <FundButton
-                          text="$20 を Apple Pay で追加"
-                          openIn="popup"
-                        />
-                      </div>
-                      <p className="mt-2 text-[11px] text-gray-500">
-                        所要時間 30 秒〜3 分（初回 KYC が必要な場合あり）
-                      </p>
-                    </div>
+                <div className="mt-6 rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-bold text-gray-900">
+                    💳 カードでいますぐ USDC を取得
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                    Apple Pay / Google Pay / クレジットカードで USDC を購入し、あなたのウォレットに直接届きます。
+                    Coinbase 経由（FSA 暗号資産交換業 #00029）、LemonCake は決済経路に一切介在しません。
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[10, 20, 50].map((amt) => (
+                      <button
+                        key={amt}
+                        onClick={() => {
+                          trackEvent("v2_onramp_clicked", { amount_usd: amt });
+                          const w = window.open(
+                            buildOnrampUrl(userWallet.address as string, amt),
+                            "coinbase-onramp",
+                            "popup,width=480,height=720",
+                          );
+                          if (!w) {
+                            setError("ポップアップがブロックされました。ブラウザ設定で許可してください。");
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
+                      >
+                        ${amt} を購入
+                      </button>
+                    ))}
                   </div>
+                  <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
+                    所要時間 30 秒〜3 分（初回のみ本人確認あり）。
+                    購入完了後、下の「USDC は準備済み → 次へ」をクリック。
+                  </p>
                 </div>
               )}
 
