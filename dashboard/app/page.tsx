@@ -3136,6 +3136,7 @@ interface SubscriptionInfo {
   status:             string;
   freeCallsPerMonth:  number;
   monthlyJpy:         number;
+  monthlyUsd:         number;
   features: {
     accountingIntegration: boolean;
     invoiceGeneration:     boolean;
@@ -3268,11 +3269,16 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
     setBusy("checkout");
     setError(null);
     try {
+      // locale が "en" の cookie が立ってれば USD で課金、それ以外は JPY
+      const currency =
+        typeof document !== "undefined" && document.cookie.includes("lemon_locale=en")
+          ? "usd"
+          : "jpy";
       const r = await fetch(`${API}/api/subscriptions/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          providerV2Id, plan,
+          providerV2Id, plan, currency,
           successUrl: `${window.location.origin}/?subscription=success`,
           cancelUrl:  `${window.location.origin}/?subscription=cancel`,
         }),
@@ -3354,9 +3360,16 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
                   <p className="font-bold text-gray-900">{t(desc.jaName, desc.enName)}</p>
                   <p className="text-xs text-gray-500">{t(desc.jaTagline, desc.enTagline)}</p>
                   <p className="text-xl font-bold text-gray-900 mt-1">
-                    {p === "FREE" ? "¥0" : `¥${PLAN_CONFIG_PUBLIC[p].monthlyJpy.toLocaleString()}`}
+                    {p === "FREE"
+                      ? "¥0 / $0"
+                      : `¥${PLAN_CONFIG_PUBLIC[p].monthlyJpy.toLocaleString()}`}
                     <span className="text-xs font-normal text-gray-500">/mo</span>
                   </p>
+                  {p !== "FREE" && (
+                    <p className="text-[11px] text-gray-400 -mt-1">
+                      ≈ ${PLAN_CONFIG_PUBLIC[p].monthlyUsd} USD
+                    </p>
+                  )}
                   <ul className="text-xs text-gray-600 space-y-1 mt-1">
                     {(t(desc.jaFeatures.join("|"), desc.enFeatures.join("|")) as string).split("|").map((f, i) => (
                       <li key={i} className="flex items-start gap-1"><span className="text-amber-500 mt-0.5">✓</span><span>{f}</span></li>
@@ -3397,10 +3410,10 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
 }
 
 // プラン公開設定（lib/plans.ts のミラー — 月額のみ）
-const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS" | "SCALE", { monthlyJpy: number }> = {
-  PRO:      { monthlyJpy: 9800 },
-  BUSINESS: { monthlyJpy: 29800 },
-  SCALE:    { monthlyJpy: 98000 },
+const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS" | "SCALE", { monthlyJpy: number; monthlyUsd: number }> = {
+  PRO:      { monthlyJpy: 9800,  monthlyUsd: 69 },
+  BUSINESS: { monthlyJpy: 29800, monthlyUsd: 199 },
+  SCALE:    { monthlyJpy: 98000, monthlyUsd: 699 },
 };
 
 // ── OfframpPanel: USDC → JPY オフランプ（Business 以上） ──────────────────────

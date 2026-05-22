@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CopyCommand } from "./CopyCommand";
 import { TerminalDemo } from "./TerminalDemo";
 import { DemoPlayground } from "./DemoPlayground";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 const NPM_COMMAND = "npx -y agent-payment-mcp";
 const NPM_URL     = "https://www.npmjs.com/package/agent-payment-mcp";
@@ -140,6 +141,7 @@ export default function StartPage() {
             <Link href="/register" className="text-[12px] sm:text-[13px] font-semibold px-3 sm:px-4 py-1.5 bg-[#fffd43] text-[#06060a] rounded-lg hover:bg-[#fffd43]/90 transition">
               Sign up
             </Link>
+            <LangSwitcher current="ja" basePath="/start" />
           </nav>
         </div>
       </header>

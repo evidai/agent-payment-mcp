@@ -37,6 +37,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://lemoncake.xyz";
 const CheckoutBody = z.object({
   providerV2Id: z.string().min(1),
   plan:         z.enum(["PRO", "BUSINESS", "SCALE"]),  // FREE は checkout 不要、Enterprise は手動
+  currency:     z.enum(["jpy", "usd"]).default("jpy"),  // 日本以外は USD で課金
   successUrl:   z.string().url().optional(),
   cancelUrl:    z.string().url().optional(),
 });
@@ -65,9 +66,9 @@ subscriptionsRouter.openapi(
     });
     if (!provider) return c.json({ error: "Provider not found" }, 404);
 
-    const priceId = stripePriceIdFor(body.plan);
+    const priceId = stripePriceIdFor(body.plan, body.currency);
     if (!priceId) {
-      return c.json({ error: `Stripe price ID not configured for plan ${body.plan}` }, 503);
+      return c.json({ error: `Stripe price ID not configured for plan ${body.plan} (${body.currency})` }, 503);
     }
 
     let stripe: StripeClient;
@@ -94,11 +95,13 @@ subscriptionsRouter.openapi(
       metadata: {
         providerV2Id: provider.id,
         plan:         body.plan,
+        currency:     body.currency,
       },
       subscription_data: {
         metadata: {
           providerV2Id: provider.id,
           plan:         body.plan,
+          currency:     body.currency,
         },
       },
       allow_promotion_codes: true,
@@ -170,6 +173,7 @@ subscriptionsRouter.openapi(
           // "機能" だけを決める。
 
           monthlyJpy:         z.number(),
+          monthlyUsd:         z.number(),
           features: z.object({
             accountingIntegration: z.boolean(),
             invoiceGeneration:     z.boolean(),
@@ -203,6 +207,7 @@ subscriptionsRouter.openapi(
       status:             sub?.status ?? "ACTIVE",
       freeCallsPerMonth:  cfg.freeCallsPerMonth,
       monthlyJpy:         cfg.monthlyJpy,
+      monthlyUsd:         cfg.monthlyUsd,
       features:           cfg.features,
       currentPeriodEnd:   sub?.currentPeriodEnd?.toISOString() ?? null,
       cancelAtPeriodEnd:  sub?.cancelAtPeriodEnd ?? false,
