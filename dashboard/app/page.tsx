@@ -2850,16 +2850,6 @@ function PublishPage({
           variant="embed"
           onSuccess={(r) => setProviderV2Id(r.id)}
         />
-
-        {/* v1 SellerProfile 移行ユーザー向け救済 */}
-        {sellerProfile && (
-          <button
-            onClick={onSellerStart}
-            className="self-start text-xs text-gray-400 hover:text-gray-600 underline"
-          >
-            {t("旧 SellerProfile を編集する（互換）", "Edit legacy SellerProfile (compat)")}
-          </button>
-        )}
       </div>
     );
   }
