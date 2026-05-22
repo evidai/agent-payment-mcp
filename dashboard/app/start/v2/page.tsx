@@ -66,6 +66,11 @@ function buildOnrampUrl(walletAddress: string, presetUsd: number): string {
   url.searchParams.set("presetFiatAmount", String(presetUsd));
   url.searchParams.set("fiatCurrency", "USD");
   url.searchParams.set("defaultExperience", "buy");
+  // Onramp's Japanese localisation is incomplete (the popup throws
+  // "ja not supported yet" + 403 on graphql). Force English so the
+  // flow at least renders; once Coinbase ships JP support we can drop
+  // this override.
+  url.searchParams.set("language", "en");
   return url.toString();
 }
 
