@@ -2208,6 +2208,381 @@ interface ServiceStatsItem {
   lastChargedAt: string | null;
 }
 
+interface ServiceStatsItem {
+  serviceId:    string;
+  serviceName:  string;
+  providerName: string;
+  chargeCount:  number;
+  totalUsdc:    string;
+  lastChargedAt: string | null;
+}
+
+// ── Seller Stats (revenue summary) ───────────────────────────────────────────
+// Restored from pre-v2-cleanup so the "Revenue" tab inside PublishPage has
+// real content. Pulls aggregate charge counts + USDC totals from the public
+// /api/services/stats endpoint.
+function SellerStatsPage({ services }: { services: MyServiceEntry[] }) {
+  const t = useT();
+  const [statsMap, setStatsMap] = useState<Map<string, ServiceStatsItem>>(new Map());
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+    fetch(`${API_URL}/api/services/stats`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((items: ServiceStatsItem[]) => {
+        setStatsMap(new Map(items.map(i => [i.serviceId, i])));
+      })
+      .catch(() => {/* サイレントフォールバック */})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const rows = services.map(s => {
+    const api = statsMap.get(s.id);
+    return {
+      ...s,
+      chargeCount: api?.chargeCount ?? 0,
+      totalUsdc:   api?.totalUsdc   ?? "0.0000",
+      lastCharged: api?.lastChargedAt
+        ? new Date(api.lastChargedAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })
+        : "—",
+    };
+  });
+  const totalCharges = rows.reduce((a, r) => a + r.chargeCount, 0);
+  const totalUsdc    = rows.reduce((a, r) => a + parseFloat(r.totalUsdc), 0).toFixed(4);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-24 text-sm text-gray-400 gap-2">
+      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+      </svg>
+      {t("統計データを読み込み中…","Loading statistics…")}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6 max-w-3xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: t("サービス数","Services"),       value: services.length.toString(), sub: t("掲載中","listed") },
+          { label: t("累計課金回数","Total Charges"), value: totalCharges.toLocaleString(), sub: "charges" },
+          { label: t("累計収益","Total Revenue"),     value: `${totalUsdc} USDC`, sub: "earned" },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+            <p className="text-xl font-bold text-gray-900 truncate">{value}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {services.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <IconChart cls="w-10 h-10 text-gray-300" />
+          <p className="text-sm text-gray-500">{t("サービスを登録すると統計が表示されます","Statistics will appear once you register a service")}</p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/60">
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("サービス名","Service Name")}</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("タイプ","Type")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("単価","Unit Price")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("課金回数","Charges")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("収益 (USDC)","Revenue (USDC)")}</th>
+                <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("最終課金","Last Charge")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.id} className={`border-b border-gray-50 last:border-0 ${i % 2 === 1 ? "bg-gray-50/30" : ""}`}>
+                  <td className="px-5 py-3.5">
+                    <p className="font-medium text-gray-900 truncate max-w-[160px]">{r.name}</p>
+                    <span className={`inline-block mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                      r.status === "approved" ? "bg-green-50 text-green-700 border-green-200"
+                      : r.status === "rejected" ? "bg-red-50 text-red-600 border-red-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}>{r.status === "approved" ? t("公開中","Published") : r.status === "rejected" ? t("却下","Rejected") : t("審査中","Under Review")}</span>
+                  </td>
+                  <td className="px-4 py-3.5 text-gray-500">{r.serviceType}</td>
+                  <td className="px-4 py-3.5 text-right font-mono text-gray-700">${r.price}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-gray-900">{r.chargeCount.toLocaleString()}</td>
+                  <td className="px-4 py-3.5 text-right font-mono text-gray-900">{r.totalUsdc}</td>
+                  <td className="px-5 py-3.5 text-right text-gray-500 text-xs">{r.lastCharged}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Accounting Connections Page ──────────────────────────────────────────────
+// Restored from pre-v2-cleanup; lives inside PublishPage as the "会計連携"
+// tab. Provider receives USDC → this connects freee / MoneyForward / etc.
+// so each charge becomes a journal entry automatically (Pro plan feature).
+
+type AccountingProvider = "quickbooks" | "xero" | "zoho" | "sage" | "netsuite" | "freee" | "moneyforward";
+
+interface AccountingConnection {
+  id: string;
+  provider: string;
+  externalName: string | null;
+  active: boolean;
+  expenseAccountRef: string | null;
+  cashAccountRef: string | null;
+  createdAt: string;
+}
+
+const ACCOUNTING_PROVIDERS: {
+  id: AccountingProvider;
+  name: string;
+  color: string;
+  description: string;
+  descriptionEn: string;
+  hasOAuth: boolean;
+  svgPath: string | null;
+  logoSrc?: string;
+}[] = [
+  { id: "quickbooks", name: "QuickBooks Online",  color: "#2CA01C", description: "Intuit QuickBooks — 全世界5,700万社が利用",    descriptionEn: "Intuit QuickBooks — Used by 57M+ businesses worldwide", hasOAuth: true,  svgPath: "M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm.642 4.1335c.9554 0 1.7296.776 1.7296 1.7332v9.0667h1.6c1.614 0 2.9275-1.3156 2.9275-2.933 0-1.6173-1.3136-2.9333-2.9276-2.9333h-.6654V7.3334h.6654c2.5722 0 4.6577 2.0897 4.6577 4.667 0 2.5774-2.0855 4.6666-4.6577 4.6666H12.642zM7.9837 7.333h3.3291v12.533c-.9555 0-1.73-.7759-1.73-1.7332V9.0662H7.9837c-1.6146 0-2.9277 1.316-2.9277 2.9334 0 1.6175 1.3131 2.9333 2.9277 2.9333h.6654v1.7332h-.6654c-2.5725 0-4.6577-2.0892-4.6577-4.6665 0-2.5771 2.0852-4.6666 4.6577-4.6666Z" },
+  { id: "xero",       name: "Xero",               color: "#13B5EA", description: "クラウド会計のグローバルスタンダード",           descriptionEn: "Xero — The global standard for cloud accounting",  hasOAuth: true,  svgPath: "M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.585 14.655c-1.485 0-2.69-1.206-2.69-2.689 0-1.485 1.207-2.691 2.69-2.691 1.485 0 2.69 1.207 2.69 2.691s-1.207 2.689-2.69 2.689zM7.53 14.644c-.099 0-.192-.041-.267-.116l-2.043-2.04-2.052 2.047c-.069.068-.16.108-.258.108-.202 0-.368-.166-.368-.368 0-.099.04-.191.111-.263l2.04-2.05-2.038-2.047c-.075-.069-.113-.162-.113-.261 0-.203.166-.366.368-.366.098 0 .188.037.258.105l2.055 2.048 2.048-2.045c.069-.071.162-.108.26-.108.211 0 .375.165.375.366 0 .098-.029.188-.104.258l-2.056 2.055 2.055 2.051c.068.069.104.16.104.258 0 .202-.165.368-.365.368h-.01zm8.017-4.591c-.796.101-.882.476-.882 1.404v2.787c0 .202-.165.366-.366.366-.203 0-.367-.165-.368-.366v-4.53c0-.204.16-.366.362-.366.166 0 .316.125.346.289.27-.209.6-.317.93-.317h.105c.195 0 .359.165.359.368 0 .201-.164.352-.375.359 0 0-.09 0-.164.008l.053-.002zm-3.091 2.205H8.625c0 .019.003.037.006.057.02.105.045.211.083.31.194.531.765 1.275 1.829 1.29.33-.003.631-.086.9-.229.21-.12.391-.271.525-.428.045-.058.09-.112.12-.168.18-.229.405-.186.54-.083.164.135.18.391.045.57l-.016.016c-.21.27-.435.495-.689.66-.255.164-.525.284-.811.345-.33.09-.645.104-.975.06-1.095-.135-2.01-.93-2.28-2.01-.06-.21-.09-.42-.09-.645 0-.855.421-1.695 1.125-2.205.885-.615 2.085-.66 3-.075.63.405 1.035 1.021 1.185 1.771.075.419-.21.794-.734.81l.068-.046zm6.129-2.223c-1.064 0-1.931.865-1.931 1.931 0 1.064.866 1.931 1.931 1.931s1.931-.867 1.931-1.931c0-1.065-.866-1.933-1.931-1.933v.002zm0 2.595c-.367 0-.666-.297-.666-.666 0-.367.3-.665.666-.665.367 0 .667.299.667.665 0 .369-.3.667-.667.666zm-8.04-2.603c-.91 0-1.672.623-1.886 1.466v.03h3.776c-.203-.855-.973-1.494-1.891-1.494v-.002z" },
+  { id: "zoho",       name: "Zoho Books",          color: "#E42527", description: "Zoho Books — アジア・中東に強い会計SaaS",        descriptionEn: "Zoho Books — Leading accounting SaaS in Asia & Middle East", hasOAuth: true,  svgPath: "M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776z" },
+  { id: "sage",       name: "Sage",                color: "#00DC06", description: "Sage Accounting — 欧州・北米向け中堅企業向け",    descriptionEn: "Sage Accounting — For mid-sized businesses in Europe & North America", hasOAuth: true,  svgPath: "M2.702 5.316C1.167 5.316 0 6.48 0 7.972c0 1.635 1.167 2.267 2.46 2.655 1.224.387 1.804.818 1.804 1.666 0 .86-.64 1.465-1.477 1.465-.84 0-1.566-.604-1.566-1.535 0-.516.242-.647.242-.934 0-.33-.227-.574-.599-.574-.423 0-.864.647-.864 1.566 0 1.48 1.266 2.57 2.787 2.57 1.535 0 2.701-1.163 2.701-2.656 0-1.623-1.166-2.267-2.472-2.655-1.209-.372-1.792-.818-1.792-1.666 0-.845.626-1.45 1.463-1.45.867 0 1.565.617 1.577 1.465.016.388.285.617.599.617a.592.592 0 0 0 .61-.647c-.027-1.48-1.263-2.543-2.771-2.543zm6.171 9.52c.683 0 1.21-.23 1.21-.69a.57.57 0 0 0-.557-.574c-.2 0-.341.085-.668.085-.882 0-1.577-.76-1.577-1.65 0-.962.71-1.725 1.608-1.725 1.009 0 1.65.775 1.65 1.895v2.054c0 .36.284.604.625.604.327 0 .61-.244.61-.604v-2.097c0-1.72-1.178-2.984-2.858-2.984-1.566 0-2.86 1.22-2.86 2.856 0 1.58 1.282 2.83 2.817 2.83zm6.257 3.848c1.535 0 2.701-1.163 2.701-2.656 0-1.635-1.166-2.267-2.472-2.655-1.209-.387-1.792-.818-1.792-1.666s.64-1.465 1.463-1.465c.84 0 1.577.604 1.577 1.535 0 .519-.241.647-.241.934 0 .33.226.574.583.574.441 0 .882-.647.882-1.566 0-1.48-1.278-2.57-2.801-2.57-1.535 0-2.687 1.163-2.687 2.656 0 1.623 1.152 2.267 2.46 2.655 1.224.372 1.804.818 1.804 1.666 0 .86-.64 1.45-1.462 1.45-.883 0-1.566-.601-1.578-1.465-.015-.388-.3-.604-.598-.604-.327 0-.626.216-.61.631.011 1.499 1.247 2.546 2.77 2.546zm6.171-3.849c.795 0 1.424-.229 1.862-.503.426-.272.595-.504.595-.76 0-.272-.2-.516-.568-.516-.441 0-.795.66-1.877.66-.952 0-1.707-.76-1.707-1.722 0-.95.725-1.724 1.635-1.724.982 0 1.508.647 1.508 1.062 0 .116-.085.174-.2.174h-1.194c-.326 0-.568.216-.568.503 0 .314.242.546.568.546h1.636c.625 0 1.009-.33 1.009-.89 0-1.408-1.194-2.512-2.774-2.512-1.566 0-2.83 1.263-2.83 2.84s1.312 2.842 2.905 2.842z" },
+  { id: "netsuite",   name: "Oracle NetSuite",     color: "#C74634", description: "NetSuite ERP — 大企業向けクラウドERP",            descriptionEn: "NetSuite ERP — Cloud ERP for enterprise businesses",  hasOAuth: false, svgPath: "M16.412 4.412h-8.82a7.588 7.588 0 0 0-.008 15.176h8.828a7.588 7.588 0 0 0 0-15.176zm-.193 12.502H7.786a4.915 4.915 0 0 1 0-9.828h8.433a4.914 4.914 0 1 1 0 9.828z" },
+  { id: "freee",      name: "freee",               color: "#3D74C2", description: "freee会計 — 日本No.1クラウド会計ソフト",          descriptionEn: "freee — Japan's No.1 cloud accounting software",    hasOAuth: true,  svgPath: null, logoSrc: "/freee-logo.png" },
+  { id: "moneyforward", name: "マネーフォワード クラウド",  color: "#1F6FB5", description: "マネーフォワード クラウド会計 — 日本シェア2位の会計SaaS", descriptionEn: "Money Forward Cloud — Japan's #2 accounting SaaS", hasOAuth: true,  svgPath: null, logoSrc: "/moneyforward-logo.png" },
+];
+
+function AccountingPage({ buyerToken }: { buyerToken: string }) {
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
+  const hdrs = { "Content-Type": "application/json", Authorization: `Bearer ${buyerToken}` };
+
+  const [connections, setConnections] = useState<AccountingConnection[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [connecting,  setConnecting]  = useState<AccountingProvider | null>(null);
+  const [banner,      setBanner]      = useState<{ kind: "success" | "error"; message: string } | null>(null);
+
+  const t = useT();
+
+  const fetchConnections = () => {
+    setLoading(true);
+    fetch(`${API}/api/accounting/connections`, { headers: hdrs })
+      .then(r => r.json())
+      .then((d: AccountingConnection[] | { connections?: AccountingConnection[] }) => {
+        if (Array.isArray(d)) setConnections(d);
+        else if (d && Array.isArray(d.connections)) setConnections(d.connections);
+        else setConnections([]);
+      })
+      .catch(() => setConnections([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchConnections(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const params   = new URLSearchParams(window.location.search);
+    const provider = params.get("provider") ?? "";
+    const pName    = ACCOUNTING_PROVIDERS.find(p => p.id === provider)?.name ?? provider;
+
+    if (params.get("accounting_connected") === "true") {
+      fetchConnections();
+      setBanner({ kind: "success", message: t(`${pName || "会計ソフト"} との連携が完了しました。`, `Successfully connected to ${pName || "accounting software"}.`) });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    const errCode = params.get("accounting_error");
+    if (errCode) {
+      setBanner({
+        kind: "error",
+        message: t(`${pName ? pName + " " : ""}連携エラー（コード: ${errCode}）`, `${pName ? pName + " " : ""}connection error (code: ${errCode})`),
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleConnect(provider: AccountingProvider) {
+    setConnecting(provider);
+    try {
+      const res = await fetch(`${API}/api/accounting/oauth/start/${provider}`, { headers: hdrs });
+      const d = await res.json() as { url?: string; error?: string };
+      if (d.error) throw new Error(d.error);
+      if (d.url) window.location.href = d.url;
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setConnecting(null);
+    }
+  }
+
+  async function handleDisconnect(id: string, providerName: string) {
+    if (!confirm(t(`${providerName} との連携を解除しますか？`, `Disconnect ${providerName}?`))) return;
+    try {
+      const res = await fetch(`${API}/api/accounting/connections/${id}`, { method: "DELETE", headers: hdrs });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error ?? `HTTP ${res.status}`);
+      }
+      fetchConnections();
+    } catch (e) {
+      alert(t(`連携解除に失敗しました: ${e instanceof Error ? e.message : String(e)}`, `Failed to disconnect: ${e instanceof Error ? e.message : String(e)}`));
+    }
+  }
+
+  const connectedMap = new Map(connections.map(c => [c.provider.toLowerCase(), c]));
+
+  return (
+    <div className="max-w-2xl flex flex-col gap-6">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">{t("会計連携", "Accounting Integrations")}</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          {t(
+            "会計ソフトを接続すると、AI エージェントから USDC で受け取った課金が自動で仕訳に変換されます。",
+            "Connect your accounting software to auto-convert USDC charges from AI agents into journal entries.",
+          )}
+        </p>
+      </div>
+
+      {banner && (
+        <div className={`rounded-xl border px-4 py-3 text-sm flex items-start gap-3 ${
+          banner.kind === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"
+        }`} role={banner.kind === "error" ? "alert" : "status"}>
+          <span className="flex-1 whitespace-pre-line">{banner.message}</span>
+          <button type="button" onClick={() => setBanner(null)} className="text-xs underline opacity-70 hover:opacity-100 shrink-0">{t("閉じる", "Dismiss")}</button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-gray-400 py-8 justify-center">
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          {t("読み込み中…", "Loading…")}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {ACCOUNTING_PROVIDERS.map(p => {
+            const conn = connectedMap.get(p.id);
+            const isConnected = !!conn;
+            const needsReauth = !!conn && conn.active === false;
+
+            return (
+              <div key={p.id} className={`bg-white rounded-2xl border p-5 flex items-center gap-4 ${
+                needsReauth ? "border-amber-200 bg-amber-50/30" : isConnected ? "border-green-200 bg-green-50/30" : "border-gray-200"
+              }`}>
+                {p.svgPath ? (
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: p.color }}>
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white" xmlns="http://www.w3.org/2000/svg">
+                      <path d={p.svgPath} />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white border border-gray-100 overflow-hidden">
+                    <img src={p.logoSrc ?? "/freee-logo.png"} alt={p.name} className="w-8 h-8 object-contain" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                    {isConnected && !needsReauth && <span className="text-[10px] font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{t("接続済み", "Connected")}</span>}
+                    {needsReauth && <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{t("要再認可", "Reauthorization required")}</span>}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {isConnected && conn.externalName ? conn.externalName : t(p.description, p.descriptionEn)}
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center gap-2">
+                  {needsReauth && p.hasOAuth && (
+                    <button onClick={() => handleConnect(p.id)} disabled={connecting === p.id} className="text-xs font-medium text-white rounded-lg px-3 py-1.5 transition-opacity disabled:opacity-60 bg-amber-600 hover:bg-amber-700">
+                      {connecting === p.id ? t("接続中…", "Connecting…") : t("再接続", "Reauthorize")}
+                    </button>
+                  )}
+                  {isConnected ? (
+                    <button onClick={() => handleDisconnect(conn.id, p.name)} className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors">
+                      {t("解除", "Disconnect")}
+                    </button>
+                  ) : p.hasOAuth ? (
+                    <button onClick={() => handleConnect(p.id)} disabled={connecting === p.id} className="text-xs font-medium text-white rounded-lg px-3 py-1.5 transition-opacity disabled:opacity-60" style={{ backgroundColor: p.color }}>
+                      {connecting === p.id ? t("接続中…", "Connecting…") : t("接続する", "Connect")}
+                    </button>
+                  ) : (
+                    <a href="mailto:contact@aievid.com?subject=NetSuite連携のお問い合わせ" className="text-xs font-medium text-[#C74634] border border-[#C74634] rounded-lg px-3 py-1.5 hover:bg-[#C74634] hover:text-white transition-colors">
+                      {t("お問い合わせ", "Contact Us")}
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PublishPage (v2): wraps Services / Revenue / Accounting as tabs ──────────
+// Replaces the inline `{page === "publish" && ...}` rendering. The accounting
+// tab is locked behind Pro plan (Task 4) but the UI is exposed now so
+// Provider can preview it.
+type PublishTab = "services" | "revenue" | "accounting";
+
+function PublishPage({
+  sellerProfile, myServices, buyerToken,
+  onEditProfile, onCreateService, onSellerStart,
+}: {
+  sellerProfile: SellerProfile | null;
+  myServices: MyServiceEntry[];
+  buyerToken: string;
+  onEditProfile: () => void;
+  onCreateService: () => void;
+  onSellerStart: () => void;
+}) {
+  const t = useT();
+  const [tab, setTab] = useState<PublishTab>("services");
+
+  // Provider プロフィール未設定 → 入口のセットアッププロンプトに戻す
+  if (!sellerProfile) {
+    return <SellerSetupPrompt onStart={onSellerStart} />;
+  }
+
+  const TABS: { id: PublishTab; label: string; labelEn: string }[] = [
+    { id: "services",   label: "マイサービス", labelEn: "Services"   },
+    { id: "revenue",    label: "売上統計",     labelEn: "Revenue"    },
+    { id: "accounting", label: "会計連携",     labelEn: "Accounting" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* タブヘッダー */}
+      <div className="border-b border-gray-200">
+        <div className="flex gap-1">
+          {TABS.map(tb => (
+            <button
+              key={tb.id}
+              onClick={() => setTab(tb.id)}
+              className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+                tab === tb.id
+                  ? "border-amber-500 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {t(tb.label, tb.labelEn)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* タブ本体 */}
+      {tab === "services"   && <SellerServicesPage profile={sellerProfile} services={myServices} onEditProfile={onEditProfile} onCreateService={onCreateService} />}
+      {tab === "revenue"    && <SellerStatsPage services={myServices} />}
+      {tab === "accounting" && <AccountingPage buyerToken={buyerToken} />}
+    </div>
+  );
+}
+
 function SellerSetupPrompt({ onStart }: { onStart: () => void }) {
   const t = useT();
   return (
@@ -3028,9 +3403,14 @@ export default function Dashboard() {
           {page === "usage"       && <ChargesPage buyerToken={buyerToken} />}
           {page === "marketplace" && <DirectoryPage />}
           {page === "publish"     && (
-            sellerProfile
-              ? <SellerServicesPage profile={sellerProfile} services={myServices} onEditProfile={() => setSellerView("profile")} onCreateService={() => setSellerView("wizard")} />
-              : <SellerSetupPrompt onStart={() => setSellerView("onboarding")} />
+            <PublishPage
+              sellerProfile={sellerProfile}
+              myServices={myServices}
+              buyerToken={buyerToken}
+              onEditProfile={() => setSellerView("profile")}
+              onCreateService={() => setSellerView("wizard")}
+              onSellerStart={() => setSellerView("onboarding")}
+            />
           )}
           {page === "settings"    && <AccountSettingsPage token={buyerToken} onLogout={handleLogout} onProfileUpdated={() => setHomeRefreshKey(k => k + 1)} />}
         </div>
