@@ -82,12 +82,14 @@ app.use(
 // ─── ルーティング ────────────────────────────────────────────
 app.route("/api/auth",      authRouter);
 app.route("/api/tokens",    tokensRouter);
+app.route("/api/charges/permit", chargesPermitRouter);  // before /api/charges
 app.route("/api/charges",   chargeRouter);
 app.route("/api/charges",   chargesAdminRouter);
 app.route("/api/quote",     quoteRouter);
 app.route("/api/spend-webhooks", spendWebhooksRouter);
 app.route("/api/buyers",    buyersRouter);
 app.route("/api/services",  servicesRouter);
+app.route("/api/providers/v2", providersV2Router);  // v2 must come before /api/providers
 app.route("/api/providers", providersRouter);
 app.route("/api/jpyc",      jpycRouter);
 app.route("/api/tax",       taxRouter);
@@ -104,8 +106,6 @@ app.route("/api/telemetry",              telemetryRouter);
 app.route("/api/admin",                  adminRouter);
 app.route("/api/admin/revenue",          adminRevenueRouter);
 app.route("/api/coinbase",               coinbaseRouter);
-app.route("/api/charges/permit",         chargesPermitRouter);
-app.route("/api/providers/v2",           providersV2Router);
 app.route("/api/sdk",                    sdkRouter);
 
 // ─── OpenAPI ドキュメント定義 ────────────────────────────────
