@@ -48,6 +48,13 @@ const MARKETPLACE_SPENDER = "0x000000000000000000000000000000000000dEaD" as cons
 // is only used for direct REST calls / OnchainKit's React hooks.
 const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 
+// Transak — JP-compatible onramp (Banxa / Alchemy Pay / bank transfer).
+// Unlike Coinbase Onramp, Transak charges the user a spread (no cost to
+// us) and works with JPY bank transfer + convenience stores. We expose
+// it as a parallel path for users in Japan where Coinbase Onramp is
+// geo-blocked.
+const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY ?? "";
+
 // Build the Coinbase Pay onramp URL. We match the parameter shape used
 // by OnchainKit's official `getOnrampBuyUrl` helper:
 //   • `addresses` is a Record<address, network[]>, NOT the legacy
@@ -88,6 +95,26 @@ async function buildOnrampUrl(walletAddress: string, presetUsd: number): Promise
   // flow at least renders; once Coinbase ships JP support we can drop
   // this override.
   url.searchParams.set("language", "en");
+  return url.toString();
+}
+
+// Build a Transak widget URL pre-filled with the user's wallet address,
+// JPY as the fiat currency, and USDC on Base as the target asset.
+// Transak's revenue model is a user-side spread (~1–2 %), so there is
+// no partner cost. The API secret is only required for "Secure Widget"
+// mode (server-signed sessions); for the current integration the
+// public API key in the URL is sufficient.
+function buildTransakUrl(walletAddress: string, fiatAmountJpy: number): string {
+  const url = new URL("https://global.transak.com/");
+  url.searchParams.set("apiKey",                  TRANSAK_API_KEY);
+  url.searchParams.set("defaultCryptoCurrency",   "USDC");
+  url.searchParams.set("networks",                "base");
+  url.searchParams.set("walletAddress",           walletAddress);
+  url.searchParams.set("disableWalletAddressForm","true");
+  url.searchParams.set("fiatCurrency",            "JPY");
+  url.searchParams.set("defaultFiatAmount",       String(fiatAmountJpy));
+  url.searchParams.set("themeColor",              "F5C518");
+  url.searchParams.set("productsAvailed",         "buy");
   return url.toString();
 }
 
@@ -362,6 +389,40 @@ export default function StartV2Page() {
                   <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
                     所要時間 30 秒〜3 分（初回のみ本人確認あり）。
                     購入完了後、下の「USDC は準備済み → 次へ」をクリック。
+                  </p>
+                </div>
+              )}
+
+              {/* Transak — JP bank / convenience-store path.
+                  Shown alongside Coinbase so domestic users have a
+                  native JPY option even though Coinbase Onramp is
+                  geo-blocked in Japan. */}
+              {TRANSAK_API_KEY && userWallet?.address && (
+                <div className="mt-4 rounded-2xl border-2 border-indigo-500 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-bold text-gray-900">
+                    🏦 銀行振込 / コンビニ払いで USDC 購入（JPY 対応）
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                    日本円で USDC を直接購入。銀行振込・コンビニ支払いに対応。
+                    Transak 経由、LemonCake は決済経路に一切介在しません。
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[1000, 3000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        onClick={() => {
+                          trackEvent("v2_transak_clicked", { amount_jpy: amt });
+                          const url = buildTransakUrl(userWallet.address as string, amt);
+                          window.open(url, "transak-onramp", "popup,width=500,height=700");
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700"
+                      >
+                        ¥{amt.toLocaleString()} 分購入
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
+                    初回のみ本人確認あり（3〜5 分）。購入完了後、下の「USDC は準備済み → 次へ」をクリック。
                   </p>
                 </div>
               )}
