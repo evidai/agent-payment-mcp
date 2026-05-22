@@ -47,6 +47,7 @@ import { invoicesRouter }           from "./routes/invoices.js";
 import { subscriptionsRouter, subscriptionsWebhookRouter } from "./routes/subscriptions.js";
 import { offrampRouter }            from "./routes/offramp.js";
 import { x402Router }               from "./routes/x402.js";
+import { adminV2Router }            from "./routes/admin-v2.js";
 import { sdkRouter }                from "./routes/sdk.js";
 import { mcpAccessLog }                from "./middleware/mcpAccessLog.js";
 import { startUsdcTransferWorker, handleFailedJob } from "./workers/usdcTransfer.js";
@@ -114,6 +115,7 @@ app.route("/api/webhooks/github",        githubWebhookRouter);
 app.route("/api/kyb",                    kybRouter);
 app.route("/api/telemetry",              telemetryRouter);
 app.route("/api/admin",                  adminRouter);
+app.route("/api/admin/v2",               adminV2Router);  // v2 admin must come before /api/admin
 app.route("/api/admin/revenue",          adminRevenueRouter);
 app.route("/api/coinbase",               coinbaseRouter);
 app.route("/api/sdk",                    sdkRouter);
