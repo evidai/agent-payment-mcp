@@ -30,7 +30,10 @@ import { type Address, type Hex } from "viem";
 export const x402Router = new OpenAPIHono();
 
 // x402 が要求する数値型: USDC base units (6 decimals) の string 整数
-const X402_NETWORK = "base-mainnet";
+// Coinbase x402 SDK 標準は "base"（CDP の Bazaar 側で eip155:8453 に正規化される）。
+// 旧 "base-mainnet" / CAIP-2 "eip155:8453" も accept する。
+const X402_NETWORK = "base";
+const ACCEPTED_NETWORKS = new Set(["base", "base-mainnet", "eip155:8453"]);
 const MARKETPLACE_SPENDER = "0x23e0D435b62d8eABE2b239c461Ec6fb2E8B7E965" as Address;
 
 // ─── POST /api/x402/accepts ────────────────────────────────────
@@ -158,7 +161,7 @@ async function handleVerify(c: any): Promise<any> {
   if (payment.x402Version !== 1) {
     return c.json({ ok: false, reason: "unsupported_x402_version" }, 400);
   }
-  if (payment.network !== X402_NETWORK) {
+  if (!ACCEPTED_NETWORKS.has(payment.network)) {
     return c.json({ ok: false, reason: `unsupported_network_${payment.network}` }, 400);
   }
   if (payment.scheme !== "exact") {

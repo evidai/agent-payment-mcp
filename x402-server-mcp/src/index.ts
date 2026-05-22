@@ -138,7 +138,7 @@ function buildCoinbaseAccepts(opts: X402Options, resourceUrl: string): AcceptsRe
     x402Version: 1,
     accepts: [{
       scheme:            "exact",
-      network:           "base-mainnet",
+      network:           "base",   // Coinbase x402 SDK 標準（CDP が eip155:8453 に正規化）
       maxAmountRequired: String(microUsdc),
       resource:          resourceUrl,
       description:       opts.description ?? `LemonCake-routed API call`,
