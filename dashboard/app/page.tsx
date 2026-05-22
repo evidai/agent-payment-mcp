@@ -3135,7 +3135,6 @@ interface SubscriptionInfo {
   plan:               "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
   status:             string;
   freeCallsPerMonth:  number;
-  overagePerCallUsdc: string;
   monthlyJpy:         number;
   features: {
     accountingIntegration: boolean;
@@ -3156,23 +3155,23 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
     jaName: "Free", enName: "Free",
     jaTagline: "個人開発者・実験用",
     enTagline: "For solo developers and prototyping",
-    jaFeatures: ["月 1,000 call 無料", "$0.001/call 超過", "基本ダッシュボード"],
-    enFeatures: ["1,000 free calls/mo", "$0.001/call overage", "Basic dashboard"],
+    jaFeatures: ["月 1,000 call 無料（LemonCake 負担）", "超過は自分の単価で 100% 受取", "基本ダッシュボード"],
+    enFeatures: ["1,000 free calls/mo (we cover it)", "Above that: 100% of your price", "Basic dashboard"],
   },
   PRO: {
     jaName: "Pro", enName: "Pro",
     jaTagline: "本格的に AI API を提供する事業者向け",
     enTagline: "For serious API providers",
     jaFeatures: [
-      "月 10,000 call 無料",
-      "$0.001/call 超過",
+      "月 10,000 call 無料（LemonCake 負担）",
+      "超過は自分の単価で 100% 受取",
       "freee / MoneyForward 自動仕訳",
       "適格請求書（インボイス）自動発行",
       "分析ダッシュボード",
     ],
     enFeatures: [
-      "10,000 free calls/mo",
-      "$0.001/call overage",
+      "10,000 free calls/mo (we cover it)",
+      "Above that: 100% of your price",
       "freee / MoneyForward auto-journal",
       "Qualified invoice (Japan) auto-issue",
       "Analytics dashboard",
@@ -3183,16 +3182,16 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
     jaTagline: "スケールフェーズ向け（量割引 + JPY オフランプ）",
     enTagline: "Scale-up tier (volume discount + JPY off-ramp)",
     jaFeatures: [
-      "月 100,000 call 無料",
-      "$0.0008/call 超過（量割引）",
+      "月 100,000 call 無料（LemonCake 負担）",
+      "超過は自分の単価で 100% 受取",
       "Pro の全機能",
       "USDC → JPY 自動オフランプ (Coincheck)",
       "複数 wallet 対応",
       "SLA 99.9%",
     ],
     enFeatures: [
-      "100,000 free calls/mo",
-      "$0.0008/call overage (volume discount)",
+      "100,000 free calls/mo (we cover it)",
+      "Above that: 100% of your price",
       "All Pro features",
       "USDC → JPY auto off-ramp (Coincheck)",
       "Multi-wallet support",
@@ -3204,16 +3203,16 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
     jaTagline: "個別契約（白ラベル / 監査ログ / 専用サポート）",
     enTagline: "Custom contract (white-label / audit log / dedicated support)",
     jaFeatures: [
-      "無制限 call",
-      "$0.0005/call 超過",
+      "無制限 call（LemonCake 負担）",
+      "超過は自分の単価で 100% 受取",
       "Business の全機能",
       "白ラベル対応",
       "監査ログ",
       "専用 Slack サポート",
     ],
     enFeatures: [
-      "Unlimited calls",
-      "$0.0005/call overage",
+      "Unlimited free calls (we cover it)",
+      "Above that: 100% of your price",
       "All Business features",
       "White-label",
       "Audit log",
@@ -3310,8 +3309,8 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
             </p>
             <p className="mt-1 text-xs text-gray-700">
               {t(
-                `月 ${sub.freeCallsPerMonth.toLocaleString()} call まで無料、超過分は ${sub.overagePerCallUsdc} USDC/call`,
-                `${sub.freeCallsPerMonth.toLocaleString()} free calls/mo, overage at ${sub.overagePerCallUsdc} USDC/call`,
+                `月 ${sub.freeCallsPerMonth.toLocaleString()} call までは LemonCake 負担。超過分はあなたが設定した単価で課金されます（100% Provider 受取）。`,
+                `${sub.freeCallsPerMonth.toLocaleString()} free calls/mo (covered by LemonCake). Above that, your /sellers price applies (100% to you).`,
               )}
             </p>
             {sub.currentPeriodEnd && (

@@ -165,7 +165,10 @@ subscriptionsRouter.openapi(
           plan:               z.enum(["FREE","PRO","BUSINESS","ENTERPRISE"]),
           status:             z.string(),
           freeCallsPerMonth:  z.number(),
-          overagePerCallUsdc: z.string(),
+          // 旧 overagePerCallUsdc は廃止: per-call 単価は Provider 個別の
+          // pricePerCallUsdc を使うようになったので、プランは "free 枠" と
+          // "機能" だけを決める。
+
           monthlyJpy:         z.number(),
           features: z.object({
             accountingIntegration: z.boolean(),
@@ -199,7 +202,6 @@ subscriptionsRouter.openapi(
       plan,
       status:             sub?.status ?? "ACTIVE",
       freeCallsPerMonth:  cfg.freeCallsPerMonth,
-      overagePerCallUsdc: cfg.overagePerCallUsdc,
       monthlyJpy:         cfg.monthlyJpy,
       features:           cfg.features,
       currentPeriodEnd:   sub?.currentPeriodEnd?.toISOString() ?? null,

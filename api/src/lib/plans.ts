@@ -1,13 +1,15 @@
 /**
  * サブスクリプションプラン定義 — single source of truth.
  *
- * 価格と quota はここだけで管理する。charges-permit.ts /
- * subscriptions.ts / dashboard すべてこのテーブルを参照する。
+ * 設計（v2 確定版）:
+ *   - per-call の単価は **Provider が /sellers で設定した値** が真。
+ *     LemonCake はこの値を override しない（per-call は 100% Provider へ）。
+ *   - プランは「月間無料枠 (freeCallsPerMonth)」と「機能フラグ」だけを決める。
+ *     無料枠は LemonCake が補填する（buyer は払わない、provider は受け取らない）。
+ *   - 収益は月額サブスクのみ（Stripe で JPY 課金）。
  *
- * 設計方針（戦略メモ参照）:
- *   - per-call は x402 と同価格で底固定（commodity 化、価格を購買決定から外す）
- *   - 真の収益は月額サブスク（freee/MF 仕訳、インボイス、JPY オフランプ）
- *   - Business 以上は per-call も少し安く（量割引で乗り換え誘導）
+ * ※ 旧 overagePerCallUsdc は廃止。Provider が pricePerCallUsdc を自分で
+ *    決める仕様と矛盾していたため。
  */
 
 import type { SubscriptionPlan } from "@prisma/client";
@@ -15,10 +17,8 @@ import type { SubscriptionPlan } from "@prisma/client";
 export interface PlanConfig {
   /** 月額（JPY） */
   monthlyJpy:        number;
-  /** 月間無料 call 数（これを超えたら overage を徴収） */
+  /** 月間無料 call 数（LemonCake 負担。超過は Provider 設定単価で課金） */
   freeCallsPerMonth: number;
-  /** 1 call あたりの超過課金（USDC、6 decimals） */
-  overagePerCallUsdc: string;
   /** 機能フラグ — Pro+ で会計連携 / インボイス自動発行が有効 */
   features: {
     accountingIntegration: boolean;
@@ -35,7 +35,6 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
   FREE: {
     monthlyJpy:         0,
     freeCallsPerMonth:  1000,
-    overagePerCallUsdc: "0.001",
     features: {
       accountingIntegration: false,
       invoiceGeneration:     false,
@@ -48,7 +47,6 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
   PRO: {
     monthlyJpy:         4980,
     freeCallsPerMonth:  10000,
-    overagePerCallUsdc: "0.001",
     features: {
       accountingIntegration: true,
       invoiceGeneration:     true,
@@ -61,7 +59,6 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
   BUSINESS: {
     monthlyJpy:         14800,
     freeCallsPerMonth:  100000,
-    overagePerCallUsdc: "0.0008",
     features: {
       accountingIntegration: true,
       invoiceGeneration:     true,
@@ -73,8 +70,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
   },
   ENTERPRISE: {
     monthlyJpy:         0,  // 個別見積もり
-    freeCallsPerMonth:  Number.MAX_SAFE_INTEGER,  // 実質無制限（取扱いは別途）
-    overagePerCallUsdc: "0.0005",
+    freeCallsPerMonth:  Number.MAX_SAFE_INTEGER,
     features: {
       accountingIntegration: true,
       invoiceGeneration:     true,
@@ -82,7 +78,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
       multiWallet:           true,
       sla999:                true,
     },
-    stripePriceEnv:    null,  // Enterprise は手動契約
+    stripePriceEnv:    null,
   },
 };
 

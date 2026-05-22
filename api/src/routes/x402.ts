@@ -20,7 +20,6 @@
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { prisma } from "../lib/prisma.js";
-import { resolvePlanFromName } from "../lib/plans.js";
 import {
   executeTransferWithAuthorization,
   BASE_USDC_ADDRESS,
@@ -70,11 +69,10 @@ x402Router.openapi(
     });
     if (!provider) return c.json({ error: "Provider not found" }, 404);
 
-    // 現プランの overage が x402 max amount として使われる
-    const planName = provider.subscription?.status === "ACTIVE" ? provider.subscription.plan : "FREE";
-    const planCfg = resolvePlanFromName(planName);
-    const maxAmountUsdc = planCfg.overagePerCallUsdc;       // e.g. "0.001"
-    const maxAmountRaw  = String(Math.round(parseFloat(maxAmountUsdc) * 1_000_000)); // micro-USDC
+    // x402 accepts の max amount は Provider が /sellers で設定した単価を使う。
+    // プランは無料枠と機能の解放だけ制御する（per-call 単価は Provider 主権）。
+    const maxAmountUsdc = provider.pricePerCallUsdc.toString();
+    const maxAmountRaw  = String(Math.round(parseFloat(maxAmountUsdc) * 1_000_000));
 
     return c.json({
       x402Version: 1,

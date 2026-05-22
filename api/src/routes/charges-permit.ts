@@ -144,9 +144,9 @@ chargesPermitRouter.openapi(
       });
     }
 
-    // 無料枠内なら 0、超過分はプランの overage を徴収（client 指定の
-    // amountUsdc より優先 — 価格はサーバー側でプラン-derive する）
-    const effectiveAmount = isFree ? "0" : planCfg.overagePerCallUsdc;
+    // 無料枠内なら 0、超過分は Provider が /sellers で設定した単価で課金。
+    // プランは無料枠と機能の解放だけ制御する（per-call は 100% Provider へ）。
+    const effectiveAmount = isFree ? "0" : provider.pricePerCallUsdc.toString();
 
     // ── PermitCharge レコード作成（PENDING）──────────────────
     const charge = await prisma.permitCharge.create({
