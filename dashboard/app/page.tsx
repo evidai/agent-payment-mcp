@@ -332,6 +332,30 @@ function IconChart({ cls }: { cls?: string }) {
 // ── Sidebar component (v2 unified, task-oriented) ─────────────────────────────
 type NavItem = { id: Page; label: string; Icon: (p: { cls?: string }) => React.ReactElement };
 
+// NavBtn is defined at module scope so its identity is stable across
+// Sidebar re-renders. If it were declared inside Sidebar, every parent
+// render would create a fresh function reference, and React would
+// unmount/remount each nav row — producing the flicker the user reported
+// on hover. The bottom "Settings" button is inline JSX (no separate
+// component) so it stays stable; that's why it never flickered.
+const NavBtn = React.memo(function NavBtn({
+  id, label, Icon, active, onClick,
+}: NavItem & { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left transition-colors focus:outline-none group ${
+        active
+          ? "bg-gray-100 text-gray-900"
+          : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+      }`}
+    >
+      <Icon cls={`w-5 h-5 flex-shrink-0 transition-colors ${active ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"}`} />
+      <span className="font-medium text-[13.5px]">{label}</span>
+    </button>
+  );
+});
+
 function Sidebar({
   page, setPage, lang, setLang,
 }: {
@@ -348,21 +372,6 @@ function Sidebar({
     { id: "marketplace", label: t("マーケットプレイス", "Marketplace"),  Icon: IconDirectory },
     { id: "publish",     label: t("APIを公開する",     "Publish API"),  Icon: IconStore },
   ];
-
-  function NavBtn({ id, label, Icon }: NavItem) {
-    const active = page === id;
-    return (
-      <button
-        onClick={() => setPage(id)}
-        className={`w-full flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl text-sm text-left transition-colors focus:outline-none group ${
-          active ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-        }`}
-      >
-        <Icon cls={`w-5 h-5 flex-shrink-0 transition-colors ${active ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"}`} />
-        <span className="font-medium text-[13.5px]">{label}</span>
-      </button>
-    );
-  }
 
   return (
     <aside className="w-[260px] sm:w-64 flex-shrink-0 flex flex-col bg-white border-r border-gray-200 h-full">
@@ -383,7 +392,16 @@ function Sidebar({
 
       {/* ── ナビ ── */}
       <nav className="px-3 flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0 pt-2">
-        {nav.map((item) => <NavBtn key={item.id} {...item} />)}
+        {nav.map((item) => (
+          <NavBtn
+            key={item.id}
+            id={item.id}
+            label={item.label}
+            Icon={item.Icon}
+            active={page === item.id}
+            onClick={() => setPage(item.id)}
+          />
+        ))}
       </nav>
 
       {/* ── Bottom: サポート + アカウント設定 ── */}
