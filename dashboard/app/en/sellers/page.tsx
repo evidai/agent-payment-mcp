@@ -75,7 +75,7 @@ export default function SellersPageEn() {
         <p className="mt-12 text-center text-xs text-gray-400">
           USDC settles directly to your wallet. LemonCake never touches your funds.
           <br />
-          Details: <a href="/en/security" className="underline hover:text-amber-700">/security</a>
+          Details: <a href="/security" className="underline hover:text-amber-700">/security</a>
         </p>
       </div>
     </main>

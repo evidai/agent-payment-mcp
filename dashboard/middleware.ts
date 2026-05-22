@@ -14,7 +14,9 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-const LOCALIZED_PREFIXES = ["/start", "/sellers", "/about", "/security", "/privacy", "/legal"];
+// Locale redirect 対象は LP 系のみ。security / privacy / legal は両言語ユーザーに
+// 同じ JP コンテンツを見せる（英訳コストに対して閲覧が少ない）。
+const LOCALIZED_PREFIXES = ["/start", "/sellers", "/about"];
 
 function detectLocale(req: NextRequest): "ja" | "en" {
   // 1. cookie で明示されてれば最優先

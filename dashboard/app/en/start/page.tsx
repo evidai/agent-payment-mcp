@@ -181,9 +181,9 @@ export default function StartPageEn() {
             <span>LemonCake (Evid AI)</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/en/security" className="hover:text-white/70">Security</Link>
-            <Link href="/en/privacy" className="hover:text-white/70">Privacy</Link>
-            <Link href="/en/legal/terms" className="hover:text-white/70">Terms</Link>
+            <Link href="/security" className="hover:text-white/70">Security</Link>
+            <Link href="/privacy" className="hover:text-white/70">Privacy</Link>
+            <Link href="/legal/terms" className="hover:text-white/70">Terms</Link>
             <a href="mailto:contact@aievid.com" className="hover:text-white/70">contact@aievid.com</a>
           </div>
         </div>
