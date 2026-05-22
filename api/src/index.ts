@@ -114,9 +114,9 @@ app.route("/api/webhooks/aftership",     aftershipWebhookRouter);
 app.route("/api/webhooks/github",        githubWebhookRouter);
 app.route("/api/kyb",                    kybRouter);
 app.route("/api/telemetry",              telemetryRouter);
-app.route("/api/admin",                  adminRouter);
 app.route("/api/admin/v2",               adminV2Router);  // v2 admin must come before /api/admin
 app.route("/api/admin/revenue",          adminRevenueRouter);
+app.route("/api/admin",                  adminRouter);
 app.route("/api/coinbase",               coinbaseRouter);
 app.route("/api/sdk",                    sdkRouter);
 
