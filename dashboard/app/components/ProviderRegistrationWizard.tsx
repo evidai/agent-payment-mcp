@@ -258,31 +258,43 @@ export function ProviderRegistrationWizard({
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-900">あなたについて</h3>
           <p className="mt-1 text-sm text-gray-500">あとで変更できます。</p>
+
           <div className="mt-6 space-y-5">
+            {/* 会社名 と 氏名 を 2 カラムで横並びに（モバイルは縦に積む） */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                  会社名
+                  <span className="text-gray-400 font-normal text-xs ml-1.5">（任意）</span>
+                </label>
+                <input
+                  type="text" autoFocus value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="例: Acme Inc."
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
+                />
+                <p className="mt-1.5 text-[11px] text-gray-400">個人開発者は空欄で OK</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                  氏名 / ハンドル名
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text" value={personalName}
+                  onChange={(e) => setPersonalName(e.target.value)}
+                  placeholder="例: Taro Tanaka"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
+                />
+                <p className="mt-1.5 text-[11px] text-gray-400">必須</p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-1.5">
-                会社名 <span className="text-gray-400 font-normal text-xs ml-1">（個人開発者は空欄で OK）</span>
+                メールアドレス
+                <span className="text-red-500 ml-1">*</span>
               </label>
-              <input
-                type="text" autoFocus value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="例: Acme Inc."
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-800 mb-1.5">
-                あなたの氏名 / ハンドル名
-              </label>
-              <input
-                type="text" value={personalName}
-                onChange={(e) => setPersonalName(e.target.value)}
-                placeholder="例: Taro Tanaka"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-100 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-800 mb-1.5">メールアドレス</label>
               <input
                 type="email" value={email}
                 onChange={(e) => setEmail(e.target.value)}
