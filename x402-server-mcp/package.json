@@ -30,6 +30,9 @@
     "directory": "x402-server-mcp"
   },
   "homepage": "https://lemoncake.xyz",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2"
