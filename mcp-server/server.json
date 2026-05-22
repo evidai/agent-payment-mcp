@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.evidai/agent-payment",
-  "description": "Non-custodial USDC micropayments for AI agents. Pay-per-call any HTTP API via one ERC-2612 permit (90 days, $25/day on-chain hard cap). x402-compatible. Demo mode works without signup.",
+  "description": "Non-custodial USDC micropayments for AI agents. One ERC-2612 permit, 90 days, on-chain cap. x402-compatible.",
   "repository": {
     "url": "https://github.com/evidai/agent-payment-mcp",
     "source": "github"
