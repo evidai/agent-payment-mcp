@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { ProviderRegistrationWizard } from "@/components/ProviderRegistrationWizard";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const LangContext = createContext<"ja" | "en">("ja");
@@ -2599,11 +2600,10 @@ interface InvoiceRow {
   issuedAt:           string;
 }
 
-function InvoicesPanel() {
+function InvoicesPanel({ providerV2Id }: { providerV2Id: string }) {
   const t = useT();
   const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
 
-  const [providerV2Id, setProviderV2Id] = useState<string>("");
   const [invoices,     setInvoices]     = useState<InvoiceRow[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState<string | null>(null);
@@ -2615,17 +2615,6 @@ function InvoicesPanel() {
   const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const [periodFrom, setPeriodFrom] = useState(lastMonthStart.toISOString().slice(0, 10));
   const [periodTo,   setPeriodTo]   = useState(thisMonthStart.toISOString().slice(0, 10));
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("lemon_provider_v2_id");
-      if (saved) setProviderV2Id(saved);
-    } catch { /* SSR fallback */ }
-  }, []);
-
-  useEffect(() => {
-    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
-  }, [providerV2Id]);
 
   async function fetchInvoices() {
     if (!providerV2Id) return;
@@ -2706,21 +2695,7 @@ function InvoicesPanel() {
         </p>
       </div>
 
-      {!providerV2Id && <ProviderGate purpose={t("インボイス発行", "invoice generation")} />}
-
-      <div className={`rounded-xl border border-gray-200 bg-white p-4 space-y-3 ${!providerV2Id ? "opacity-50 pointer-events-none" : ""}`}>
-        <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
-            {t("Provider ID", "Provider ID")}
-          </label>
-          <input
-            type="text"
-            value={providerV2Id}
-            onChange={(e) => setProviderV2Id(e.target.value.trim())}
-            placeholder="c1xxx…"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
-          />
-        </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">{t("期間（から）", "Period from")}</label>
@@ -2850,12 +2825,33 @@ function PublishPage({
     } catch { /* SSR */ }
   }, []);
 
-  // v2 ProviderV2 未登録 → /sellers に強く誘導
+  // v2 ProviderV2 未登録 → wizard を inline 表示（/sellers に飛ばさない）
   if (!providerV2Id) {
     return (
-      <div className="flex flex-col gap-5">
-        <ProviderGate purpose={t("API 公開機能", "API publishing")} />
-        {/* v1 SellerProfile 移行ユーザーには救済オプション */}
+      <div className="max-w-3xl flex flex-col gap-6">
+        {/* 簡潔な hero（dashboard 内なので大袈裟な装飾はしない） */}
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+            <span>🍋</span><span>1 分で完了</span>
+          </span>
+          <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+            {t("API を AI エージェントの収入源に", "Turn your API into AI agent revenue")}
+          </h1>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+            {t(
+              "USDC で直接受け取り。Stripe の 60 倍安い手数料。KYC / 法人登記は不要、Base ウォレットだけあれば OK。",
+              "Receive USDC directly. 60× cheaper than Stripe. No KYC, no LLC — just a Base wallet.",
+            )}
+          </p>
+        </div>
+
+        {/* inline wizard — 登録完了で onSuccess が走り setProviderV2Id される */}
+        <ProviderRegistrationWizard
+          variant="embed"
+          onSuccess={(r) => setProviderV2Id(r.id)}
+        />
+
+        {/* v1 SellerProfile 移行ユーザー向け救済 */}
         {sellerProfile && (
           <button
             onClick={onSellerStart}
@@ -2906,7 +2902,7 @@ function PublishPage({
       {tab === "accounting" && (
         <>
           <AccountingPage buyerToken={buyerToken} />
-          <InvoicesPanel />
+          <InvoicesPanel providerV2Id={providerV2Id} />
         </>
       )}
     </div>
@@ -3236,26 +3232,14 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
   },
 };
 
-function SubscriptionPanel() {
+function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
   const t = useT();
   const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
 
-  const [providerV2Id, setProviderV2Id] = useState<string>("");
   const [sub,          setSub]          = useState<SubscriptionInfo | null>(null);
   const [loading,      setLoading]      = useState(false);
   const [busy,         setBusy]         = useState<null | "checkout" | "portal">(null);
   const [error,        setError]        = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("lemon_provider_v2_id");
-      if (saved) setProviderV2Id(saved);
-    } catch { /* SSR */ }
-  }, []);
-
-  useEffect(() => {
-    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
-  }, [providerV2Id]);
 
   useEffect(() => {
     if (!providerV2Id) return;
@@ -3324,25 +3308,10 @@ function SubscriptionPanel() {
         </p>
       </div>
 
-      {!providerV2Id ? (
-        <ProviderGate purpose={t("プラン管理", "plan management")} />
-      ) : (
-        <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">{t("Provider ID", "Provider ID")}</label>
-          <input
-            type="text"
-            value={providerV2Id}
-            onChange={(e) => setProviderV2Id(e.target.value.trim())}
-            placeholder="c1xxx…"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
-          />
-        </div>
-      )}
-
       {loading && <p className="text-xs text-gray-400">{t("読み込み中…", "Loading…")}</p>}
       {error   && <p className="text-xs text-red-600">{error}</p>}
 
-      {sub && providerV2Id && (
+      {sub && (
         <>
           <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-sm">
             <p className="font-bold text-gray-900">
@@ -3439,11 +3408,10 @@ interface OfframpTxRow {
   completedAt:  string | null;
 }
 
-function OfframpPanel() {
+function OfframpPanel({ providerV2Id }: { providerV2Id: string }) {
   const t = useT();
   const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
 
-  const [providerV2Id, setProviderV2Id] = useState<string>("");
   const [apiKey,     setApiKey]    = useState("");
   const [apiSecret,  setApiSecret] = useState("");
   const [bankAcct,   setBankAcct]  = useState("");
@@ -3455,17 +3423,6 @@ function OfframpPanel() {
   const [busy,       setBusy]      = useState<null | "connect" | "balance" | "sell" | "withdraw" | "txs">(null);
   const [error,      setError]     = useState<string | null>(null);
   const [ok,         setOk]        = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("lemon_provider_v2_id");
-      if (saved) setProviderV2Id(saved);
-    } catch { /* SSR */ }
-  }, []);
-
-  useEffect(() => {
-    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
-  }, [providerV2Id]);
 
   async function call<T>(
     op: typeof busy,
@@ -3553,12 +3510,7 @@ function OfframpPanel() {
         </p>
       </div>
 
-      {!providerV2Id && (
-        <ProviderGate purpose={t("JPY オフランプ", "JPY off-ramp")} />
-      )}
-
-      {providerV2Id && (
-        <>
+      <>
           {/* Connect */}
           <div className="rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <p className="text-sm font-bold">{t("1. Coincheck と接続", "1. Connect Coincheck")}</p>
@@ -3642,8 +3594,7 @@ function OfframpPanel() {
 
           {ok    && <p className="text-xs text-green-700">{ok}</p>}
           {error && <p className="text-xs text-red-600">{error}</p>}
-        </>
-      )}
+      </>
     </div>
   );
 }
@@ -3657,12 +3608,21 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
   const [wallet,       setWallet]       = useState("");
   const [saved,        setSaved]        = useState(false);
   const [error,        setError]        = useState("");
+  // v2 ProviderV2 ID — Subscription / Offramp panels に流す
+  const [providerV2Id, setProviderV2Id] = useState<string>("");
   // KYA フォーム用 state
   const [kyaName,      setKyaName]      = useState("");
   const [kyaDesc,      setKyaDesc]      = useState("");
   const [kyaSubmitting,setKyaSubmitting]= useState(false);
   const [kyaError,     setKyaError]     = useState("");
   const [kyaOpen,      setKyaOpen]      = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lemon_provider_v2_id");
+      if (saved) setProviderV2Id(saved);
+    } catch { /* SSR */ }
+  }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
@@ -3732,7 +3692,8 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
   if (loading) return <div className="flex items-center justify-center h-48 text-sm text-gray-400">{t("読み込み中…","Loading…")}</div>;
 
   return (
-    <div className="max-w-2xl flex flex-col gap-6">
+    <div className="max-w-6xl flex flex-col gap-6">
+      {/* Header */}
       <div className="flex items-center gap-2.5">
         <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} className="text-gray-900">
           <circle cx="10" cy="7" r="3"/><path d="M3 17a7 7 0 0114 0" strokeLinecap="round"/>
@@ -3740,11 +3701,44 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
         <h1 className="text-xl font-bold text-gray-900">{t("アカウント設定","Account Settings")}</h1>
       </div>
 
-      {/* v2 サブスクリプションパネル */}
-      <SubscriptionPanel />
+      {/* Provider 状態バナー（登録 / 未登録で UI 切り替え） */}
+      {providerV2Id ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 flex flex-wrap items-center gap-4">
+          <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 text-lg">
+            ✓
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{t("Provider", "Provider")}</p>
+            <code className="block text-sm font-mono text-gray-800 truncate">{providerV2Id}</code>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <a href="/sellers" className="text-xs font-bold text-gray-600 hover:text-gray-900 underline">
+              {t("別の Provider に切替", "Switch provider")}
+            </a>
+            <button
+              onClick={() => {
+                if (confirm(t("Provider ID を解除しますか？", "Disconnect Provider ID?"))) {
+                  setProviderV2Id("");
+                  localStorage.removeItem("lemon_provider_v2_id");
+                }
+              }}
+              className="text-xs font-bold text-red-500 hover:text-red-700 underline"
+            >
+              {t("解除", "Disconnect")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <ProviderGate purpose={t("プラン管理・JPY オフランプ", "plan management and JPY off-ramp")} />
+      )}
 
-      {/* JPY オフランプ（Business プラン以上で機能解放） */}
-      <OfframpPanel />
+      {/* 課金系パネル — provider 登録済みのときのみ表示。2 カラム grid */}
+      {providerV2Id && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <SubscriptionPanel providerV2Id={providerV2Id} />
+          <OfframpPanel providerV2Id={providerV2Id} />
+        </div>
+      )}
 
       {/* 残高カード */}
       {profile?.buyer && (() => {
