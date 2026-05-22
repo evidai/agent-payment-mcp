@@ -91,8 +91,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const transport = new StdioClientTransport({
-  command: "npx", args: ["-y", "pay-per-call-mcp"],
-  env: { ...process.env, LEMON_CAKE_PAY_TOKEN: process.env.LEMON_CAKE_PAY_TOKEN! },
+  command: "npx", args: ["-y", "agent-payment-mcp"],
+  env: { ...process.env, LEMON_CAKE_PERMIT: process.env.LEMON_CAKE_PERMIT! },
 });
 const mcp = new Client({ name: "my-agent", version: "1.0.0" });
 await mcp.connect(transport);
@@ -108,9 +108,18 @@ const result = await mcp.callTool({
 console.log(result);
 `;
 
-  const sampleCurl = `curl -X ${sampleMethod} "https://api.lemoncake.xyz/api/proxy/${service.id}${samplePath}" \\
-  -H "Authorization: Bearer $LEMON_CAKE_PAY_TOKEN" \\
-  -H "Content-Type: application/json"${sampleBody ? ` \\\n  -d '${JSON.stringify(sampleBody)}'` : ""}`;
+  // v2: HTTP 402 (x402) ベース — Provider 側で `@lemon-cake/x402-server` の
+  // middleware が 402 を返し、agent がそれを受けて ERC-3009 署名で再送する。
+  // 下記は最初の 402 challenge を取得するだけの cURL。実署名は agent-payment-mcp
+  // か x402-fetch クライアントが自動でやる。
+  const sampleCurl = `# Step 1: trigger 402 challenge (no payment yet)
+curl -i -X ${sampleMethod} "https://api.example.com${samplePath}"
+#   → 402 Payment Required + x402 accepts manifest
+
+# Step 2: agent signs ERC-3009 authorization and retries
+#   (do this from agent-payment-mcp / @coinbase/x402 SDK, never by hand)
+curl -X ${sampleMethod} "https://api.example.com${samplePath}" \\
+  -H "X-PAYMENT: <base64 of signed payload>"${sampleBody ? ` \\\n  -d '${JSON.stringify(sampleBody)}'` : ""}`;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -247,7 +256,7 @@ console.log(result);
             <code className="text-xs font-mono text-gray-400 break-all">npx create-lemon-agent my-agent</code>
           </div>
           <Link href="/dashboard" className="px-4 py-2 bg-yellow-300 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-400 transition-colors whitespace-nowrap">
-            Pay Token 発行 →
+            permit 発行 →
           </Link>
         </div>
       </div>

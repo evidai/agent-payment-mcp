@@ -9,7 +9,7 @@ export const metadata = {
   openGraph: {
     title: "LemonCake × freee 連携 — AI エージェントの決済を自動仕訳",
     description:
-      "Pay Token 決済のたびに freee へ自動記帳。源泉徴収按分・インボイス判定・USDC/JPYC 円換算・電帳法対応まで一気通貫。",
+      "permit 決済のたびに freee へ自動記帳。源泉徴収按分・インボイス判定・USDC/JPYC 円換算・電帳法対応まで一気通貫。",
     url: "https://lemoncake.xyz/integrations/freee",
     type: "article",
   },
@@ -93,8 +93,8 @@ const freeeHowToJsonLd = {
     {
       "@type": "HowToStep",
       position: 3,
-      name: "Pay Token を発行して決済を開始",
-      text: "ダッシュボードから Pay Token を発行し、Dify / Coze / MCP / 独自エージェント に渡します。以降の決済は全て自動で freee に仕訳が作成されます。",
+      name: "permit に 1 度署名して決済を開始",
+      text: "ダッシュボードから ERC-2612 permit に 1 度署名し、Dify / Coze / MCP / 独自エージェント に渡します。以降の決済は全て自動で freee に仕訳が作成されます。",
     },
   ],
 };
@@ -135,11 +135,11 @@ export default function FreeeIntegrationPage() {
           AIエージェントの決済を、freee に自動仕訳。
         </h1>
         <p className="text-lg leading-relaxed mb-6 opacity-80">
-          LemonCake が発行する Pay Token（または v2 では ERC-2612 permit）で
-          AIエージェントが外部API決済を行うたび、
+          LemonCake の ERC-2612 permit（90 日有効・$25/日 hard cap）に 1 度署名するだけで、
+          AI エージェントが外部 API 決済を行うたび、
           <strong>「外注費 / 通信費 ↔ 普通預金」の仕訳を自動生成</strong>
-          して freee に記帳します。源泉徴収按分、適格請求書発行事業者チェック（国税庁API連携）、
-          USDC → 円 換算まで一気通貫。経理担当者の月次工数をゼロに近づけます。
+          して freee に記帳します。源泉徴収按分、適格請求書発行事業者チェック（国税庁 API 連携）、
+          USDC → 円換算まで一気通貫。経理担当者の月次工数をゼロに近づけます。
         </p>
 
         {/* v2 notice — non-custodial path is FSA-confirmed */}
@@ -161,7 +161,7 @@ export default function FreeeIntegrationPage() {
         <div className="grid md:grid-cols-2 gap-6 mb-16">
           <FeatureCard
             title="決済ごとに自動仕訳"
-            body="Pay Token 決済が確定した瞬間に freee の取引API (POST /api/1/deals) を叩いて仕訳を作成。手作業のCSVインポート不要。"
+            body="permit 決済が確定した瞬間に freee の取引API (POST /api/1/deals) を叩いて仕訳を作成。手作業のCSVインポート不要。"
           />
           <FeatureCard
             title="源泉徴収 自動按分"
@@ -192,8 +192,8 @@ export default function FreeeIntegrationPage() {
           />
           <Step
             num={3}
-            title="Pay Token を発行して決済を開始"
-            body="ダッシュボードから Pay Token を発行し、Dify / Coze / MCP / 独自エージェント に渡します。以降の決済は全て自動で freee に仕訳が作成されます。"
+            title="permit に 1 度署名して決済を開始"
+            body="ダッシュボードから ERC-2612 permit に 1 度署名し、Dify / Coze / MCP / 独自エージェント に渡します。以降の決済は全て自動で freee に仕訳が作成されます。"
           />
         </ol>
 

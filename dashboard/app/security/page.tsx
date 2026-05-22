@@ -75,7 +75,7 @@ const FIXED = [
     code: "C-07",
     title: "JWT_SECRET の単一鍵フォールバック",
     fix:
-      "Pay Token / Buyer JWT / Admin JWT / Incident Signing Key を別鍵に分離。production では各鍵が未設定なら起動を拒否。",
+      "Spender Private Key / Admin JWT / Incident Signing Key を別鍵に分離。production では各鍵が未設定なら起動を拒否。",
     commit: "e195883",
   },
   {

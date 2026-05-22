@@ -86,7 +86,7 @@ export default function DifyPluginPrivacyPage() {
 
         <Section title="3. Data LemonCake returns">
           <ul className="list-disc pl-6 space-y-1">
-            <li>Pay Token metadata (id, expiry, limit, status)</li>
+            <li>permit metadata (id, expiry, limit, status)</li>
             <li>Buyer profile summary (id, balance, KYA tier, daily limit)</li>
             <li>Charge records (serviceId, amountUsdc, timestamp, sandbox flag)</li>
           </ul>
@@ -106,7 +106,7 @@ export default function DifyPluginPrivacyPage() {
             </li>
             <li>
               <strong>Request logs at api.lemoncake.xyz</strong> — 30-day rolling retention.
-              Contains path, status, buyer ID; does <em>not</em> contain Pay Token secrets or
+              Contains path, status, buyer ID; does <em>not</em> contain permit secrets or
               Dify conversation content.
             </li>
           </ul>
@@ -134,7 +134,7 @@ export default function DifyPluginPrivacyPage() {
         <Section title="6. User rights">
           <ul className="list-disc pl-6 space-y-1">
             <li>Request a copy of all tokens and charges tied to a Buyer ID.</li>
-            <li>Revoke any or all Pay Tokens immediately via <code>revoke_token</code> or the dashboard.</li>
+            <li>Revoke any or all permits immediately via <code>revoke_token</code> or the dashboard.</li>
             <li>
               Delete a Buyer account, which permanently removes tokens, charges, and audit
               logs after a 30-day grace window.

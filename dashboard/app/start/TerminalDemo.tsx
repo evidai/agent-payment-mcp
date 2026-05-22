@@ -11,23 +11,23 @@ type Line =
 
 const SCRIPT: ReadonlyArray<{ line: Line; preDelay: number; typeDelay?: number }> = [
   { line: { kind: "comment", text: "# Fresh terminal. No signup. No API keys." }, preDelay: 200 },
-  { line: { kind: "input",   text: "npx -y pay-per-call-mcp" },                    preDelay: 600, typeDelay: 65 },
-  { line: { kind: "output",  text: "[pay-per-call-mcp] Starting..." },             preDelay: 900 },
+  { line: { kind: "input",   text: "npx -y agent-payment-mcp" },                    preDelay: 600, typeDelay: 65 },
+  { line: { kind: "output",  text: "[agent-payment-mcp] Starting..." },             preDelay: 900 },
   { line: { kind: "output",  text: "  PAY_TOKEN   : ✗ not set", tone: "warn" },    preDelay: 220 },
   { line: { kind: "output",  text: "  BUYER_JWT   : ✗ not set", tone: "warn" },    preDelay: 200 },
   { line: { kind: "output",  text: "  MODE        : 🎮 DEMO (no signup needed)", tone: "demo" }, preDelay: 220 },
   { line: { kind: "blank" }, preDelay: 200 },
-  { line: { kind: "output",  text: "[pay-per-call-mcp] Ready.", tone: "ok" },      preDelay: 360 },
+  { line: { kind: "output",  text: "[agent-payment-mcp] Ready.", tone: "ok" },      preDelay: 360 },
   { line: { kind: "blank" }, preDelay: 700 },
   { line: { kind: "comment", text: "# Inside Claude Desktop, ask:" },              preDelay: 200 },
-  { line: { kind: "input",   text: "Search Wikipedia for 'Model Context Protocol' via pay-per-call-mcp." }, preDelay: 400, typeDelay: 32 },
+  { line: { kind: "input",   text: "Search Wikipedia for 'Model Context Protocol' via agent-payment-mcp." }, preDelay: 400, typeDelay: 32 },
   { line: { kind: "blank" }, preDelay: 400 },
   { line: { kind: "result",  text: "→ Claude picks call_service(serviceId=demo_search) ..." }, preDelay: 200 },
   { line: { kind: "result",  text: "→ Wikipedia returned 5 results (real upstream)", tone: "ok" }, preDelay: 1100 },
   { line: { kind: "result",  text: "→ \"MCP is an open standard for connecting AI agents to tools and data...\"" }, preDelay: 350 },
   { line: { kind: "blank" }, preDelay: 200 },
   { line: { kind: "result",  text: "✓ done · $0.000 charged · Demo Mode active", tone: "ok" }, preDelay: 250 },
-  { line: { kind: "result",  text: "  set LEMON_CAKE_PAY_TOKEN to unlock paid services →", tone: "muted" }, preDelay: 500 },
+  { line: { kind: "result",  text: "  set LEMON_CAKE_PERMIT to unlock paid services →", tone: "muted" }, preDelay: 500 },
 ];
 
 const RESTART_DELAY_MS = 3500;
@@ -79,14 +79,14 @@ export function TerminalDemo() {
     <div
       className="rounded-2xl bg-[#0b0b10] border border-white/10 overflow-hidden shadow-2xl shadow-black/40"
       role="img"
-      aria-label="Animated demo of running pay-per-call-mcp in Demo Mode"
+      aria-label="Animated demo of running agent-payment-mcp in Demo Mode"
     >
       {/* traffic-light header */}
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/5 bg-black/40">
         <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
         <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-        <span className="ml-3 text-[11px] font-mono text-white/30 tracking-wide">~/projects · pay-per-call-mcp</span>
+        <span className="ml-3 text-[11px] font-mono text-white/30 tracking-wide">~/projects · agent-payment-mcp</span>
       </div>
 
       {/* body */}

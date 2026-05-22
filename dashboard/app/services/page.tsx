@@ -35,7 +35,7 @@ const FEATURED_MCPS = [
     category: "決済",
     npm:      "agent-payment-mcp",
     configKey: "pay-per-call",
-    envVars:  [{ key: "LEMON_CAKE_BUYER_JWT", hint: "lemoncake.xyz ダッシュボードから取得。未設定でデモモード動作。", required: false }],
+    envVars:  [{ key: "LEMON_CAKE_PERMIT", hint: "lemoncake.xyz ダッシュボードから取得。未設定でデモモード動作。", required: false }],
   },
   {
     id:       "alpaca-guard-mcp",
@@ -280,7 +280,7 @@ export default function ServicesPage() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">MCP カタログ</h1>
               <p className="text-sm sm:text-base text-gray-500 max-w-2xl">
-                AI エージェントがワンクリックで追加できる MCP サーバーと、Pay Token で自律課金できる API の一覧。
+                AI エージェントがワンクリックで追加できる MCP サーバーと、permit で自律課金できる API の一覧。
               </p>
             </div>
             <div className="text-right">
@@ -289,8 +289,8 @@ export default function ServicesPage() {
             </div>
           </div>
           <div className="mt-4 sm:mt-6 flex gap-3 flex-wrap">
-            <Link href="/dashboard" className="px-4 py-2 bg-yellow-300 text-gray-900 text-sm font-semibold rounded-xl hover:bg-yellow-400 transition-colors">
-              Pay Token を発行する →
+            <Link href="/start/v2" className="px-4 py-2 bg-yellow-300 text-gray-900 text-sm font-semibold rounded-xl hover:bg-yellow-400 transition-colors">
+              permit に署名する →
             </Link>
             <Link href="/about" className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">
               仕組みを知る

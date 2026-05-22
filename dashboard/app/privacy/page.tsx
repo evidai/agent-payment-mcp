@@ -14,7 +14,7 @@ const sections: Array<{ id: string; en: string; ja: string; body: string }> = [
     id: "overview",
     en: "Overview",
     ja: "概要",
-    body: `LemonCake (運営: Evid AI / contact@aievid.com) は AI エージェントが有料 API を USDC で従量課金しながら利用するためのマーケットプレイスです。本ポリシーは LemonCake のダッシュボード (lemoncake.xyz)、API (api.lemoncake.xyz)、npm パッケージ \`lemon-cake-mcp\` および \`create-lemon-agent\` で取り扱う情報を対象とします。`,
+    body: `LemonCake (運営: Evid AI / contact@aievid.com) は AI エージェントが有料 API を USDC で従量課金しながら利用するためのマーケットプレイスです。本ポリシーは LemonCake のダッシュボード (lemoncake.xyz)、API (api.lemoncake.xyz)、npm パッケージ \`agent-payment-mcp\` および \`create-lemon-agent\` で取り扱う情報を対象とします。`,
   },
   {
     id: "data-we-collect",
@@ -23,7 +23,7 @@ const sections: Array<{ id: string; en: string; ja: string; body: string }> = [
     body: `1. アカウント情報: メールアドレス、表示名、ハッシュ化されたパスワード (email サインアップ時のみ)、Google OAuth の sub ID。
 2. 決済情報: Stripe Customer ID、Coinbase Commerce charge ID、課金トランザクション履歴 (金額・タイムスタンプ・冪等性キー・サービス ID)。
 3. ウォレット情報: バイヤーが手動で登録した Polygon ウォレットアドレス (送金先用)。LemonCake は秘密鍵を取得・保管しません。
-4. エージェント識別子: Pay Token に紐づく \`buyerTag\`、\`agentName\`、\`agentDescription\` (任意入力)。
+4. エージェント識別子: permit に紐づく \`buyerTag\`、\`agentName\`、\`agentDescription\` (任意入力)。
 5. テクニカルログ: API リクエスト IP、User-Agent、X-LemonCake-Client ヘッダ、Charge レコードのリクエスト/レスポンスハッシュ (SHA-256)。本文そのものは保存しません。
 6. 会計連携: 連携済みの freee / Money Forward / QuickBooks 認可トークン (暗号化済み、自動仕訳目的のみ)。`,
   },
@@ -31,7 +31,7 @@ const sections: Array<{ id: string; en: string; ja: string; body: string }> = [
     id: "how-we-use",
     en: "How we use data",
     ja: "データの利用目的",
-    body: `- 課金処理 (Pay Token 発行、charge 確定、provider への USDC 送金、手数料計算)
+    body: `- 課金処理 (permit 発行、charge 確定、provider への USDC 送金、手数料計算)
 - アカウント管理 (ログイン、KYC ステータス、KYA / KYC 段階管理)
 - 不正検知 (リスクスコア、レート制限、Token 無効化)
 - 会計連携 (連携同意済みの会計ソフトに仕訳を自動投稿)
@@ -57,7 +57,7 @@ const sections: Array<{ id: string; en: string; ja: string; body: string }> = [
     body: `- 課金トランザクション (Charge / PlatformRevenue / ProviderPayout): 7 年 (日本の電子帳簿保存法に準拠)
 - アカウント情報: アカウント削除リクエスト後 30 日以内に消去 (法令で保管義務がある会計データを除く)
 - API ログ (テクニカル): 90 日でローリング削除
-- Pay Token: 失効 (\`expiresAt\`) または revoke 後 90 日でメタデータ削除
+- permit: 失効 (\`expiresAt\`) または revoke 後 90 日でメタデータ削除
 - 会計連携トークン: 連携解除と同時に即時削除`,
   },
   {
@@ -97,7 +97,7 @@ const sections: Array<{ id: string; en: string; ja: string; body: string }> = [
     en: "AI agent specific",
     ja: "AI エージェント特有の事項",
     body: `LemonCake は AI エージェントが自律で paid API を呼ぶことを想定しています。これに伴う特殊な取り扱い:
-- **Pay Token は agent に渡される** ことを前提に、強制 expiry / 強制 limit / sandbox flag / scope 限定を提供しています。漏洩時の被害を最小化するためです。
+- **permit は agent に渡される** ことを前提に、強制 expiry / 強制 limit / sandbox flag / scope 限定を提供しています。漏洩時の被害を最小化するためです。
 - **エージェントが叩いた API リクエスト本文** (例: Hunter.io への "domain=anthropic.com") は LemonCake サーバー側では SHA-256 ハッシュのみ保存し、原文は保存しません。Provider 側 (Hunter.io 等) のログには保管されます。
 - **エージェントの "考えていること"** (LLM のプロンプト本文や思考過程) は LemonCake には一切送信されません。MCP サーバー経由で受け取るのは tool 呼び出しの引数のみです。`,
   },

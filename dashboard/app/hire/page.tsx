@@ -59,7 +59,7 @@ const PACKAGES = [
     name: "AI エージェント基盤構築",
     audience: "自社プロダクトに「AI が自律的にタスクこなす」機能を組み込みたい企業",
     deliverables: [
-      "MCP マーケットプレイス型基盤（Pay Token 設計）",
+      "MCP マーケットプレイス型基盤（permit 設計）",
       "Claude / GPT-4o / Gemini 接続",
       "Slack / freee / Notion など主要 SaaS との連携実装",
       "Kill Switch・監査ログ・スパム制御",
@@ -72,7 +72,7 @@ const PACKAGES = [
     audience: "AI / Web3 / SaaS スタートアップの開発体制を週3〜4で強化したい企業",
     deliverables: [
       "TypeScript / Next.js / Prisma フルスタック",
-      "MCP / Pay Token / USDC 決済の実装経験",
+      "MCP / permit / USDC 決済の実装経験",
       "AI コーディング（Claude Code / Cursor）熟練",
       "技術選定・アーキテクチャ・コードレビュー",
     ],
@@ -96,7 +96,7 @@ const PACKAGES = [
 const PORTFOLIO = [
   {
     name: "agent-payment-mcp",
-    desc: "AI エージェントに USDC ウォレットを持たせる MCP サーバー。Pay Token で日次上限・Kill Switch・スコープ制御。",
+    desc: "AI エージェントに USDC ウォレットを持たせる MCP サーバー。permit で日次上限・Kill Switch・スコープ制御。",
     link: "https://www.npmjs.com/package/agent-payment-mcp",
   },
   {
@@ -267,7 +267,7 @@ export default function HirePage() {
                 ✅ 実装済みのコードが既にあります。ゼロから書き起こさない分、納期と単価で勝てます。
               </p>
               <p className="mt-1 text-sm text-gray-600">
-                MCP サーバー雛形・Pay Token・freee/MFC 連携・Solana/Polygon USDC 決済 — 全部動くコードがあります。
+                MCP サーバー雛形・permit・freee/MFC 連携・Solana/Polygon USDC 決済 — 全部動くコードがあります。
               </p>
             </li>
             <li>

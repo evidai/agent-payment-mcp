@@ -131,7 +131,7 @@ export function DemoPlayground() {
       <div className="p-5 md:p-6 space-y-4">
         <p className="text-xs text-white/50 leading-relaxed">
           {svc.desc}{" "}
-          Hits real <span className="text-[#fffd43]/80 font-mono">{svc.upstream}</span> · same response as <code className="font-mono">call_service(serviceId=&quot;{svc.id}&quot;)</code> from <code className="font-mono">npx&nbsp;-y&nbsp;pay-per-call-mcp</code>.
+          Hits real <span className="text-[#fffd43]/80 font-mono">{svc.upstream}</span> · same response as <code className="font-mono">call_service(serviceId=&quot;{svc.id}&quot;)</code> from <code className="font-mono">npx&nbsp;-y&nbsp;agent-payment-mcp</code>.
         </p>
 
         {/* input */}
@@ -206,7 +206,7 @@ export function DemoPlayground() {
         )}
 
         <p className="text-[11px] text-white/30 leading-relaxed">
-          This widget hits the same upstream as the published MCP server — no signup, no Pay Token, $0 charged. Switch to a real service ($0.005/call typical) by setting <code className="font-mono">LEMON_CAKE_PAY_TOKEN</code> after <a href="/register" className="text-[#fffd43]/70 hover:underline">creating an account</a>.
+          This widget hits the same upstream as the published MCP server — no signup, no permit, $0 charged. Switch to a real service ($0.005/call typical) by setting <code className="font-mono">LEMON_CAKE_PERMIT</code> after <a href="/register" className="text-[#fffd43]/70 hover:underline">creating an account</a>.
         </p>
       </div>
     </div>

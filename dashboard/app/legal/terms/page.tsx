@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "LemonCake — 利用規約 / Terms of Service",
   description:
-    "LemonCake (運営: evidai) の利用規約。Pay Token 発行、上限付き決済、自動仕訳連携などのサービス利用条件を定めます。",
+    "LemonCake (運営: evidai) の利用規約。permit 発行、上限付き決済、自動仕訳連携などのサービス利用条件を定めます。",
 };
 
 export default function TermsPage() {
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
           LemonCake 利用規約
         </h1>
-        <p className="text-sm opacity-60 mb-10">最終更新日: 2026-04-20</p>
+        <p className="text-sm opacity-60 mb-10">最終更新日: 2026-05-14</p>
 
         <p className="text-base leading-relaxed mb-8">
           本利用規約（以下「本規約」）は、evidai（以下「当社」）が提供する
@@ -40,11 +40,11 @@ export default function TermsPage() {
         <Section title="第2条（サービス内容）">
           <p>本サービスは、以下の機能を提供します：</p>
           <ul className="list-disc pl-6 mt-2 space-y-1">
-            <li>AIエージェント向け Pay Token（HMAC-SHA256署名、利用上限・有効期限付き）の発行</li>
+            <li>AIエージェント向け permit（HMAC-SHA256署名、利用上限・有効期限付き）の発行</li>
             <li>USDC ステーブルコインによる外部API決済の仲介</li>
             <li>決済完了後の freee / Money Forward への自動仕訳作成</li>
             <li>国税庁API連携による適格請求書発行事業者チェック</li>
-            <li>Pay Token の即時失効（Kill Switch）機能</li>
+            <li>permit の即時失効（Kill Switch）機能</li>
           </ul>
         </Section>
 
@@ -75,7 +75,7 @@ export default function TermsPage() {
             <li>他の利用者に成りすます行為</li>
             <li>当社のサービスに関連して、反社会的勢力に対して直接または間接に利益を供与する行為</li>
             <li>本サービスを用いて詐欺的決済・不正請求を行う行為</li>
-            <li>Pay Token を第三者に無断で譲渡・貸与する行為</li>
+            <li>permit を第三者に無断で譲渡・貸与する行為</li>
             <li>その他、当社が不適切と判断する行為</li>
           </ul>
         </Section>
@@ -168,14 +168,28 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="第15条（準拠法・裁判管轄）">
+        <Section title="第15条（対象地域および地理的制限）">
+          <p>
+            本サービスのうち、有価証券に関連するMCPサーバー（xstocks-mcp、tokenized-stock-mcp、alpaca-guard-mcp）は、日本の金融商品取引法に基づく第一種金融商品取引業の登録を要する可能性があるサービスを含みます。
+            これらのサービスは、<strong>日本居住者を対象としておらず</strong>、日本国内から利用することを意図していません。
+          </p>
+          <p className="mt-2">
+            日本に居住する方がこれらのサービスを利用された場合、当社はいかなる責任も負いません。
+            有価証券の売買を希望する日本居住者の方は、日本の金融庁に登録された金融商品取引業者をご利用ください。
+          </p>
+          <p className="mt-2">
+            The stock-related MCP servers (xstocks-mcp, tokenized-stock-mcp, alpaca-guard-mcp) are <strong>not intended for use by residents of Japan</strong>. These services involve securities transactions that may require registration under Japanese financial regulations. Japanese residents should use services registered with the Japan Financial Services Agency (FSA).
+          </p>
+        </Section>
+
+        <Section title="第17条（準拠法・裁判管轄）">
           <p>
             本規約の解釈にあたっては、日本法を準拠法とします。
             本サービスに関して紛争が生じた場合には、当社の本店所在地を管轄する裁判所を専属的合意管轄とします。
           </p>
         </Section>
 
-        <Section title="第16条（お問い合わせ）">
+        <Section title="第18条（お問い合わせ）">
           <p>
             本規約に関するお問い合わせは、以下までお願いいたします：
           </p>
