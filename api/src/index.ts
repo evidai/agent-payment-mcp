@@ -45,6 +45,7 @@ import { chargesPermitRouter }      from "./routes/charges-permit.js";
 import { providersV2Router }        from "./routes/providers-v2.js";
 import { invoicesRouter }           from "./routes/invoices.js";
 import { subscriptionsRouter, subscriptionsWebhookRouter } from "./routes/subscriptions.js";
+import { offrampRouter }            from "./routes/offramp.js";
 import { sdkRouter }                from "./routes/sdk.js";
 import { mcpAccessLog }                from "./middleware/mcpAccessLog.js";
 import { startUsdcTransferWorker, handleFailedJob } from "./workers/usdcTransfer.js";
@@ -96,6 +97,7 @@ app.route("/api/invoices",     invoicesRouter);
 // Webhook は raw body 必須なので OpenAPI ルーターより先に固定パスで登録
 app.route("/api/subscriptions/webhook", subscriptionsWebhookRouter);
 app.route("/api/subscriptions",         subscriptionsRouter);
+app.route("/api/offramp",               offrampRouter);
 app.route("/api/providers", providersRouter);
 app.route("/api/jpyc",      jpycRouter);
 app.route("/api/tax",       taxRouter);

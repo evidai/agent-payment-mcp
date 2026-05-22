@@ -860,6 +860,90 @@ enum SubscriptionStatus {
 }
 
 // ─────────────────────────────────────────────────────────────
+// OfframpConnection — Provider が個別に持つ取引所 API key
+//
+// LemonCake は USDC を一切持たない（非カストディ堅持）。
+// この connection は Provider 自身の取引所アカウントへの API key を
+// 暗号化保存するだけ。Sell/Withdraw は API キーが Provider のものなので、
+// LemonCake は実行のトリガーを引くだけで「自分の名義で売買」していない。
+// ─────────────────────────────────────────────────────────────
+model OfframpConnection {
+  id String @id @default(cuid())
+
+  providerV2Id String
+  // FK 制約は将来。今は relation を貼らずに ID 文字列で持つ。
+  // ProviderV2 と直接 1:N は relation を貼ると prisma migrate が
+  // 既存テーブルに ALTER 走らせて遅くなるので、明示的に @@map のみ。
+
+  exchange OfframpExchange
+
+  // 取引所 API key — at-rest 暗号化必須（AES-256-GCM 推奨）
+  // v0 はそのまま保存するが、本番デプロイ前に KMS / Tink を統合する。
+  // 暗号化キーは Railway env の OFFRAMP_ENCRYPTION_KEY を使う。
+  encryptedApiKey    String @db.Text
+  encryptedApiSecret String @db.Text
+
+  // Sell/Withdraw 対象の銀行口座（取引所側で事前登録済みのものを参照）
+  bankAccountRef String?
+
+  // 自動オフランプ閾値（USDC ベース。これを超えたら sell+withdraw 起動）
+  // null = 手動オフランプのみ
+  autoThresholdUsdc Decimal? @db.Decimal(38, 18)
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerV2Id, exchange])
+  @@index([providerV2Id])
+  @@map("offramp_connections")
+}
+
+enum OfframpExchange {
+  COINCHECK
+  BITFLYER
+  GMO_COIN
+}
+
+// 個別の sell/withdraw 履歴
+model OfframpTransaction {
+  id String @id @default(cuid())
+
+  providerV2Id String
+  exchange     OfframpExchange
+
+  // Sell 段階
+  usdcAmount    Decimal @db.Decimal(38, 18)
+  jpyReceived   Decimal? @db.Decimal(38, 2)
+  sellOrderId   String?
+  sellTxHash    String?  // USDC を取引所アドレスに送った on-chain tx
+
+  // Withdraw 段階
+  withdrawnJpy     Decimal? @db.Decimal(38, 2)
+  withdrawalId     String?
+  bankAccountRef   String?
+
+  status OfframpStatus @default(PENDING)
+  failureReason String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([providerV2Id, createdAt])
+  @@index([status])
+  @@map("offramp_transactions")
+}
+
+enum OfframpStatus {
+  PENDING
+  USDC_SENT           // USDC を取引所アドレスへ送金完了（着金待ち）
+  SOLD                // 取引所で USDC → JPY 完了
+  WITHDRAWN           // JPY 出金完了
+  FAILED
+}
+
+// ─────────────────────────────────────────────────────────────
 // 適格請求書（インボイス制度準拠）
 //
 // 国税庁の必須項目:

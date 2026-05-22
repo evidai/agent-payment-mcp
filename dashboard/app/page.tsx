@@ -3346,6 +3346,237 @@ const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS", { monthlyJpy: number }> = {
   BUSINESS: { monthlyJpy: 9800 },
 };
 
+// ── OfframpPanel: USDC → JPY オフランプ（Business 以上） ──────────────────────
+// /settings に表示。Coincheck API key 登録 → 残高表示 → sell/withdraw 実行。
+// JPY オフランプは Business プランで初めて解放される（gate は API 側で再判定）。
+
+interface OfframpBalance { jpy: string; usdc: string }
+interface OfframpTxRow {
+  id: string;
+  usdcAmount:   string;
+  jpyReceived:  string | null;
+  withdrawnJpy: string | null;
+  sellOrderId:  string | null;
+  withdrawalId: string | null;
+  status:       string;
+  failureReason:string | null;
+  createdAt:    string;
+  completedAt:  string | null;
+}
+
+function OfframpPanel() {
+  const t = useT();
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
+
+  const [providerV2Id, setProviderV2Id] = useState<string>("");
+  const [apiKey,     setApiKey]    = useState("");
+  const [apiSecret,  setApiSecret] = useState("");
+  const [bankAcct,   setBankAcct]  = useState("");
+  const [autoThr,    setAutoThr]   = useState("");
+  const [bal,        setBal]       = useState<OfframpBalance | null>(null);
+  const [txs,        setTxs]       = useState<OfframpTxRow[]>([]);
+  const [sellAmt,    setSellAmt]   = useState("");
+  const [wAmt,       setWAmt]      = useState("");
+  const [busy,       setBusy]      = useState<null | "connect" | "balance" | "sell" | "withdraw" | "txs">(null);
+  const [error,      setError]     = useState<string | null>(null);
+  const [ok,         setOk]        = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lemon_provider_v2_id");
+      if (saved) setProviderV2Id(saved);
+    } catch { /* SSR */ }
+  }, []);
+
+  useEffect(() => {
+    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
+  }, [providerV2Id]);
+
+  async function call<T>(
+    op: typeof busy,
+    fn: () => Promise<T>,
+  ): Promise<T | null> {
+    setBusy(op); setError(null); setOk(null);
+    try { return await fn(); }
+    catch (e) { setError(e instanceof Error ? e.message : "failed"); return null; }
+    finally { setBusy(null); }
+  }
+
+  async function jsonFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+    const r = await fetch(input, init);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((data as { error?: string }).error ?? `HTTP ${r.status}`);
+    return data as T;
+  }
+
+  async function handleConnect() {
+    await call("connect", async () => {
+      await jsonFetch(`${API}/api/offramp/coincheck/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerV2Id, apiKey, apiSecret,
+          bankAccountRef:    bankAcct || undefined,
+          autoThresholdUsdc: autoThr  || undefined,
+        }),
+      });
+      setOk(t("Coincheck と接続しました。", "Connected to Coincheck."));
+      setApiKey(""); setApiSecret("");
+    });
+  }
+
+  async function handleBalance() {
+    const data = await call("balance", () => jsonFetch<OfframpBalance>(`${API}/api/offramp/coincheck/balance?providerV2Id=${encodeURIComponent(providerV2Id)}`));
+    if (data) setBal(data);
+  }
+
+  async function handleSell() {
+    await call("sell", async () => {
+      await jsonFetch(`${API}/api/offramp/coincheck/sell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerV2Id, amountUsdc: sellAmt }),
+      });
+      setOk(t(`${sellAmt} USDC を売却しました。`, `Sold ${sellAmt} USDC.`));
+      setSellAmt("");
+      handleBalance();
+    });
+  }
+
+  async function handleWithdraw() {
+    await call("withdraw", async () => {
+      await jsonFetch(`${API}/api/offramp/coincheck/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerV2Id,
+          amountJpy: Math.floor(parseFloat(wAmt)),
+          bankAccountId: bankAcct ? Number(bankAcct) : undefined,
+        }),
+      });
+      setOk(t(`${wAmt} JPY の出金を申請しました。`, `Withdrawal requested: ${wAmt} JPY.`));
+      setWAmt("");
+    });
+  }
+
+  async function handleTxs() {
+    const data = await call("txs", () => jsonFetch<OfframpTxRow[]>(`${API}/api/offramp/coincheck/transactions?providerV2Id=${encodeURIComponent(providerV2Id)}&limit=20`));
+    if (data) setTxs(data);
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-5">
+      <div>
+        <h3 className="text-lg font-bold text-gray-900">
+          {t("JPY オフランプ（Business プラン）", "JPY Off-Ramp (Business plan)")}
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {t(
+            "受け取った USDC を Coincheck 経由で日本円に換金し、登録銀行口座に出金します。LemonCake はあなたの USDC を一切保持しません。",
+            "Convert received USDC to JPY via Coincheck and withdraw to your bank. LemonCake never holds your USDC.",
+          )}
+        </p>
+      </div>
+
+      {!providerV2Id && (
+        <p className="text-xs text-gray-500">
+          {t("まず ", "First, register at ")}
+          <a href="/sellers" className="text-amber-700 underline">/sellers</a>
+          {t(" で Provider を登録してください。", ".")}
+        </p>
+      )}
+
+      {providerV2Id && (
+        <>
+          {/* Connect */}
+          <div className="rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <p className="text-sm font-bold">{t("1. Coincheck と接続", "1. Connect Coincheck")}</p>
+            <input value={apiKey}    onChange={(e) => setApiKey(e.target.value)}    placeholder="Coincheck API key"    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono" />
+            <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} placeholder="Coincheck API secret" type="password" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono" />
+            <input value={bankAcct}  onChange={(e) => setBankAcct(e.target.value)}  placeholder={t("銀行口座 ID（Coincheck で事前登録）", "Bank account ID (pre-registered)")} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono" />
+            <input value={autoThr}   onChange={(e) => setAutoThr(e.target.value)}   placeholder={t("自動オフランプ閾値 USDC（任意）", "Auto-offramp threshold USDC (optional)")} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono" />
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={busy !== null || !apiKey || !apiSecret}
+              className="rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50 self-start"
+            >
+              {busy === "connect" ? t("接続中…", "Connecting…") : t("接続する", "Connect")}
+            </button>
+          </div>
+
+          {/* Balance */}
+          <div className="rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+            <p className="text-sm font-bold flex-1">{t("2. 残高確認", "2. Balance")}</p>
+            {bal && (
+              <p className="text-sm font-mono text-gray-700">
+                ¥{Math.round(parseFloat(bal.jpy)).toLocaleString()} / {bal.usdc} USDC
+              </p>
+            )}
+            <button type="button" onClick={handleBalance} disabled={busy !== null} className="rounded-full border border-gray-300 px-4 py-1.5 text-xs font-bold hover:border-gray-400 disabled:opacity-50">
+              {busy === "balance" ? "…" : t("取得", "Fetch")}
+            </button>
+          </div>
+
+          {/* Sell */}
+          <div className="rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
+            <p className="text-sm font-bold">{t("3. USDC → JPY 売却（成行）", "3. Sell USDC → JPY (market)")}</p>
+            <div className="flex gap-2">
+              <input value={sellAmt} onChange={(e) => setSellAmt(e.target.value)} placeholder="100" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono flex-1" />
+              <button type="button" onClick={handleSell} disabled={busy !== null || !sellAmt} className="rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50">
+                {busy === "sell" ? t("売却中…", "Selling…") : t("売却", "Sell")}
+              </button>
+            </div>
+          </div>
+
+          {/* Withdraw */}
+          <div className="rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
+            <p className="text-sm font-bold">{t("4. JPY → 銀行口座出金", "4. Withdraw JPY to bank")}</p>
+            <div className="flex gap-2">
+              <input value={wAmt} onChange={(e) => setWAmt(e.target.value)} placeholder="15000" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono flex-1" />
+              <button type="button" onClick={handleWithdraw} disabled={busy !== null || !wAmt} className="rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50">
+                {busy === "withdraw" ? t("出金中…", "Withdrawing…") : t("出金", "Withdraw")}
+              </button>
+            </div>
+          </div>
+
+          {/* History */}
+          <div className="rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold">{t("履歴", "History")}</p>
+              <button type="button" onClick={handleTxs} disabled={busy !== null} className="text-xs font-bold text-amber-700 hover:underline">
+                {busy === "txs" ? "…" : t("再読み込み", "Reload")}
+              </button>
+            </div>
+            {txs.length === 0 ? (
+              <p className="text-xs text-gray-400">{t("履歴なし", "No history")}</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="text-gray-400">
+                  <tr><th className="text-left p-1">USDC</th><th className="text-left p-1">JPY</th><th className="text-left p-1">{t("状態", "Status")}</th><th className="text-left p-1">{t("日時", "Time")}</th></tr>
+                </thead>
+                <tbody>
+                  {txs.map(r => (
+                    <tr key={r.id} className="border-t border-gray-100">
+                      <td className="p-1 font-mono">{r.usdcAmount}</td>
+                      <td className="p-1 font-mono">{r.withdrawnJpy ?? "—"}</td>
+                      <td className="p-1">{r.status}</td>
+                      <td className="p-1 text-gray-500">{new Date(r.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {ok    && <p className="text-xs text-green-700">{ok}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { token: string; onLogout: () => void; onProfileUpdated?: () => void; isSeller?: boolean }) {
   const t = useT();
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
@@ -3440,6 +3671,9 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
 
       {/* v2 サブスクリプションパネル */}
       <SubscriptionPanel />
+
+      {/* JPY オフランプ（Business プラン以上で機能解放） */}
+      <OfframpPanel />
 
       {/* 残高カード */}
       {profile?.buyer && (() => {
