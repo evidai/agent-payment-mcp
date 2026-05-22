@@ -43,6 +43,9 @@ import { PRIVY_ENABLED, COINBASE_ENABLED } from "@/Providers";
 // FSA Q11's "non-custodial" condition still applies.
 const MARKETPLACE_SPENDER = "0x000000000000000000000000000000000000dEaD" as const;
 
+// NB: this env holds the CDP **Project ID (UUID)** — not the client API
+// key. Onramp's `appId` is the project identifier; the client API key
+// is only used for direct REST calls / OnchainKit's React hooks.
 const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 
 // Build the Coinbase Pay onramp URL. We match the parameter shape used
