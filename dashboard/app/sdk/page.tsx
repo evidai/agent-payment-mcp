@@ -7,7 +7,7 @@ export const metadata = {
   alternates: { canonical: "https://lemoncake.xyz/sdk" },
   openGraph: {
     title: "LemonCake SDK — @lemon-cake/mcp-sdk",
-    description: "Monetize your MCP server in 3 lines. Pay Token billing, demo mode, rate limiting, x402.",
+    description: "Monetize your MCP server in 3 lines. permit billing, demo mode, rate limiting, x402.",
     url: "https://lemoncake.xyz/sdk",
   },
 };
@@ -195,8 +195,8 @@ export default function SdkPage() {
           <h2 className="text-2xl md:text-3xl font-black mb-10 leading-tight">課金フロー</h2>
           <div className="flex flex-col md:flex-row gap-4 items-start">
             {[
-              { step: "1", label: "Pay Token", body: "エージェントオペレーターが LemonCake で Pay Token（JWT）を発行。予算上限・有効期限付き。" },
-              { step: "2", label: "ツール呼び出し", body: "エージェントが MCP ツールを呼び出す際に _meta.payToken で Pay Token を添付。" },
+              { step: "1", label: "permit", body: "エージェントオペレーターが LemonCake で permit（ERC-2612）を発行。予算上限・有効期限付き。" },
+              { step: "2", label: "ツール呼び出し", body: "エージェントが MCP ツールを呼び出す際に _meta.payToken で permit を添付。" },
               { step: "3", label: "preflight", body: "SDK が LemonCake API で残高確認・チャージ枠を予約（PENDING）。残高不足なら 402 で即時拒否。" },
               { step: "4", label: "実行 → 確定", body: "ツールハンドラー実行後、SDK が charge を confirm。失敗なら cancel。USDC が実際に移動。" },
             ].map(({ step, label, body }) => (

@@ -4,7 +4,7 @@ import AuthedRedirect from "../AuthedRedirect";
 
 export const metadata = {
   title: "LemonCake — M2M Payment Infrastructure for AI Agents",
-  description: "JWT-based Pay Tokens + USDC balance management for autonomous Machine-to-Machine payments. Give your AI agent a wallet with a kill switch. Works with Claude, Cursor, Eliza.",
+  description: "ERC-2612 permits + USDC balance management for autonomous Machine-to-Machine payments. Give your AI agent a wallet with a kill switch. Works with Claude, Cursor, Eliza.",
 };
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -56,11 +56,11 @@ const IconBeaker = () => (
 // ── Data ──────────────────────────────────────────────────────────────────────
 const whyItems = [
   {
-    eyebrow: "JWT Pay Token",
+    eyebrow: "ERC-2612 permit",
     title: "Delegate spending power\nwith a hard cap",
-    body: "All you hand the agent is a Pay Token. Set the USDC limit, expiry, and target service up front — your agent gets autonomous payment capability with zero runaway risk. The moment the limit is reached, payments stop automatically.",
+    body: "All you hand the agent is a permit. Set the USDC limit, expiry, and target service up front — your agent gets autonomous payment capability with zero runaway risk. The moment the limit is reached, payments stop automatically.",
     stats: [
-      { num: "JWT", label: "Pay Token format" },
+      { num: "JWT", label: "permit format" },
       { num: "USDC", label: "Settlement currency" },
     ],
     flipped: false,
@@ -98,7 +98,7 @@ const whyItems = [
 ];
 
 const buyerFeatures = [
-  "Grant agents safe payment capability with Pay Tokens",
+  "Grant agents safe payment capability with permits",
   "Control risk with spending limits, expiry, and scoped services",
   "Agents autonomously select APIs and complete payments instantly",
   "Send JPYC on-chain and it reflects as USDC balance immediately",
@@ -118,13 +118,13 @@ const sellerFeatures = [
 const integrations = [
   {
     icon: <IconTerminal />,
-    badge: "npm · pay-per-call-mcp",
+    badge: "npm · agent-payment-mcp",
     title: "MCP server",
     subtitle: "Plug into Claude / Cursor",
     body: "Start with npx in a single command. Append to claude_desktop_config.json and Claude Desktop or Cursor immediately gets every LemonCake capability.",
-    code: `npx -y pay-per-call-mcp`,
+    code: `npx -y agent-payment-mcp`,
     tools: ["list_services", "call_service", "check_balance", "setup"],
-    href: "https://www.npmjs.com/package/pay-per-call-mcp",
+    href: "https://www.npmjs.com/package/agent-payment-mcp",
     published: true,
   },
   {
@@ -198,7 +198,7 @@ export default function AboutPageEn() {
               href="/register"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Issue a Pay Token <IconArrowRight />
+              Sign a permit <IconArrowRight />
             </Link>
           </div>
         </section>
@@ -287,12 +287,12 @@ export default function AboutPageEn() {
             </div>
             <h3 className="text-xl font-black text-white mb-2">One-click revocation</h3>
             <p className="text-[13px] text-white/45 leading-relaxed mb-5">
-              Revoke any issued Pay Token instantly. The moment your agent starts doing something unexpected, all payments stop. Subsequent charge requests are rejected with 422.
+              Revoke any issued permit instantly. The moment your agent starts doing something unexpected, all payments stop. Subsequent charge requests are rejected with 422.
             </p>
             <div className="mt-auto flex flex-col gap-2 text-[12px] text-white/50">
               <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Atomic revoke (race-condition-free)</div>
               <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Owner-only operation</div>
-              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Dashboard → Pay Tokens tab</div>
+              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Dashboard → My Permits</div>
             </div>
           </div>
 
@@ -343,7 +343,7 @@ export default function AboutPageEn() {
           Ship in <span className="text-[#fffd43]">5 minutes</span>
         </h2>
         <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
-          Register, issue a Pay Token, hand it to your agent. That&apos;s it.
+          Register, sign a permit, hand it to your agent. That&apos;s it.
         </p>
 
         <ol className="flex flex-col gap-5">
@@ -365,9 +365,9 @@ export default function AboutPageEn() {
           <li className="rounded-3xl bg-white/4 border border-white/8 p-7 flex gap-6">
             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">2</div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Issue a Pay Token</h3>
+              <h3 className="text-lg font-black text-white mb-1.5">Sign a permit</h3>
               <p className="text-[13px] text-white/45 leading-relaxed mb-3">
-                From the Pay Tokens tab, pick the target service, USDC limit, and expiry. Toggle Sandbox mode to keep your real balance untouched.
+                From the My Permits page, pick the target service, USDC limit, and expiry. Toggle Sandbox mode to keep your real balance untouched.
               </p>
               <div className="rounded-xl bg-black/40 border border-white/8 px-4 py-3 font-mono text-[12px] text-[#fffd43] leading-relaxed overflow-x-auto">
                 <div className="text-white/40">$ # or via REST:</div>
@@ -389,7 +389,7 @@ export default function AboutPageEn() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
                   <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Claude / Cursor</p>
-                  <code className="text-[12px] font-mono text-[#fffd43] break-all">npx -y pay-per-call-mcp</code>
+                  <code className="text-[12px] font-mono text-[#fffd43] break-all">npx -y agent-payment-mcp</code>
                 </div>
                 <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
                   <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Eliza v2</p>
@@ -436,7 +436,7 @@ export default function AboutPageEn() {
           Give your agent<br />a safe wallet.
         </h2>
         <p className="text-base md:text-lg text-white/45 max-w-2xl mx-auto leading-relaxed">
-          Every external API an AI agent touches demands billing, auth, idempotency, and balance accounting. LemonCake hands your agent a &quot;wallet with a cap&quot; via a JWT Pay Token. Cross the cap, and it stops. Agents get spending power without going feral.
+          Every external API an AI agent touches demands billing, auth, idempotency, and balance accounting. LemonCake hands your agent a &quot;wallet with a cap&quot; via a ERC-2612 permit. Cross the cap, and it stops. Agents get spending power without going feral.
         </p>
       </section>
 
@@ -459,7 +459,7 @@ export default function AboutPageEn() {
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-2">Focus only on making your AI smarter</h3>
               <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-                Hand a Pay Token to your agent. Payments, balance, idempotency — all handled by LemonCake. You only worry about the agent&apos;s logic.
+                Hand a permit to your agent. Payments, balance, idempotency — all handled by LemonCake. You only worry about the agent&apos;s logic.
               </p>
               <ul className="flex flex-col gap-3">
                 {buyerFeatures.map(f => (
@@ -592,7 +592,7 @@ export default function AboutPageEn() {
               <ul className="flex flex-col gap-2">
                 {[
                   { label: "Dashboard",    href: "/login" },
-                  { label: "MCP server",   href: "https://www.npmjs.com/package/pay-per-call-mcp" },
+                  { label: "MCP server",   href: "https://www.npmjs.com/package/agent-payment-mcp" },
                   { label: "Eliza plugin", href: "https://www.npmjs.com/package/eliza-plugin-lemoncake" },
                   { label: "Documentation", href: "https://lemoncake.xyz/docs" },
                 ].map(({ label, href }) => (
@@ -623,7 +623,7 @@ export default function AboutPageEn() {
           </div>
           <div className="border-t border-white/8 pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
             <p className="text-[11px] text-white/20">© 2026 LemonCake. All rights reserved.</p>
-            <p className="text-[11px] text-white/20">KYA/KYC tier auth · JWT Pay Token · Polygon · USDC · JPYC</p>
+            <p className="text-[11px] text-white/20">KYA/KYC tier auth · ERC-2612 permit · Polygon · USDC · JPYC</p>
           </div>
         </div>
       </footer>

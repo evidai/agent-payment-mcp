@@ -58,9 +58,9 @@ const JSON_LD = {
       ],
       "offers": {
         "@type":         "Offer",
-        "price":         "0.005",
+        "price":         "0.001",
         "priceCurrency": "USD",
-        "description":   "Typical per-call price; 10% platform margin over upstream",
+        "description":   "x402 baseline per-call price; first 1,000 calls/month free; non-custodial USDC on Base via ERC-2612 permit",
         "availability":  "https://schema.org/InStock",
       },
       "publisher": {
@@ -85,7 +85,7 @@ const JSON_LD = {
           "name":          "How is this different from Cursor / Cline / official MCP servers?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text":  "agent-payment-mcp is a billing proxy: it lets your agent call paid APIs (Tavily, Serper, Hunter.io, gBizINFO, the Japanese NTA invoice API) without you handing over per-vendor API keys. One Pay Token JWT with a hard USDC spending cap covers all of them.",
+            "text":  "agent-payment-mcp is a non-custodial billing proxy: it lets your agent call paid APIs (Tavily, Serper, Hunter.io, gBizINFO, the Japanese NTA invoice API) without you handing over per-vendor API keys. One ERC-2612 permit signature (90 days, $25/day hard cap) covers all of them — USDC stays in your own wallet.",
           },
         },
         {
@@ -93,7 +93,7 @@ const JSON_LD = {
           "name":          "Is it x402 compatible?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text":  "Yes. Successful calls return an x402-shaped receipt; upstream HTTP 402 challenges are parsed (WWW-Authenticate, X-402-* headers, body.x402); PAYMENT_PENDING semantics with idempotent retry are supported. On-chain auto-pay from Pay Token balance is gated on HOT_WALLET availability (issue #4).",
+            "text":  "Yes — natively. LemonCake operates an x402 facilitator on Base USDC: POST /api/x402/verify accepts ERC-3009 signatures, hybrid 'both' mode in @lemon-cake/x402-server routes through Coinbase CDP for x402 Bazaar / AWS Bedrock AgentCore discovery, then mirrors metering to LemonCake for invoicing + JPY off-ramp.",
           },
         },
       ],
@@ -110,17 +110,17 @@ export default function StartPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
 
-      {/* ───── v2 announcement banner — non-custodial path is the new default ───── */}
+      {/* ───── Non-custodial banner — permit is the only flow ───── */}
       <div className="bg-[#fffd43] text-[#06060a] border-b border-yellow-500">
         <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4 text-sm">
           <span>
-            🍋 <strong>v2 (非カストディ版)</strong> がプレビュー中：金融庁照会済み・USDCをLemonCakeに預けない新方式
+            🍋 <strong>非カストディ</strong>：USDC はあなたのウォレットに残ったまま、ERC-2612 permit 1 署名で 90 日有効。FSA 確認済（登録不要）。
           </span>
           <Link
             href="/start/v2"
             className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#06060a] text-[#fffd43] px-3 py-1 text-xs font-bold hover:bg-gray-800 transition"
           >
-            v2 を試す →
+            1 分で開始 →
           </Link>
         </div>
       </div>
@@ -230,11 +230,11 @@ export default function StartPage() {
         <div className="grid md:grid-cols-3 gap-5">
           <Card
             title="Stop juggling API keys."
-            body="Your agent shouldn't need 12 different SaaS dashboards. One Pay Token covers Tavily, Serper, ElevenLabs, gBizINFO, Hunter.io — the upstream secret stays with us."
+            body="Your agent shouldn't need 12 different SaaS dashboards. One ERC-2612 permit covers Tavily, Serper, ElevenLabs, gBizINFO, Hunter.io — the upstream secret stays with us, USDC stays in your wallet."
           />
           <Card
             title="Stop manual signups."
-            body="Every new API needs an email, a card, a quota tier. With pay-per-call, your agent calls a service for $0.005 and gets the result. No relationship to set up."
+            body="Every new API needs an email, a card, a quota tier. With pay-per-call, your agent calls a service for $0.001 and gets the result on-chain. No relationship to set up."
           />
           <Card
             title="Stop overspending."
@@ -277,13 +277,16 @@ export default function StartPage() {
           />
           <Step
             n={3}
-            title="Top up to unlock paid services"
+            title="Sign one permit to unlock paid services"
             body={
               <>
-                Add <code className="font-mono text-[#fffd43]/90">LEMON_CAKE_PAY_TOKEN</code> to the env block above and your agent can call Tavily, Serper, Hunter.io, the NTA invoice API, gBizINFO, and more — billed in USDC, $0.005/call typical, 10% platform margin.
-                <p className="mt-3">
-                  <Link href="/register" className="text-[#fffd43] hover:underline font-semibold text-sm">
-                    Create a free account →
+                Visit <Link href="/start/v2" className="text-[#fffd43] hover:underline font-mono">/start/v2</Link> → sign in with Google → sign <strong className="text-white/90">one ERC-2612 permit</strong> (90 days, $25/day hard cap, no gas) → copy <code className="font-mono text-[#fffd43]/90">LEMON_CAKE_PERMIT</code> into the env block above. Your agent can then call Tavily, Serper, Hunter.io, the NTA invoice API, gBizINFO, and more at <strong className="text-white/90">$0.001/call</strong>.
+                <p className="mt-3 flex flex-wrap gap-3">
+                  <Link href="/start/v2" className="text-[#fffd43] hover:underline font-semibold text-sm">
+                    Get a permit →
+                  </Link>
+                  <Link href="/sellers" className="text-[#fffd43]/60 hover:text-[#fffd43] hover:underline text-sm">
+                    or publish your own API →
                   </Link>
                 </p>
               </>
@@ -314,18 +317,18 @@ export default function StartPage() {
         <div className="grid md:grid-cols-3 gap-5">
           <PriceCard
             label="Per call"
-            value="$0.005"
-            sub="typical price for search / API services"
+            value="$0.001"
+            sub="x402 baseline — same price as Coinbase CDP facilitator"
           />
           <PriceCard
-            label="Platform margin"
-            value="10%"
-            sub="we resell upstream APIs at +10% — that's the whole pricing"
+            label="Free tier"
+            value="1,000/月"
+            sub="First 1,000 calls/month free — perfect for prototyping"
           />
           <PriceCard
-            label="Minimum top-up"
-            value="$5"
-            sub="USDC or JPYC. No subscription. No expiry."
+            label="Provider Pro"
+            value="¥4,980"
+            sub="freee/MF 自動仕訳 + 適格請求書自動発行 (publish your API)"
             accent
           />
         </div>
@@ -335,10 +338,10 @@ export default function StartPage() {
       <Section title="x402-compatible interface" eyebrow="Standards">
         <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-6 md:p-8">
           <p className="text-white/70 leading-relaxed">
-            Settlement happens off-chain via your Pay Token, but the response
-            shape mirrors the <a href="https://www.x402.org/" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">x402</a> idiom. Write your agent&apos;s payment-handling logic
-            once and ship it unchanged when on-chain auto-pay (gated on{" "}
-            <a href="https://github.com/evidai/lemon-cake/issues/4" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">issue #4</a>) lands.
+            LemonCake is a native <a href="https://www.x402.org/" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">x402</a> facilitator on Base USDC.
+            ERC-3009 signatures settle on-chain via <code className="font-mono text-[#fffd43]/80">/api/x402/verify</code>.
+            With <code className="font-mono text-[#fffd43]/80">@lemon-cake/x402-server</code> in <em>hybrid mode</em>, your endpoint is also auto-indexed in the
+            <a href="https://docs.cdp.coinbase.com/x402/bazaar" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline"> Coinbase x402 Bazaar</a> and discoverable from <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/payments.html" target="_blank" rel="noopener noreferrer" className="text-[#fffd43] hover:underline">AWS Bedrock AgentCore</a> — without giving up freee/MF auto-journal or JPY off-ramp.
           </p>
 
           <div className="grid md:grid-cols-3 gap-4 mt-6">
@@ -362,15 +365,15 @@ export default function StartPage() {
           <pre className="mt-6 rounded-xl bg-black/60 border border-white/10 p-4 overflow-x-auto text-[12px] md:text-[13px] font-mono text-white/80">{`{
   "status": 200,
   "chargeId": "ch_abc123",
-  "amountUsdc": "0.005",
+  "amountUsdc": "0.001",
   "x402Receipt": {
-    "scheme":         "lemoncake-pay-token-v1",
-    "x402Compatible": true,
+    "scheme":         "exact",
+    "network":        "base-mainnet",
     "asset":          "USDC",
-    "amount":         "0.005",
+    "amount":         "0.001",
     "recipient":      "serper",
-    "paymentIntentId":"ch_abc123",
-    "settledAt":      "2026-05-09T14:50:11.019Z"
+    "txHash":         "0xabc…f01",
+    "settledAt":      "2026-05-22T14:50:11.019Z"
   }
 }`}</pre>
           <p className="text-[12px] text-white/40 mt-3">

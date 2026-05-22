@@ -4,7 +4,7 @@ import AuthedRedirect from "./AuthedRedirect";
 
 export const metadata = {
   title: "LemonCake — AI エージェントに財布を持たせる M2M 決済・会計インフラ",
-  description: "LemonCake は AI エージェント専用の M2M 決済・会計インフラ。Pay Token 1 行で外部 API に自律決済、freee / MoneyForward 自動仕訳、源泉徴収 10.21% / インボイス国税庁 API / 電子帳簿保存法 7 年保持まで全自動。JPYC・USDC 対応。Dify・LangChain・MCP で即利用可能。",
+  description: "LemonCake は AI エージェント専用の M2M 決済・会計インフラ。permit 1 行で外部 API に自律決済、freee / MoneyForward 自動仕訳、源泉徴収 10.21% / インボイス国税庁 API / 電子帳簿保存法 7 年保持まで全自動。JPYC・USDC 対応。Dify・LangChain・MCP で即利用可能。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -14,7 +14,7 @@ export const metadata = {
   },
   openGraph: {
     title: "LemonCake — AI エージェントに財布を持たせる M2M 決済・会計インフラ",
-    description: "Pay Token 1 行で AI エージェントに安全な支払い能力を付与。freee / MoneyForward 自動仕訳、源泉徴収・インボイス・電帳法対応。",
+    description: "permit 1 行で AI エージェントに安全な支払い能力を付与。freee / MoneyForward 自動仕訳、源泉徴収・インボイス・電帳法対応。",
     url: "https://lemoncake.xyz/about",
     type: "article",
   },
@@ -30,7 +30,7 @@ const faqJsonLd = {
       name: "LemonCake とは何ですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "LemonCake は AI エージェント専用の M2M（Machine-to-Machine）決済・会計インフラです。Pay Token を 1 行発行するだけで、AI エージェントが外部 API に自律的に支払い、freee / MoneyForward に自動仕訳まで完結します。日本の源泉徴収（10.21%）、インボイス制度（国税庁 API 連携）、電子帳簿保存法（7 年保持）にフルコンプライアンス。",
+        text: "LemonCake は AI エージェント専用の M2M（Machine-to-Machine）決済・会計インフラです。permit に 1 度署名するだけで、AI エージェントが外部 API に自律的に支払い、freee / MoneyForward に自動仕訳まで完結します。日本の源泉徴収（10.21%）、インボイス制度（国税庁 API 連携）、電子帳簿保存法（7 年保持）にフルコンプライアンス。",
       },
     },
     {
@@ -38,7 +38,7 @@ const faqJsonLd = {
       name: "AI エージェントに安全にお金を持たせるにはどうすればいい？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "LemonCake の Pay Token を発行してください。予算上限・有効期限・呼び出し先ホストの allowlist を絞ったトークンをエージェントに渡すだけで、漏洩しても被害が限定されます。リクエストごとに Reputation スコアで異常検知も行います。",
+        text: "LemonCake の permit に署名してください。予算上限・有効期限・呼び出し先ホストの allowlist を絞ったトークンをエージェントに渡すだけで、漏洩しても被害が限定されます。リクエストごとに Reputation スコアで異常検知も行います。",
       },
     },
     {
@@ -78,7 +78,7 @@ const faqJsonLd = {
       name: "無料で試せますか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "はい。lemoncake.xyz で 30 秒でアカウントを作成でき、無料枠があります。クレジットカード登録なしで Pay Token の発行・テスト決済まで試せます。",
+        text: "はい。lemoncake.xyz で 30 秒でアカウントを作成でき、無料枠があります。クレジットカード登録なしで permit の発行・テスト決済まで試せます。",
       },
     },
     {
@@ -147,11 +147,11 @@ const IconBeaker = () => (
 // ── Data ──────────────────────────────────────────────────────────────────────
 const whyItems = [
   {
-    eyebrow: "JWT Pay Token",
+    eyebrow: "ERC-2612 permit",
     title: "予算上限付きの\n支払い能力を委譲",
-    body: "エージェントに渡すのは Pay Token だけ。上限 USDC・有効期限・対象サービスをあらかじめ設定するので、暴走リスクなしに自律決済を委任できます。上限に達した瞬間、支払いは自動停止します。",
+    body: "エージェントに渡すのは permit だけ。上限 USDC・有効期限・対象サービスをあらかじめ設定するので、暴走リスクなしに自律決済を委任できます。上限に達した瞬間、支払いは自動停止します。",
     stats: [
-      { num: "JWT", label: "Pay Token 形式" },
+      { num: "JWT", label: "permit 形式" },
       { num: "USDC", label: "決済通貨" },
     ],
     flipped: false,
@@ -189,7 +189,7 @@ const whyItems = [
 ];
 
 const buyerFeatures = [
-  "Pay Token でエージェントに安全な支払い能力を付与",
+  "permit でエージェントに安全な支払い能力を付与",
   "利用上限・有効期限・対象サービスを設定してリスクをコントロール",
   "エージェントが自律的に API を選び、即座に支払い完了",
   "JPYC を送るだけで USDC 残高として即時反映",
@@ -235,7 +235,7 @@ const integrations = [
     badge: "npm · @lemon-cake/mcp-sdk",
     title: "MCP SDK（販売者向け）",
     subtitle: "自分の MCP サーバーを 3 行で収益化",
-    body: "MCP ツールに lc.charge() を 1 行追加するだけで、あなたのサーバーが Pay Token に対応します。デモモード・無料枠・レートリミット・x402 ヘッダー対応をすべて内蔵。",
+    body: "MCP ツールに lc.charge() を 1 行追加するだけで、あなたのサーバーが permit に対応します。デモモード・無料枠・レートリミット・x402 ヘッダー対応をすべて内蔵。",
     code: `npm install @lemon-cake/mcp-sdk`,
     tools: ["charge()", "middleware()", "getEarnings()", "demoMode"],
     href: "https://www.npmjs.com/package/@lemon-cake/mcp-sdk",
@@ -318,7 +318,7 @@ export default function AboutPage() {
                 href="/register"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
               >
-                Pay Token を発行する
+                permit に署名する
               </Link>
             </div>
             <p className="text-[12px] text-[#1a0f00]/50 mt-4">
@@ -411,12 +411,12 @@ export default function AboutPage() {
             </div>
             <h3 className="text-xl font-black text-white mb-2">緊急停止ボタン</h3>
             <p className="text-[13px] text-white/45 leading-relaxed mb-5">
-              発行済みの Pay Token を 1 クリックで即座に無効化。エージェントが想定外の挙動を始めた瞬間、すべての支払いが止まります。revoke 後の課金リクエストは 422 で拒否されます。
+              署名済みの permit を 1 クリックで即座に無効化。エージェントが想定外の挙動を始めた瞬間、すべての支払いが止まります。revoke 後の課金リクエストは 422 で拒否されます。
             </p>
             <div className="mt-auto flex flex-col gap-2 text-[12px] text-white/50">
               <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>アトミック revoke（レース条件なし）</div>
               <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>所有者のみ操作可能</div>
-              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>ダッシュボード → Pay Tokens タブ</div>
+              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>ダッシュボード → マイ Permit</div>
             </div>
           </div>
 
@@ -467,7 +467,7 @@ export default function AboutPage() {
           <span className="text-[#fffd43]">5 分</span>で動かす
         </h2>
         <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
-          登録して、Pay Token を発行して、エージェントに渡す。以上。
+          登録して、permit に署名して、エージェントに渡す。以上。
         </p>
 
         <ol className="flex flex-col gap-5">
@@ -489,9 +489,9 @@ export default function AboutPage() {
           <li className="rounded-3xl bg-white/4 border border-white/8 p-7 flex gap-6">
             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">2</div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Pay Token を発行</h3>
+              <h3 className="text-lg font-black text-white mb-1.5">permit に署名</h3>
               <p className="text-[13px] text-white/45 leading-relaxed mb-3">
-                ダッシュボードの Pay Tokens タブで、対象サービス・上限 USDC・有効期限を指定して発行。Sandbox モードなら実残高は動きません。
+                ダッシュボードの 「マイ Permit」ページで、対象サービス・上限 USDC・有効期限を指定して発行。Sandbox モードなら実残高は動きません。
               </p>
               <div className="rounded-xl bg-black/40 border border-white/8 px-4 py-3 font-mono text-[12px] text-[#fffd43] leading-relaxed overflow-x-auto">
                 <div className="text-white/40">$ # or via REST:</div>
@@ -561,7 +561,7 @@ export default function AboutPage() {
         </h2>
         <p className="text-base md:text-lg text-white/45 max-w-2xl mx-auto leading-relaxed">
           AIエージェントが外部 API を呼び出すたびに、課金・認証・冪等性・残高管理が必要になります。
-          LemonCake は JWT Pay Token という仕組みで、エージェントに「予算上限付きのお財布」を渡します。
+          LemonCake は ERC-2612 permit という仕組みで、エージェントに「予算上限付きのお財布」を渡します。
           上限を超えれば自動停止。エージェントは支払い能力を持ちながら、暴走しません。
         </p>
       </section>
@@ -583,7 +583,7 @@ export default function AboutPage() {
                  className="w-full" />
           </div>
           <p className="text-center text-[11px] text-gray-400 mt-3">
-            このデモで agent が叩いた Hunter.io は要 API キー (月 $49)。LemonCake 経由なら $0.005 から従量課金。
+            このデモで agent が叩いた Hunter.io は要 API キー (月 $49)。LemonCake 経由なら $0.001 から従量課金。
           </p>
         </section>
       </div>
@@ -601,7 +601,7 @@ export default function AboutPage() {
                 icon: "🔍",
                 title: "B2B 営業リサーチ",
                 example: '"anthropic.com の主要連絡先メールを5件取得して"',
-                why: "Hunter.io API は要 API キー + 月 $49。ChatGPT には叩けない。LemonCake なら $0.005/call で agent が直接呼ぶ。",
+                why: "Hunter.io API は要 API キー + 月 $49。ChatGPT には叩けない。LemonCake なら $0.001/call で agent が直接呼ぶ。",
                 api: "Hunter.io",
               },
               {
@@ -657,7 +657,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-2">AIの知能を磨くことだけに集中する</h3>
               <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-                Pay Token をエージェントに渡すだけ。決済・残高管理・冪等性はすべて LemonCake が処理します。あなたはエージェントのロジックだけに集中してください。
+                permit をエージェントに渡すだけ。決済・残高管理・冪等性はすべて LemonCake が処理します。あなたはエージェントのロジックだけに集中してください。
               </p>
               <ul className="flex flex-col gap-3">
                 {buyerFeatures.map(f => (
@@ -739,7 +739,7 @@ export default function AboutPage() {
               },
               {
                 title: "エージェントはAPIキーを持てない",
-                body: "外部APIの認証情報をエージェントに渡すと漏洩リスクがあります。Pay Tokenは予算上限・有効期限・呼び出し先を制限でき、漏洩しても被害が限定されます。",
+                body: "外部APIの認証情報をエージェントに渡すと漏洩リスクがあります。permitは予算上限・有効期限・呼び出し先を制限でき、漏洩しても被害が限定されます。",
                 icon: "🔐",
               },
               {
@@ -894,7 +894,7 @@ export default function AboutPage() {
           </div>
           <div className="border-t border-white/8 pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
             <p className="text-[11px] text-white/20">© 2026 LemonCake. All rights reserved.</p>
-            <p className="text-[11px] text-white/20">KYA/KYC ティア認証 · JWT Pay Token · Polygon · USDC · JPYC</p>
+            <p className="text-[11px] text-white/20">KYA/KYC ティア認証 · ERC-2612 permit · Polygon · USDC · JPYC</p>
           </div>
         </div>
       </footer>
