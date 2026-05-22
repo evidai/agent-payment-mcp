@@ -56,17 +56,28 @@ const COINBASE_PROJECT_ID = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 //   • `presetFiatAmount` + `fiatCurrency` is what actually pre-fills
 //     the amount; `presetCryptoAmount` would expect a crypto-denominated
 //     value and the URL otherwise drops the user on an empty form.
-function buildOnrampUrl(walletAddress: string, presetUsd: number): string {
-  // Endpoint is /buy — OnchainKit's official constant. The
-  // /buy/select-asset path is the in-app navigation target, not the
-  // public landing URL, and using it directly trips a /error redirect.
+// Mint a Coinbase Onramp session token via our own API route, then
+// build the pay.coinbase.com URL around it. Newer CDP projects refuse
+// the bare-appId flow ("Project is configured to require secure
+// initialization") so the addresses must be bound to a server-issued
+// token instead of passed as URL params.
+async function buildOnrampUrl(walletAddress: string, presetUsd: number): Promise<string> {
+  const tokenRes = await fetch("/api/coinbase/session-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address: walletAddress }),
+  });
+  if (!tokenRes.ok) {
+    const detail = await tokenRes.text().catch(() => "");
+    throw new Error(`session-token mint failed (${tokenRes.status}): ${detail}`);
+  }
+  const { sessionToken } = (await tokenRes.json()) as { sessionToken?: string };
+  if (!sessionToken) {
+    throw new Error("session-token mint returned no token");
+  }
+
   const url = new URL("https://pay.coinbase.com/buy");
-  url.searchParams.set("appId", COINBASE_PROJECT_ID);
-  url.searchParams.set(
-    "addresses",
-    JSON.stringify({ [walletAddress]: ["base"] }),
-  );
-  url.searchParams.set("assets", JSON.stringify(["USDC"]));
+  url.searchParams.set("sessionToken", sessionToken);
   url.searchParams.set("defaultAsset", "USDC");
   url.searchParams.set("defaultNetwork", "base");
   url.searchParams.set("presetFiatAmount", String(presetUsd));
@@ -312,15 +323,34 @@ export default function StartV2Page() {
                     {[1, 3, 5].map((amt) => (
                       <button
                         key={amt}
-                        onClick={() => {
+                        onClick={async () => {
                           trackEvent("v2_onramp_clicked", { amount_usd: amt });
+                          // Pop the window synchronously inside the
+                          // user gesture so Safari / Chrome don't kill
+                          // it, then navigate once the server mints
+                          // the session token.
                           const w = window.open(
-                            buildOnrampUrl(userWallet.address as string, amt),
+                            "about:blank",
                             "coinbase-onramp",
                             "popup,width=480,height=720",
                           );
                           if (!w) {
                             setError("ポップアップがブロックされました。ブラウザ設定で許可してください。");
+                            return;
+                          }
+                          try {
+                            const url = await buildOnrampUrl(
+                              userWallet.address as string,
+                              amt,
+                            );
+                            w.location.href = url;
+                          } catch (e) {
+                            w.close();
+                            setError(
+                              e instanceof Error
+                                ? `Coinbase 接続に失敗しました: ${e.message}`
+                                : "Coinbase 接続に失敗しました",
+                            );
                           }
                         }}
                         className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
