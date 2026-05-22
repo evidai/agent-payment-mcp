@@ -277,7 +277,7 @@ export function ProviderRegistrationWizard({
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-1.5">
-                  氏名 / ハンドル名
+                  氏名
                   <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
