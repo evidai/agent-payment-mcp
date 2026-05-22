@@ -29,15 +29,17 @@ interface RegisterResult {
 }
 
 export default function SellersPage() {
-  const [name,              setName]              = useState("");
-  const [email,             setEmail]             = useState("");
-  const [baseWallet,        setBaseWallet]        = useState("");
-  const [apiEndpoint,       setApiEndpoint]       = useState("");
-  const [pricePerCall,      setPricePerCall]      = useState("0.005");
-  const [loading,           setLoading]           = useState(false);
-  const [error,             setError]             = useState<string | null>(null);
-  const [result,            setResult]            = useState<RegisterResult | null>(null);
-  const [copiedField,       setCopiedField]       = useState<string | null>(null);
+  const [name,               setName]               = useState("");
+  const [email,              setEmail]              = useState("");
+  const [baseWallet,         setBaseWallet]         = useState("");
+  const [apiEndpoint,        setApiEndpoint]        = useState("");
+  const [pricePerCall,       setPricePerCall]       = useState("0.005");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [autoIssue,          setAutoIssue]          = useState(false);
+  const [loading,            setLoading]            = useState(false);
+  const [error,              setError]              = useState<string | null>(null);
+  const [result,             setResult]             = useState<RegisterResult | null>(null);
+  const [copiedField,        setCopiedField]        = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,9 +52,11 @@ export default function SellersPage() {
         body: JSON.stringify({
           name,
           email,
-          baseWalletAddress: baseWallet,
-          apiEndpointUrl:    apiEndpoint || undefined,
-          pricePerCallUsdc:  pricePerCall,
+          baseWalletAddress:  baseWallet,
+          apiEndpointUrl:     apiEndpoint || undefined,
+          pricePerCallUsdc:   pricePerCall,
+          registrationNumber: registrationNumber || undefined,
+          autoIssueInvoices:  autoIssue,
         }),
       });
       if (!res.ok) {
@@ -192,6 +196,44 @@ export default function SellersPage() {
               <p className="mt-1 text-xs text-gray-500">
                 最低 $0.001。月 1,000 call の無料枠を超えた分のみ課金。
               </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">
+                🇯🇵 インボイス制度（任意）
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  適格請求書発行事業者登録番号
+                </label>
+                <input
+                  type="text"
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value.toUpperCase())}
+                  placeholder="T1234567890123"
+                  pattern="T\d{13}"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  T + 13桁。
+                  <a href="https://www.invoice-kohyo.nta.go.jp/" target="_blank" rel="noopener" className="underline text-amber-700">国税庁公表サイト</a>
+                  で確認できます。
+                </p>
+              </div>
+
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoIssue}
+                  onChange={(e) => setAutoIssue(e.target.checked)}
+                  className="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-gray-700 leading-relaxed">
+                  毎月末に前月分のインボイスを自動発行する
+                  <span className="text-gray-400 ml-1">（Pro プラン機能のプレビュー）</span>
+                </span>
+              </label>
             </div>
 
             {error && (

@@ -785,12 +785,84 @@ model ProviderV2 {
   // 発行されたシークレット（MCP 設定に貼る API KEY）
   apiKey String @unique @default(cuid())
 
+  // 適格請求書発行事業者登録番号（T + 13桁、日本のインボイス制度）
+  // 国税庁公表サイト: https://www.invoice-kohyo.nta.go.jp/
+  registrationNumber String?
+
+  // 適格請求書の自動発行（月末 cron がこの flag を見る）
+  autoIssueInvoices Boolean @default(false)
+
   active Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 発行したインボイス（Provider 単位）
+  invoices Invoice[]
+
   @@map("providers_v2")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 適格請求書（インボイス制度準拠）
+//
+// 国税庁の必須項目:
+//   - 発行者氏名/法人名 + 登録番号（T+13桁）
+//   - 取引年月日
+//   - 取引内容
+//   - 税率ごとに区分した対価の額
+//   - 消費税額
+//   - 書類交付を受ける事業者の氏名/名称
+// ─────────────────────────────────────────────────────────────
+model Invoice {
+  id String @id @default(cuid())
+
+  // 発行元
+  providerV2Id String
+  providerV2   ProviderV2 @relation(fields: [providerV2Id], references: [id])
+
+  // 適格請求書発行事業者登録番号（発行時点でスナップショット — 後から変わっても請求書は不変）
+  registrationNumber String
+
+  // 請求先（permit owner address）。会社名/メールは任意
+  buyerAddress String
+  buyerName    String?
+  buyerEmail   String?
+
+  // 期間（前月分など）
+  periodFrom DateTime
+  periodTo   DateTime
+
+  // 内訳サマリー
+  callCount    Int
+  totalUsdc    Decimal @db.Decimal(38, 18)
+  totalJpy     Decimal @db.Decimal(38, 2)    // USDC → JPY 換算（発行時レート）
+  taxRate      Decimal @db.Decimal(5, 2)     // 10.00 = 10%
+  taxAmount    Decimal @db.Decimal(38, 2)
+  exchangeRate Decimal @db.Decimal(20, 10)   // USD/JPY at issue time
+
+  // PDF / メール送信
+  pdfUrl    String?
+  emailSent Boolean @default(false)
+  sentAt    DateTime?
+
+  status InvoiceStatus @default(DRAFT)
+
+  issuedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerV2Id, issuedAt])
+  @@index([providerV2Id, periodFrom, periodTo])
+  @@index([status])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT       // 計算済み・未発行
+  ISSUED      // 発行済み（不変）
+  SENT        // メール送信完了
+  PAID        // 支払い確認済（将来用）
+  VOIDED      // 取り消し（赤伝）
 }
 
 model PlaygroundLog {

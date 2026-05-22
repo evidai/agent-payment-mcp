@@ -2523,6 +2523,253 @@ function AccountingPage({ buyerToken }: { buyerToken: string }) {
   );
 }
 
+// ── Invoices panel (v2): 適格請求書の生成・閲覧・送信 ─────────────────────────
+// PublishPage > 会計連携 タブの下に表示。Provider が自分の providerV2Id を
+// 入力 → 期間指定で /api/invoices POST → 一覧に追加 → PDF プレビュー、
+// という最小フロー。providerV2Id 自動取得は将来の auth flow と統合。
+
+interface InvoiceRow {
+  id:                 string;
+  providerV2Id:       string;
+  registrationNumber: string;
+  buyerAddress:       string;
+  buyerName:          string | null;
+  buyerEmail:         string | null;
+  periodFrom:         string;
+  periodTo:           string;
+  callCount:          number;
+  totalUsdc:          string;
+  totalJpy:           string;
+  taxRate:            string;
+  taxAmount:          string;
+  exchangeRate:       string;
+  pdfUrl:             string | null;
+  emailSent:          boolean;
+  status:             "DRAFT" | "ISSUED" | "SENT" | "PAID" | "VOIDED";
+  issuedAt:           string;
+}
+
+function InvoicesPanel() {
+  const t = useT();
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
+
+  const [providerV2Id, setProviderV2Id] = useState<string>("");
+  const [invoices,     setInvoices]     = useState<InvoiceRow[]>([]);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [generating,   setGenerating]   = useState(false);
+
+  // 期間選択（デフォルトは前月）
+  const today = new Date();
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [periodFrom, setPeriodFrom] = useState(lastMonthStart.toISOString().slice(0, 10));
+  const [periodTo,   setPeriodTo]   = useState(thisMonthStart.toISOString().slice(0, 10));
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lemon_provider_v2_id");
+      if (saved) setProviderV2Id(saved);
+    } catch { /* SSR fallback */ }
+  }, []);
+
+  useEffect(() => {
+    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
+  }, [providerV2Id]);
+
+  async function fetchInvoices() {
+    if (!providerV2Id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`${API}/api/invoices?providerV2Id=${encodeURIComponent(providerV2Id)}&limit=50`);
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? `HTTP ${r.status}`);
+      }
+      setInvoices(await r.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "fetch failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function generateInvoice() {
+    setGenerating(true);
+    setError(null);
+    try {
+      const r = await fetch(`${API}/api/invoices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerV2Id,
+          periodFrom: new Date(periodFrom).toISOString(),
+          periodTo:   new Date(periodTo).toISOString(),
+        }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error((body as { error?: string }).error ?? `HTTP ${r.status}`);
+      await fetchInvoices();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "generate failed");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function issueInvoice(id: string) {
+    setError(null);
+    try {
+      const r = await fetch(`${API}/api/invoices/${id}/issue`, { method: "POST" });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? `HTTP ${r.status}`);
+      }
+      await fetchInvoices();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "issue failed");
+    }
+  }
+
+  const fmtYen = (s: string) =>
+    "¥" + Math.round(parseFloat(s)).toLocaleString();
+  const fmtDate = (s: string) => new Date(s).toISOString().slice(0, 10);
+
+  const statusCfg: Record<InvoiceRow["status"], { label: string; cls: string }> = {
+    DRAFT:  { label: t("下書き", "Draft"),    cls: "bg-gray-100 text-gray-600 border-gray-200" },
+    ISSUED: { label: t("発行済み", "Issued"), cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    SENT:   { label: t("送信済み", "Sent"),   cls: "bg-green-50 text-green-700 border-green-200" },
+    PAID:   { label: t("入金済み", "Paid"),   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    VOIDED: { label: t("取消", "Voided"),     cls: "bg-red-50 text-red-700 border-red-200" },
+  };
+
+  return (
+    <div className="max-w-3xl flex flex-col gap-5 mt-10">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">{t("インボイス（適格請求書）", "Invoices")}</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          {t(
+            "USDC で受け取った課金を、日本の適格請求書として発行できます。月末に自動発行する設定は /sellers から。",
+            "Issue qualified invoices (Japan Invoice System) for your USDC charges. Monthly auto-issue can be enabled on /sellers.",
+          )}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">
+            {t("Provider ID（/sellers で発行）", "Provider ID (from /sellers)")}
+          </label>
+          <input
+            type="text"
+            value={providerV2Id}
+            onChange={(e) => setProviderV2Id(e.target.value.trim())}
+            placeholder="c1xxx…"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t("期間（から）", "Period from")}</label>
+            <input
+              type="date"
+              value={periodFrom}
+              onChange={(e) => setPeriodFrom(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t("期間（まで）", "Period to")}</label>
+            <input
+              type="date"
+              value={periodTo}
+              onChange={(e) => setPeriodTo(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={generateInvoice}
+            disabled={!providerV2Id || generating}
+            className="rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50"
+          >
+            {generating ? t("生成中…", "Generating…") : t("インボイス生成", "Generate")}
+          </button>
+          <button
+            type="button"
+            onClick={fetchInvoices}
+            disabled={!providerV2Id || loading}
+            className="rounded-full border border-gray-300 px-5 py-2 text-sm font-bold text-gray-700 hover:border-gray-400 disabled:opacity-50"
+          >
+            {loading ? t("読み込み中…", "Loading…") : t("再読み込み", "Reload")}
+          </button>
+        </div>
+        {error && (
+          <p className="text-xs text-red-600">{error}</p>
+        )}
+      </div>
+
+      {invoices.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/60">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("期間", "Period")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("件数", "Calls")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("金額", "Amount")}</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t("状態", "Status")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr key={inv.id} className="border-b border-gray-50 last:border-0">
+                  <td className="px-4 py-3 text-gray-700">{fmtDate(inv.periodFrom)} ~ {fmtDate(inv.periodTo)}</td>
+                  <td className="px-4 py-3 text-right font-mono">{inv.callCount.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-mono">{fmtYen(inv.totalJpy)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full border ${statusCfg[inv.status].cls}`}>
+                      {statusCfg[inv.status].label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="inline-flex gap-2">
+                      <a
+                        href={`${API}/api/invoices/${inv.id}/pdf`}
+                        target="_blank"
+                        rel="noopener"
+                        className="text-xs font-bold text-amber-700 hover:underline"
+                      >
+                        {t("PDF", "PDF")}
+                      </a>
+                      {inv.status === "DRAFT" && (
+                        <button
+                          type="button"
+                          onClick={() => issueInvoice(inv.id)}
+                          className="text-xs font-bold text-blue-700 hover:underline"
+                        >
+                          {t("発行", "Issue")}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {invoices.length === 0 && !loading && providerV2Id && (
+        <p className="text-sm text-gray-400 text-center py-8">
+          {t("まだインボイスがありません。期間を指定して生成してください。", "No invoices yet. Pick a period and generate.")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── PublishPage (v2): wraps Services / Revenue / Accounting as tabs ──────────
 // Replaces the inline `{page === "publish" && ...}` rendering. The accounting
 // tab is locked behind Pro plan (Task 4) but the UI is exposed now so
@@ -2578,7 +2825,12 @@ function PublishPage({
       {/* タブ本体 */}
       {tab === "services"   && <SellerServicesPage profile={sellerProfile} services={myServices} onEditProfile={onEditProfile} onCreateService={onCreateService} />}
       {tab === "revenue"    && <SellerStatsPage services={myServices} />}
-      {tab === "accounting" && <AccountingPage buyerToken={buyerToken} />}
+      {tab === "accounting" && (
+        <>
+          <AccountingPage buyerToken={buyerToken} />
+          <InvoicesPanel />
+        </>
+      )}
     </div>
   );
 }

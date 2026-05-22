@@ -43,6 +43,7 @@ import { adminRevenueRouter }       from "./routes/admin-revenue.js";
 import { coinbaseRouter }           from "./routes/coinbase.js";
 import { chargesPermitRouter }      from "./routes/charges-permit.js";
 import { providersV2Router }        from "./routes/providers-v2.js";
+import { invoicesRouter }           from "./routes/invoices.js";
 import { sdkRouter }                from "./routes/sdk.js";
 import { mcpAccessLog }                from "./middleware/mcpAccessLog.js";
 import { startUsdcTransferWorker, handleFailedJob } from "./workers/usdcTransfer.js";
@@ -90,6 +91,7 @@ app.route("/api/spend-webhooks", spendWebhooksRouter);
 app.route("/api/buyers",    buyersRouter);
 app.route("/api/services",  servicesRouter);
 app.route("/api/providers/v2", providersV2Router);  // v2 must come before /api/providers
+app.route("/api/invoices",     invoicesRouter);
 app.route("/api/providers", providersRouter);
 app.route("/api/jpyc",      jpycRouter);
 app.route("/api/tax",       taxRouter);

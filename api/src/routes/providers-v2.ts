@@ -16,6 +16,10 @@ const CreateProviderV2Body = z.object({
   apiEndpointUrl:    z.string().url().optional(),
   pricePerCallUsdc:  z.string().regex(/^\d+(\.\d{1,6})?$/).default("0.005"),
   freeCallsPerMonth: z.coerce.number().int().min(0).max(1_000_000).default(1000),
+  // 適格請求書発行事業者登録番号（T + 13桁）。日本のインボイス制度。
+  registrationNumber: z.string().regex(/^T\d{13}$/, "Must be T + 13 digits").optional(),
+  // 月末 cron が前月分のインボイスを自動発行するか
+  autoIssueInvoices:  z.boolean().default(false),
 });
 
 const ProviderV2Schema = z.object({
@@ -83,12 +87,14 @@ providersV2Router.openapi(
 
     const provider = await prisma.providerV2.create({
       data: {
-        name:              body.name,
-        email:             body.email,
-        baseWalletAddress: checksumAddress,
-        apiEndpointUrl:    body.apiEndpointUrl ?? null,
-        pricePerCallUsdc:  body.pricePerCallUsdc,
-        freeCallsPerMonth: body.freeCallsPerMonth,
+        name:               body.name,
+        email:              body.email,
+        baseWalletAddress:  checksumAddress,
+        apiEndpointUrl:     body.apiEndpointUrl ?? null,
+        pricePerCallUsdc:   body.pricePerCallUsdc,
+        freeCallsPerMonth:  body.freeCallsPerMonth,
+        registrationNumber: body.registrationNumber ?? null,
+        autoIssueInvoices:  body.autoIssueInvoices,
       },
     });
 
