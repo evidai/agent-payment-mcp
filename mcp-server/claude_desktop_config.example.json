@@ -1,11 +1,10 @@
 {
   "mcpServers": {
-    "lemon-cake": {
+    "lemon": {
       "command": "npx",
-      "args": ["-y", "lemon-cake-mcp"],
+      "args": ["-y", "agent-payment-mcp"],
       "env": {
-        "LEMON_CAKE_PAY_TOKEN": "<POST /api/tokens で発行した Pay Token JWT>",
-        "LEMON_CAKE_BUYER_JWT": "<POST /api/auth/buyer-login で取得した Buyer JWT>"
+        "LEMON_CAKE_PERMIT": "<lemoncake.xyz/start/v2 で発行した permit blob>"
       }
     }
   }

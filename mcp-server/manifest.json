@@ -1,19 +1,19 @@
 {
   "manifest_version": "0.3",
   "name": "lemon-cake",
-  "display_name": "pay-per-call-mcp — USDC Billing for AI Agents · Demo Mode (no signup)",
-  "version": "0.5.2",
-  "description": "Give your AI agent a USDC wallet. Pay-per-call billing for any HTTP API with x402-compatible receipts, spend limits, and Demo Mode that works instantly — no signup needed. Includes Japan tax invoice check (国税庁). Official freee App Store partner.",
-  "long_description": "## 🚀 30-second start (no signup, no USDC needed)\n\n1. Install this server in Claude Desktop / Cursor / Windsurf\n2. Leave ALL credential fields empty — it boots in DEMO MODE automatically\n3. Ask Claude: \"Use the setup tool to show me what's available\"\n4. Try a real free API: \"Search Wikipedia for 'MCP protocol' using demo_search\"\n\nThat's it. No account. No credit card. Three live APIs (Wikipedia search, live FX rates, httpbin echo) work for free in Demo Mode.\n\n💬 Stuck? Join our Discord: https://discord.gg/JBekn3EF — we reply fast.\n\n---\n\n## Going live (paid APIs)\n\n5. Create a free account at https://lemoncake.xyz/dashboard\n6. Top up USDC (minimum $1 — covers ~100 API calls)\n7. Copy your Pay Token from Dashboard → Tokens\n8. Paste it into the \"Pay Token\" field in the Inspector\n9. Ask Claude: \"List all available services\" → call any of 16+ APIs (Serper, Hunter.io, Firecrawl, Jina, IPinfo, gBizINFO, 国税庁, and more)\n\n---\n\n## What this server does\n\nLemonCake gives any AI agent a USDC wallet. Instead of 15 different API keys, the agent uses one Pay Token (a JWT with a hard spending cap, expiry, and service scope). LemonCake handles per-call billing across the whole marketplace.\n\nTools:\n- setup — interactive onboarding, works without credentials\n- list_services — browse 16+ APIs with prices and usage hints\n- call_service — execute any marketplace API, auto-billed in USDC\n- check_balance — USDC balance and account info\n- check_tax — Japanese 適格請求書 validation + 源泉徴収 calculation\n- get_service_stats — aggregate marketplace usage numbers\n\nSafety: Pay Token has limitUsdc / scope / expiresAt baked in. The agent physically cannot overspend. Token revocation is instant.\n\n💬 Questions? https://discord.gg/JBekn3EF | Docs: https://lemoncake.xyz | GitHub: https://github.com/evidai/lemon-cake\n\n🇯🇵 freee App Store: https://app.secure.freee.co.jp/applications/66063",
+  "display_name": "agent-payment-mcp — Non-custodial USDC payments · Demo Mode (no signup)",
+  "version": "0.8.0",
+  "description": "Give your AI agent a USDC wallet. Pay-per-call any API. One ERC-2612 permit signature gives a 90-day, $25/day hard cap that the agent literally cannot exceed. USDC stays in your own wallet — LemonCake never touches it. Demo Mode works with zero signup. x402-compatible.",
+  "long_description": "## 🚀 30-second start (no signup, no permit needed)\n\n1. Install this server in Claude Desktop / Cursor / Cline\n2. Leave the LEMON_CAKE_PERMIT field empty — it boots in DEMO MODE automatically\n3. Ask Claude: \"Use the setup tool to show me what's available\"\n4. Try a real free API: \"Search Wikipedia for 'MCP protocol' using demo_search\"\n\nThat's it. No account. No credit card. Three live APIs (Wikipedia search, live FX rates, httpbin echo) work for free in Demo Mode.\n\n💬 Stuck? GitHub issues: https://github.com/evidai/agent-payment-mcp/issues — we reply fast.\n\n---\n\n## Going live (paid APIs) — 1 signature, 90 days\n\n5. Open https://lemoncake.xyz/start/v2 in your browser\n6. Sign in with Google (Privy embedded wallet — keys stay on your device)\n7. Get USDC via Apple Pay / Coinbase / JPY bank transfer (built in, 30 sec)\n8. Sign ONE ERC-2612 permit — \"$25/day cap, 90 days, gas-free\"\n9. Paste the LEMON_CAKE_PERMIT blob into the field\n10. Ask Claude: \"List all available services\" → call any of 16+ APIs (Serper, Hunter.io, Firecrawl, Jina, IPinfo, gBizINFO, 国税庁, …)\n\nUSDC settles directly from your wallet → API provider. LemonCake never sees or holds it.\n\n---\n\n## What this server does\n\nLemonCake gives any AI agent a USDC wallet on Base. Instead of 15 different API keys, the agent uses one permit (an ERC-2612 EIP-712 signature with a daily cap enforced by the USDC contract itself). LemonCake routes per-call billing across the whole marketplace, FSA Q11-compliant.\n\nTools:\n- setup — interactive onboarding, works without credentials\n- list_services — browse 16+ APIs with prices and usage hints\n- call_service — execute any marketplace API, auto-billed in USDC via permit\n- check_balance — on-chain USDC balance + remaining daily cap\n- check_tax — Japanese 適格請求書 validation + 源泉徴収 calculation\n- get_service_stats — aggregate marketplace usage numbers\n\nSafety: the daily $25 cap is on-chain — the USDC contract refuses transfers above it. The agent physically cannot overspend. Permit expires after 90 days regardless.\n\n💬 GitHub: https://github.com/evidai/agent-payment-mcp | Docs: https://lemoncake.xyz/about\n\n🇯🇵 freee App Store: https://app.secure.freee.co.jp/applications/66063",
   "author": {
     "name": "Evid AI",
     "email": "contact@aievid.com",
     "url": "https://lemoncake.xyz"
   },
   "homepage": "https://lemoncake.xyz",
-  "documentation": "https://lemoncake.xyz/docs/quickstart",
-  "support": "https://discord.gg/JBekn3EF",
-  "community": "https://discord.gg/JBekn3EF",
+  "documentation": "https://lemoncake.xyz/about",
+  "support": "https://github.com/evidai/agent-payment-mcp/issues",
+  "community": "https://github.com/evidai/agent-payment-mcp/discussions",
   "icon": "icon.png",
   "screenshots": [
     "screenshots/marketplace.png",
@@ -27,6 +27,10 @@
     "pay-per-call",
     "usdc",
     "stablecoin",
+    "non-custodial",
+    "erc-2612",
+    "permit",
+    "x402",
     "wallet",
     "m2m",
     "agent-finance",
@@ -46,24 +50,16 @@
       "command": "node",
       "args": ["${__dirname}/dist/index.js"],
       "env": {
-        "LEMON_CAKE_PAY_TOKEN": "${user_config.pay_token}",
-        "LEMON_CAKE_BUYER_JWT": "${user_config.buyer_jwt}",
-        "LEMON_CAKE_API_URL":   "${user_config.api_url}"
+        "LEMON_CAKE_PERMIT":  "${user_config.permit}",
+        "LEMON_CAKE_API_URL": "${user_config.api_url}"
       }
     }
   },
   "user_config": {
-    "pay_token": {
+    "permit": {
       "type": "string",
-      "title": "Pay Token — OPTIONAL (leave empty for instant Demo Mode)",
-      "description": "🎮 Leave this EMPTY to try Demo Mode right now — no signup, no account, no USDC needed. Three real free APIs (Wikipedia search, live FX rates, httpbin echo) work immediately.\n\nOnly fill this in when you want to call real paid APIs (Serper, Hunter, Tavily, etc.). Get your Pay Token from https://lemoncake.xyz/dashboard after creating a free account.",
-      "sensitive": true,
-      "required": false
-    },
-    "buyer_jwt": {
-      "type": "string",
-      "title": "Buyer JWT — OPTIONAL (leave empty for Demo Mode)",
-      "description": "🎮 Leave this EMPTY — Demo Mode works without it. Only needed for `check_balance` on a real account.\n\nGet your Buyer JWT from https://lemoncake.xyz/dashboard → API Keys.",
+      "title": "Permit blob — OPTIONAL (leave empty for instant Demo Mode)",
+      "description": "🎮 Leave this EMPTY to try Demo Mode right now — no signup, no account, no USDC needed. Three real free APIs (Wikipedia search, live FX rates, httpbin echo) work immediately.\n\nOnly fill this in when you want to call real paid APIs (Serper, Hunter, Tavily, etc.). Get your LEMON_CAKE_PERMIT in ~30 seconds at https://lemoncake.xyz/start/v2 — sign in with Google, get USDC via Apple Pay / Coinbase / JPY bank transfer, sign one ERC-2612 permit (gas-free, 90 days, $25/day hard cap), and paste the blob here. LemonCake never holds your USDC.",
       "sensitive": true,
       "required": false
     },
@@ -78,19 +74,19 @@
   "tools": [
     {
       "name": "setup",
-      "description": "Interactive on-boarding: shows what credentials you have, what's missing, and how to get them. No auth required."
+      "description": "Interactive on-boarding: shows what credentials you have, what's missing, and how to get a permit at /start/v2. No auth required."
     },
     {
       "name": "list_services",
-      "description": "List approved API services available in the marketplace (Serper, Hunter.io, gBizINFO, etc.). No auth required. Returns id, name, provider, pricePerCall, and per-service usage hint (path/method/body) so the agent can construct the correct call_service request without trial-and-error."
+      "description": "List approved API services available in the marketplace (Serper, Hunter.io, gBizINFO, etc.). No auth required. Returns id, name, provider, pricePerCall, and per-service usage hint (path/method/body) so the agent can construct the correct call_service request without trial-and-error. Demo services prepended in DEMO MODE."
     },
     {
       "name": "call_service",
-      "description": "Invoke an upstream API service through the pay-per-call proxy. Charges USDC against the Pay Token. Returns upstream response verbatim plus chargeId and amountUsdc. 4xx responses include a structured `hint` field with actionable guidance (e.g. 401=auth issue, 402=balance exhausted, 422=service uneconomical). Requires LEMON_CAKE_PAY_TOKEN."
+      "description": "Invoke an upstream API service through the pay-per-call proxy. Charges USDC via the configured permit (direct wallet → provider, LemonCake never holds funds). Returns upstream response verbatim plus chargeId and amountUsdc. 4xx responses include a structured `hint` field with actionable guidance (e.g. 401=auth issue, 402=daily permit cap exhausted, 422=service uneconomical). Requires LEMON_CAKE_PERMIT for real services; demo_* serviceIds work without it."
     },
     {
       "name": "check_balance",
-      "description": "Returns current USDC balance, KYC tier, and account info. Requires LEMON_CAKE_BUYER_JWT."
+      "description": "Returns on-chain USDC balance + remaining daily permit cap. Demo mode returns a mock $1.00 balance."
     },
     {
       "name": "check_tax",
@@ -120,8 +116,8 @@
     },
     {
       "name": "spend-with-budget",
-      "description": "Demonstrate hard-cap spending: call a service with a strict USDC budget that the agent cannot exceed.",
-      "text": "Explain how a LemonCake Pay Token enforces a hard USDC spending cap that the agent physically cannot exceed (limitUsdc claim baked into the JWT). Then simulate it: call `demo_search` 3 times in a row through `call_service`, and after each call, call `check_balance` and report the remaining mock balance. Stop if the simulated remaining balance hits zero."
+      "description": "Demonstrate the on-chain hard cap: the daily $25 USDC limit is enforced by the USDC contract itself.",
+      "text": "Explain how a LemonCake permit enforces a hard daily USDC spending cap on-chain (USDC contract refuses transfers that would exceed the permit's value). Then simulate it: call `demo_search` 3 times in a row through `call_service`, and after each call, call `check_balance` and report the remaining mock balance + cap. Stop if remaining hits zero."
     },
     {
       "name": "real-vs-demo",
