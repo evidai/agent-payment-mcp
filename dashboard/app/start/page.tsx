@@ -159,52 +159,52 @@ export default function StartPage() {
             <div className="flex flex-col items-start gap-6">
               <span className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#fffd43]/80 bg-[#fffd43]/5 border border-[#fffd43]/20 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#fffd43] animate-pulse" />
-                MCP server · USDC · x402-compatible · agent payments
+                Non-custodial · ERC-2612 permit · x402 native · USDC on Base
               </span>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]">
-                Pay-per-call USDC <br className="hidden md:inline" />
-                for <span className="text-[#fffd43]">any HTTP API</span>.
+                AI が API を呼ぶ、<br className="hidden md:inline" />
+                <span className="text-[#fffd43]">USDC で支払う</span>。<br className="hidden md:inline" />
+                <span className="text-white/60 text-3xl sm:text-4xl md:text-5xl">あなたは触らない。</span>
               </h1>
 
               <p className="text-base md:text-lg text-white/60 leading-relaxed">
-                Give your AI agent a wallet. Your Claude / Cursor / Cline calls
-                Tavily, ElevenLabs, gBizINFO — without you handing over API keys.
-                Per-call billing in USDC, refunds on failure, capped spending.
+                AI エージェント向けの<strong className="text-white">非カストディ</strong>マイクロペイメント基盤。
+                ERC-2612 permit に <strong className="text-white">1 度署名</strong>すれば、Claude / Cursor / Cline が 90 日間ノーサインで Tavily / Serper / Hunter / NTA API を呼べる。USDC はあなたのウォレットに残ったまま、提供者へ直接送金。
               </p>
 
               <div className="w-full space-y-3">
                 <CopyCommand value={NPM_COMMAND} label="Copy install command" />
                 <p className="text-[12px] text-white/40 leading-relaxed">
-                  Paste into any terminal. With <strong className="text-white/60">no environment variables</strong>, it boots in <span className="text-[#fffd43]">Demo Mode</span> — real Wikipedia / FX / httpbin, no signup, no card.
+                  まずは <strong className="text-white/60">サインアップ不要の Demo Mode</strong> から。実 Wikipedia / FX / httpbin を呼べる。permit 発行は <Link href="/start/v2" className="text-[#fffd43] hover:underline">/start/v2</Link> で。
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3 mt-1">
+                <Link
+                  href="/start/v2"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#fffd43] text-[#06060a] font-semibold text-sm hover:bg-[#fffd43]/90 transition"
+                >
+                  🍋 1 分で permit 署名 →
+                </Link>
                 <a
                   href={GLAMA_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#fffd43] text-[#06060a] font-semibold text-sm hover:bg-[#fffd43]/90 transition"
-                >
-                  Try in browser sandbox →
-                </a>
-                <a
-                  href="#how-it-works"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/80 font-semibold text-sm hover:bg-white/10 transition"
                 >
-                  How it works
+                  ブラウザで試す →
                 </a>
               </div>
 
               {/* badges row */}
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-[11px] text-white/40">
                 <Pill label="MIT licensed" />
-                <Pill label="MCP 1.10+" />
-                <Pill label="Node 20+" />
-                <Pill label="Listed on Glama" accent />
                 <Pill label="Demo Mode (no auth)" accent />
-                <Pill label="x402-compatible" accent />
+                <Pill label="非カストディ・FSA 確認済" accent />
+                <Pill label="x402 native facilitator" accent />
+                <Pill label="Coinbase Bazaar 自動掲載" accent />
+                <Pill label="AWS Bedrock AgentCore 互換" accent />
               </div>
             </div>
 

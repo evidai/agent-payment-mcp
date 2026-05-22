@@ -147,97 +147,97 @@ const IconBeaker = () => (
 // ── Data ──────────────────────────────────────────────────────────────────────
 const whyItems = [
   {
-    eyebrow: "ERC-2612 permit",
-    title: "予算上限付きの\n支払い能力を委譲",
-    body: "エージェントに渡すのは permit だけ。上限 USDC・有効期限・対象サービスをあらかじめ設定するので、暴走リスクなしに自律決済を委任できます。上限に達した瞬間、支払いは自動停止します。",
+    eyebrow: "非カストディ",
+    title: "USDC は\nあなたのウォレットに残る",
+    body: "LemonCake は USDC を一切預かりません。AI エージェントが API を呼ぶ瞬間、あなたのウォレットから提供者ウォレットへ直接オンチェーン送金。FSA Fintech サポートデスクへの照会 (Q1-Q11) で「資金移動業・暗号資産交換業・電子決済手段等取引業のいずれにも該当しない」確認済。",
     stats: [
-      { num: "JWT", label: "permit 形式" },
-      { num: "USDC", label: "決済通貨" },
+      { num: "0%", label: "LemonCake の取分 (per-call)" },
+      { num: "JP/US/EU", label: "規制グリーン圏" },
     ],
     flipped: false,
   },
   {
-    eyebrow: "Marketplace",
-    title: "AIエージェントが\n選んで、払う",
-    body: "LemonCake マーケットプレイスに登録された API は、エージェントが自律的に選択・呼び出し・支払いまで完結します。人間の承認を必要としない M2M トランザクションを、単一のプロキシエンドポイントで実現します。",
+    eyebrow: "ERC-2612 permit",
+    title: "1 度の署名で\n90 日間 ノーサイン運用",
+    body: "EIP-712 形式の permit に 1 度署名すれば、90 日間 / $25/日 の hard cap 内で AI が自由に API を呼べる。署名はオンチェーン署名なのでガス代不要。漏洩しても cap 以上は引かれない。Coinbase Onramp / Transak (JPY) でカード入金可。",
     stats: [
-      { num: "M2M", label: "自律トランザクション" },
-      { num: "1本", label: "プロキシ API" },
+      { num: "90 日", label: "permit 有効期限" },
+      { num: "$25/日", label: "default hard cap" },
     ],
     flipped: true,
   },
   {
-    eyebrow: "Idempotent Payments",
-    title: "二重課金ゼロ。\n確実なマイクロペイメント",
-    body: "呼び出しごとに UUID の Idempotency-Key を自動付与。ネットワーク障害・タイムアウトによる再試行が起きても、同じ決済が 2 回実行されることはありません。",
+    eyebrow: "x402 native",
+    title: "Coinbase Bazaar /\nAWS AgentCore に自動掲載",
+    body: "LemonCake は HTTP 402 Payment Required の公式 facilitator として動作。`@lemon-cake/x402-server` の hybrid モードを Provider が有効化すると、Coinbase CDP 経由で settle → x402 Bazaar / AWS Bedrock AgentCore Payments / 22 社 Foundation の流量に自動で接続される。",
     stats: [
-      { num: "UUID", label: "冪等キー自動付与" },
-      { num: "0件", label: "二重課金リスク" },
+      { num: "Base", label: "settlement chain" },
+      { num: "ERC-3009", label: "署名スキーム" },
     ],
     flipped: false,
   },
   {
-    eyebrow: "JPYC → USDC",
-    title: "JPYCで入金して\nUSDCで支払う",
-    body: "ステーブルコイン JPYC を送金するだけで USDC 残高に即時反映。円建てで資金管理しながら、グローバルな USDC マイクロペイメントを実行できます。Polygon ベースの ERC-20 トークンで決済コストも最小化。",
+    eyebrow: "日本ビジネス特化",
+    title: "freee / 適格請求書 /\nJPY オフランプを内蔵",
+    body: "受け取った USDC を freee / MoneyForward に自動仕訳。適格請求書（インボイス制度）も月末に自動発行。Coincheck 経由で USDC → JPY → 銀行口座まで 1 クリック (Business プラン)。これが Coinbase / Circle / Stripe Agentic にできない、LemonCake の堀。",
     stats: [
-      { num: "JPYC", label: "入金通貨" },
-      { num: "Polygon", label: "チェーン" },
+      { num: "freee/MF", label: "自動仕訳連携" },
+      { num: "Coincheck", label: "JPY オフランプ" },
     ],
     flipped: true,
   },
 ];
 
 const buyerFeatures = [
-  "permit でエージェントに安全な支払い能力を付与",
-  "利用上限・有効期限・対象サービスを設定してリスクをコントロール",
-  "エージェントが自律的に API を選び、即座に支払い完了",
-  "JPYC を送るだけで USDC 残高として即時反映",
-  "KYA/KYC ティアで 1 日あたりの限度額を段階管理",
-  "すべての課金履歴・残高をダッシュボードでリアルタイム確認",
+  "ERC-2612 permit に 1 度署名で 90 日間ノーサイン運用",
+  "$25/日 の hard cap がチェーンに焼かれて改変不可",
+  "USDC はあなたのウォレットに残る（非カストディ）",
+  "Apple Pay / Google Pay / 銀行振込（JPY）から USDC 入手まで内蔵",
+  "x402 Bazaar / AWS Bedrock AgentCore 互換、global discovery 経路に接続",
+  "permit 漏洩しても cap 上限まで、有効期限後は自動失効",
 ];
 
 const sellerFeatures = [
-  "API を登録して即日マーケットプレイスに公開",
-  "AIエージェントという新しい未開拓の顧客層にリーチ",
-  "@lemon-cake/mcp-sdk で自分の MCP サーバーを 3 行で収益化",
-  "課金回数・累計収益をリアルタイム集計",
-  "審査通過後、サービス利用料がウォレットに自動入金",
-  "サービスタイプ・単価を自由に設定",
-  "人間の営業・マーケなしに 24 時間収益が入り続ける",
+  "/sellers で 1 分登録、即日 USDC で課金開始（KYC・法人不要）",
+  "USDC は Provider ウォレットに 100% 直接着金、chargeback 不可",
+  "Pro プランで freee / MoneyForward 自動仕訳 + 適格請求書自動発行",
+  "Business プランで USDC → JPY 自動オフランプ (Coincheck → 銀行口座)",
+  "@lemon-cake/x402-server で 3 行で hybrid モード対応 + Bazaar 自動掲載",
+  "月 1,000 call まで無料（LemonCake 負担）",
+  "営業ゼロで 24 時間収益発生",
 ];
 
 const integrations = [
   {
     icon: <IconTerminal />,
     badge: "npm · agent-payment-mcp",
-    title: "MCP サーバー",
-    subtitle: "Claude / Cursor に即接続",
-    body: "npx -y agent-payment-mcp で起動するだけ。claude_desktop_config.json に追記すれば、Claude Desktop・Cursor がすぐに LemonCake の全機能を使えます。",
+    title: "MCP サーバー（buyer 側）",
+    subtitle: "Claude / Cursor / Cline に即接続",
+    body: "npx -y agent-payment-mcp で起動。claude_desktop_config.json に LEMON_CAKE_PERMIT を貼るだけ。Demo Mode は signup 不要、permit 不要で即動作（Wikipedia / FX / httpbin）。",
     code: `npx -y agent-payment-mcp`,
     tools: ["list_services", "call_service", "check_balance", "setup"],
     href: "https://www.npmjs.com/package/agent-payment-mcp",
     published: true,
   },
   {
-    icon: <IconPackage />,
-    badge: "npm · eliza-plugin-lemoncake",
-    title: "Eliza v2 プラグイン",
-    subtitle: "@elizaos/core v2 対応",
-    body: "character.plugins に追加するだけで、Eliza エージェントが EXECUTE_LEMONCAKE_PAYMENT アクションを使えるようになります。PAY_TOKEN / BUYER_JWT の 2 モード対応。",
-    code: `npm install eliza-plugin-lemoncake`,
-    tools: ["EXECUTE_LEMONCAKE_PAYMENT", "PAY_WITH_LEMONCAKE", "M2M_PAYMENT"],
-    href: "https://www.npmjs.com/package/eliza-plugin-lemoncake",
+    icon: <IconStore />,
+    badge: "npm · @lemon-cake/x402-server",
+    title: "x402 middleware（seller 側）",
+    subtitle: "Express / Hono に 3 行で組み込み",
+    body: "Provider の API に HTTP 402 を組み込む。hybrid モードで Coinbase CDP 経由 settle → x402 Bazaar / AWS Bedrock AgentCore に自動掲載 + LemonCake にも metering 記録される（freee 仕訳 / インボイス対応）。",
+    code: `npm install @lemon-cake/x402-server`,
+    tools: ["x402Middleware()", "x402Hono()", "hybrid mode", "Bazaar discovery"],
+    href: "https://www.npmjs.com/package/@lemon-cake/x402-server",
     published: true,
   },
   {
-    icon: <IconStore />,
+    icon: <IconPackage />,
     badge: "npm · @lemon-cake/mcp-sdk",
-    title: "MCP SDK（販売者向け）",
-    subtitle: "自分の MCP サーバーを 3 行で収益化",
-    body: "MCP ツールに lc.charge() を 1 行追加するだけで、あなたのサーバーが permit に対応します。デモモード・無料枠・レートリミット・x402 ヘッダー対応をすべて内蔵。",
+    title: "MCP SDK（seller 側 / 旧来式）",
+    subtitle: "MCP server を 3 行で収益化",
+    body: "MCP ツールに withPayment() を 1 行追加。x402 facilitator と統合済。Provider が自前 API ではなく MCP server を公開するケース向け。",
     code: `npm install @lemon-cake/mcp-sdk`,
-    tools: ["charge()", "middleware()", "getEarnings()", "demoMode"],
+    tools: ["withPayment()", "demoMode", "getEarnings()"],
     href: "https://www.npmjs.com/package/@lemon-cake/mcp-sdk",
     published: true,
   },
@@ -300,29 +300,35 @@ export default function AboutPage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
               Code pays code.<br />
               <span className="text-black">
-                We handle the rest.
+                We never touch the funds.
               </span>
             </h1>
             <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-xl mb-10 leading-relaxed mx-auto md:mx-0">
-              AIエージェントが自律的にAPIを選び、支払い、完結する。<br className="hidden md:block" />
-              その仕組みをまるごと提供します。
+              AI エージェント向け非カストディ USDC 決済基盤。<br className="hidden md:block" />
+              <strong>1 度の permit 署名</strong>で 90 日間ノーサイン。USDC は<strong>あなたのウォレット</strong>に残ったまま、API 提供者へ直接送金。
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link
-                href="/start"
+                href="/start/v2"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
               >
-                🎮 30 秒で試す（無料） <IconArrowRight />
+                🍋 1 分で permit 発行 <IconArrowRight />
               </Link>
               <Link
-                href="/register"
+                href="/sellers"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
               >
-                permit に署名する
+                API を公開する（無料）
+              </Link>
+              <Link
+                href="/start"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-transparent text-[#1a0f00]/70 font-semibold hover:text-[#1a0f00] transition-colors text-sm"
+              >
+                Demo Mode を試す →
               </Link>
             </div>
             <p className="text-[12px] text-[#1a0f00]/50 mt-4">
-              <code className="font-mono">npx -y agent-payment-mcp</code> · サインアップ不要・x402 互換
+              <code className="font-mono">npx -y agent-payment-mcp</code> · サインアップ不要・FSA 確認済・x402 native
             </p>
           </div>
         </section>
