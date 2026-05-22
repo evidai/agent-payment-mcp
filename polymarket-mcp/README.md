@@ -35,7 +35,7 @@ Or add to your MCP client (Claude Desktop, Cursor, etc.):
 |---|---|---|
 | `POLYMARKET_PRIVATE_KEY` | For trading | Polygon wallet private key (0x-prefixed 32-byte hex). Required for positions, balance, and all trading tools. |
 | `LEMONCAKE_SELLER_KEY` | Optional | LemonCake seller key. Absent = Demo Mode (charges logged, no real billing). |
-| `LEMONCAKE_PAY_TOKEN` | Optional | Client's pay token for billing. Passed by the MCP client automatically when using LemonCake. |
+| `LEMON_CAKE_PERMIT` | Optional | Client's ERC-2612 permit blob for non-custodial billing. Passed by the MCP client automatically when using LemonCake. |
 
 ## Demo Mode
 

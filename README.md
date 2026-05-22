@@ -1,62 +1,78 @@
 <div align="center">
 
-# agent-payment-mcp — LemonCake
+# LemonCake — agent-payment-mcp
 
-**Give your AI agent a wallet — with a kill switch.**
+**Give your AI agent a USDC wallet. One signature, 90 days, done.**
 
-> JWT-based Pay Tokens + USDC micropayments for autonomous AI agents.  
+> ERC-2612 permit-based pay-per-call infrastructure for autonomous AI agents.
 > No signup. No API keys. `npx agent-payment-mcp` boots in Demo Mode instantly.
 
-[![License: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](https://lemoncake.xyz)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
 [![npm: agent-payment-mcp](https://img.shields.io/npm/v/agent-payment-mcp?label=agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![npm: xstocks-mcp](https://img.shields.io/npm/v/xstocks-mcp?label=xstocks-mcp)](https://www.npmjs.com/package/xstocks-mcp)
 [![npm: alpaca-guard-mcp](https://img.shields.io/npm/v/alpaca-guard-mcp?label=alpaca-guard-mcp)](https://www.npmjs.com/package/alpaca-guard-mcp)
 [![npm: tokenized-stock-mcp](https://img.shields.io/npm/v/tokenized-stock-mcp?label=tokenized-stock-mcp)](https://www.npmjs.com/package/tokenized-stock-mcp)
 [![npm: @lemon-cake/mcp-sdk](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk?label=%40lemon-cake%2Fmcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
-[![Status](https://img.shields.io/badge/status-private%20beta-fffd43)](https://lemoncake.xyz)
-[![CI](https://github.com/evidai/agent-payment-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/evidai/agent-payment-mcp/actions/workflows/ci.yml)
-[![agent-payment-mcp MCP server](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
+[![Non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
+[![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
+[![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 
-**[📚 Docs](https://lemoncake.xyz/about) · [🚀 Quickstart](#quickstart) · [📧 Contact](mailto:contact@aievid.com)**
-
-> Public website, Discord, and Twitter are launching alongside public beta. For now,
-> please reach out via email — we reply within 1 business day.
-
-<br />
-
-![LemonCake demo — AI agent spending down a Pay Token](./demos/demo.gif)
-
-<sub>↑ An agent calling a paid API via a Pay Token. Balance drops in real time. Kill Switch stops it in one click.</sub>
+**[🚀 Try in 30 seconds](#-try-in-30-seconds-no-signup) · [💳 Unlock paid services](#-unlock-paid-services) · [🏗 Publish your API](https://lemoncake.xyz/sellers) · [📧 Contact](mailto:contact@aievid.com)**
 
 </div>
 
 ---
 
-## ⚡️ 60-second quickstart
+## ⚡ Try in 30 seconds — no signup
 
-```bash
-# 1. Register at https://lemoncake.xyz, grab a BUYER_JWT
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (or Cursor / Cline):
 
-# 2. Issue a Pay Token (scoped, expiring, revocable)
-curl -X POST https://lemoncake.xyz/api/tokens \
-  -H "Authorization: Bearer $BUYER_JWT" \
-  -H "Content-Type: application/json" \
-  -d '{"serviceId":"svc_xxx","limitUsdc":"2.00","sandbox":true}'
-# → { "jwt": "<pay_token>", ... }
-
-# 3. Hand it to your agent. Done.
-#    Claude / Cursor:
-npx agent-payment-mcp
-#    Eliza v2:
-npm install eliza-plugin-lemoncake
-#    Anything else:
-curl -X POST https://lemoncake.xyz/api/proxy/svc_xxx/your/endpoint \
-  -H "Authorization: Bearer <pay_token>" \
-  -H "Idempotency-Key: $(uuidgen)"
+```json
+{
+  "mcpServers": {
+    "lemon": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"]
+    }
+  }
+}
 ```
 
-Budget exhausted? `402`. Token revoked? `422`. No runaway agents. No stolen keys.
+Restart Claude Desktop, then ask:
+
+> **"use lemon to search Wikipedia for AI agents"**
+
+Demo Mode runs against real Wikipedia, real FX rates, and real httpbin APIs. No credentials needed.
+
+---
+
+## 💳 Unlock paid services
+
+To use Serper (Google search), Hunter.io, gBizINFO, and more:
+
+1. Open [**lemoncake.xyz/start/v2**](https://lemoncake.xyz/start/v2)
+2. Sign in with Google (Privy creates an embedded wallet — keys stay on your device)
+3. Get USDC via Apple Pay / Coinbase / JPY bank transfer (built in)
+4. **Sign one ERC-2612 permit** — "up to $25/day, valid 90 days". One click. No gas.
+5. Copy the `LEMON_CAKE_PERMIT` blob into your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "lemon": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"],
+      "env": {
+        "LEMON_CAKE_PERMIT": "<paste the permit blob here>"
+      }
+    }
+  }
+}
+```
+
+After that, every API call settles **directly from your wallet to the API
+provider** with no signing prompts for 90 days. LemonCake never holds your USDC.
 
 ---
 
@@ -64,294 +80,166 @@ Budget exhausted? `402`. Token revoked? `422`. No runaway agents. No stolen keys
 
 LLM agents are getting powerful — but they still can't *pay for things* autonomously.
 
-LemonCake solves this with **Pay Tokens**: short-lived JWTs that give an agent a scoped spending limit. The agent calls paid APIs through our proxy, gets charged per call in USDC, and stops automatically when the budget runs out.
+LemonCake solves this with **ERC-2612 permits**: a single 90-day signature that
+lets an AI agent spend up to a daily cap from your wallet, directly to API
+providers. The agent calls paid APIs through our MCP server, gets charged
+per call in USDC, and stops automatically when the daily cap is reached.
 
 ```
-You                    Agent                   Paid API
+You                    Agent                  Paid API
  │                       │                        │
- ├─ issue Pay Token ──▶  │                        │
- │   limit: $2.00        │                        │
- │                       ├─ call /api/proxy ────▶ │
- │                       │   Authorization: Bearer <pay_token>
+ ├─ sign one permit ──▶  │                        │
+ │   $25/day, 90 days    │                        │
+ │                       ├─ call_service ───────▶ │
+ │                       │   uses LEMON_CAKE_PERMIT
  │                       │                        │
- │                       │  ◀─ response + charge ─┤
- │                       │    X-Charge-Id: ch_...  │
- │                       │    X-Amount-Usdc: 0.001 │
- │                       │                        │
- │                       ├─ (budget exhausted)     │
- │                       │   402 Payment Required  │
- │                       ✗   agent stops cleanly   │
+ │                       │  ◀─ response + receipt ┤
+ │                       │     on-chain transferFrom
 ```
+
+Budget exhausted? Hard stop until tomorrow. Permit expired? Re-sign in one
+click. No runaway agents, no stolen API keys, no platform middleman holding
+your USDC.
 
 ---
 
-## 🔌 Integrations
+## 🔌 Family of MCP packages
 
-### MCP サーバー — `agent-payment-mcp`
-
-Claude Desktop・Cursor に **`npx` 一発**で接続できる公式 MCP サーバー。Demo Mode で env vars 空のまま動作（Wikipedia / FX / httpbin が即試せる）。x402-compatible interface。
-
-```bash
-npx agent-payment-mcp
-```
-
-> 旧パッケージ名 `lemon-cake-mcp` は薄いラッパーとして維持中なので、既存の `npx -y lemon-cake-mcp` configs もそのまま動きます（stderr に deprecation 通知のみ）。
-
-**`claude_desktop_config.json` に追記するだけ：**
-
-```json
-{
-  "mcpServers": {
-    "pay-per-call": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"],
-      "env": {
-        "LEMON_CAKE_PAY_TOKEN": "<Pay Token JWT>",
-        "LEMON_CAKE_BUYER_JWT": "<Buyer JWT>"
-      }
-    }
-  }
-}
-```
-
-| ツール | 説明 |
+| Package | What it does |
 |---|---|
-| `setup` | 認証状態の確認と設定手順のガイド（認証不要）|
-| `list_services` | マーケットプレイスの承認済み API 一覧を取得 |
-| `call_service` | Pay Token で課金 API をプロキシ呼び出し |
-| `check_balance` | USDC 残高・KYC ティアを確認 |
+| [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) | Main entry — pay-per-call any HTTP API in the LemonCake marketplace |
+| [`xstocks-mcp`](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized US stocks (AAPLx, TSLAx, …) on Solana with USDC |
+| [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) | Alpaca paper / live trading with hard daily USD cap |
+| [`tokenized-stock-mcp`](https://www.npmjs.com/package/tokenized-stock-mcp) | Buy Dinari dShares with USDC |
+| [`polymarket-guard-mcp`](https://www.npmjs.com/package/polymarket-guard-mcp) | Polymarket prediction markets with USDC |
+| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | SDK for sellers to monetize their own MCP servers |
 
 ---
 
-### Eliza v2 プラグイン — `eliza-plugin-lemoncake`
+## 🏗 Publish your API on LemonCake
 
-`@elizaos/core` v2 対応の公式プラグイン。**`character.plugins` に追加するだけ**で Eliza エージェントが自律決済を実行できます。
+Want to **monetize your MCP server**? Self-service registration at
+[**lemoncake.xyz/sellers**](https://lemoncake.xyz/sellers):
 
-```bash
-npm install eliza-plugin-lemoncake
-```
+- Enter your name, email, and Base wallet address
+- Get a `serviceId` instantly
+- Set your price per call (min $0.001)
+- **First 1,000 calls / month are free** — Pattern 4 metering
+- Above the free tier: $0.005/call default (you choose)
+- USDC settles **directly to your wallet** — no platform middleman
+
+Add billing in 3 lines:
 
 ```typescript
-import { lemonCakePlugin } from "eliza-plugin-lemoncake";
+import { withPayment } from "@lemon-cake/mcp-sdk";
 
-const character = {
-  name: "MyAgent",
-  plugins: [lemonCakePlugin],
-};
+server.tool("my_premium_tool", withPayment({ price: 0.01 }, async (args) => {
+  return { content: [{ type: "text", text: "result" }] };
+}));
 ```
-
-```env
-# どちらか一方を設定
-LEMONCAKE_PAY_TOKEN=eyJhbGci...   # クイックスタート（事前発行トークン）
-LEMONCAKE_BUYER_JWT=eyJhbGci...   # 本番運用（呼び出しごとに都度発行）
-```
-
-**自然言語でそのまま動く：**
-```
-"LemonCake の demo_search_api を 0.50 USDC で呼び出して"
-"serviceId: svc_invoice に 0.10 USDC 支払いを実行して"
-```
-
-| アクション | 説明 |
-|---|---|
-| `EXECUTE_LEMONCAKE_PAYMENT` | メインアクション。serviceId + limitUsdc を指定して M2M 決済を実行 |
-| `PAY_WITH_LEMONCAKE` / `M2M_PAYMENT` など | 自然言語トリガー用エイリアス（similes）|
-
-→ 詳細: [`eliza-plugin-lemoncake/README.md`](./eliza-plugin-lemoncake/README.md)
 
 ---
 
 ## ✨ Features
 
-### Packages (5)
+### For developers (buyers)
 
-| Package | What it does |
-|---|---|
-| [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) | Pay-per-call USDC for any HTTP API. Demo Mode: Wikipedia / FX / httpbin, no signup. |
-| [`xstocks-mcp`](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized stocks (AAPLx, TSLAx, SPYx…) via Jupiter DEX on Solana. No broker. |
-| [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) | Trade US stocks via Alpaca Markets with per-session spend caps and kill switch. |
-| [`tokenized-stock-mcp`](https://www.npmjs.com/package/tokenized-stock-mcp) | Buy Dinari dShares (tokenized US stocks) with USDC. Sandbox default. |
-| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | **SDK for MCP developers** — add pay-per-call billing to your own MCP server in 3 lines. |
+- ✅ **Non-custodial** — your USDC never leaves your wallet
+- ✅ **One signature** — 90 days, hard daily cap, no gas
+- ✅ **Demo Mode** — try without signup or credentials
+- ✅ **Apple Pay / Coinbase / JPY onramp** built into `/start/v2`
+- ✅ **No JWT issuance, no API key juggling** — drop the permit blob in, done
 
-### For AI Agents (Buyers)
-- **Pay Token (JWT)** — Scoped, expiring spend authorization. One token per task or session.
-- **402-first design** — Agents receive structured `402 Payment Required` errors with machine-readable codes when budget runs out.
-- **Idempotency keys** — Prevent double charges on retries (auto-assigned by plugins).
-- **Real-time balance** — Check remaining USDC before committing to expensive calls.
-- **Kill Switch** — Atomic one-click token revocation. Race-condition-free.
+### For API providers (sellers)
 
-### For API Providers (Sellers)
-- **Service registry** — Register any REST API. Set price-per-call in USDC.
-- **Instant revenue** — Get paid per call with no invoicing, no net-30, no chargebacks.
-- **Usage analytics** — See call counts, revenue, and error rates per service.
+- ✅ **Self-service registration** at `/sellers` — no sales call
+- ✅ **USDC settles directly to your wallet** — chargeback-impossible
+- ✅ **Free tier**: 1,000 calls/month free per buyer (acquisition incentive)
+- ✅ **Stripe 60× cheaper** — $0.005/call vs. $0.30+ Stripe minimum
+- ✅ **Global**: no clearing-bank or KYC friction; works in any country
 
 ### Infrastructure
-- **JPYC on-chain deposit** — Charge balance with JPYC (Polygon ERC-20). Auto-verified via TX hash.
-- **KYA (Know Your Agent)** — Tiered spending limits: 10 → 1,000 → 50,000 USDC/day.
+
+- 🔧 Built on Base (USDC native, ~2-second blocks, $0.0001 gas)
+- 🔧 Open-source MCP server (MIT license)
+- 🔧 Audited (May 2026) — see [security advisories](https://github.com/evidai/agent-payment-mcp/security/advisories)
+- 🔧 [JP FSA registration not required](https://lemoncake.xyz/security) — confirmed Q11 (2026-05-21)
 
 ---
 
 ## 🏗 Architecture
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    lemoncake.xyz                          │
-│                                                          │
-│  ┌─────────────┐    ┌──────────────┐   ┌─────────────┐  │
-│  │  Dashboard  │    │   Hono API   │   │  Pay Proxy  │  │
-│  │  (Next.js)  │◀──▶│  + OpenAPI   │◀──│  Middleware │  │
-│  └─────────────┘    └──────┬───────┘   └─────────────┘  │
-│                            │                             │
-│               ┌────────────┼────────────┐                │
-│               ▼            ▼            ▼                │
-│          PostgreSQL      Redis       Polygon             │
-│          (Prisma)       (Queue)    USDC / JPYC           │
-└──────────────────────────────────────────────────────────┘
-        ▲                              ▲
-        │                              │
-   MCP / Eliza                   Upstream APIs
-   (Claude, Cursor, Eliza...)    (registered services)
+        ┌─────────────────────────────────────────────┐
+        │  User wallet (Privy embedded / MetaMask)    │
+        │                                             │
+        │  ERC-2612 permit signature                  │
+        │   ↳ spender = LemonCake marketplace addr    │
+        │   ↳ value   = $25/day daily cap             │
+        │   ↳ deadline= 90 days from now              │
+        └────────────────────┬────────────────────────┘
+                             │
+                  LEMON_CAKE_PERMIT (one-time copy)
+                             │
+                             ▼
+       ┌──────────────────────────────────────────────┐
+       │  Claude / Cursor / Cline                     │
+       │   ↳ MCP client                               │
+       └────────────────────┬─────────────────────────┘
+                             │  stdio
+                             ▼
+       ┌──────────────────────────────────────────────┐
+       │  agent-payment-mcp (this repo)               │
+       │   ↳ list_services()                          │
+       │   ↳ call_service(serviceId, …)               │
+       └────────────────────┬─────────────────────────┘
+                             │  HTTPS
+                             ▼
+       ┌──────────────────────────────────────────────┐
+       │  LemonCake charge API (Hono on Railway)      │
+       │   ↳ POST /api/charges/permit                 │
+       │   ↳ metering: 1000 free + $0.005/call paid   │
+       └────────────────────┬─────────────────────────┘
+                             │  permit() + transferFrom()
+                             ▼
+       ┌──────────────────────────────────────────────┐
+       │  USDC contract on Base                       │
+       │   ↳ user wallet ──→ provider wallet (direct) │
+       └──────────────────────────────────────────────┘
 ```
 
-**Key design decisions:**
-
-- **HMAC-SHA256 (HS256, RFC 7518)** for JWT signing today; Ed25519 (EdDSA, RFC 8037) migration planned for v0.1.0 to enable asymmetric verification by external partners
-- **Optimistic locking** on `usedUsdc` — prevents double charges under concurrent agent calls
-- **Proxy-first** — upstream API keys never leave the server; agents only hold Pay Tokens
+LemonCake is the dotted middle box. It never holds USDC — every payment is
+a direct on-chain `transferFrom(userWallet, providerWallet, amount)`.
 
 ---
 
-## 🔌 Public API (selected endpoints)
+## 🌍 Why this is registration-exempt
 
-> Full OpenAPI spec available at `/api/doc` after signing in.
+The 2026-05-21 reply from Japan's FSA Fintech Support Desk (Q11) confirmed
+that a pure SDK distribution model where:
 
-### Auth
+- LemonCake never touches user USDC
+- LemonCake never operates the smart contract
+- All payments settle directly user wallet → provider wallet
 
-```http
-POST /api/auth/register
-{ "name": "string", "email": "string", "password": "string (min 8)" }
-→ { "token": "<buyer_jwt>", "expiresIn": 2592000 }
+…does NOT require the "electronic payment means management" registration.
 
-POST /api/auth/buyer-login
-{ "email": "string", "password": "string" }
-→ { "token": "<buyer_jwt>" }
-```
-
-### Tokens (Pay Token)
-
-```http
-POST /api/tokens
-Authorization: Bearer <buyer_jwt>
-{
-  "serviceId": "<id>",
-  "limitUsdc": "5.00",
-  "buyerTag": "my-agent-session-42",
-  "expiresAt": "2026-05-01T00:00:00Z"
-}
-→ { "tokenId": "...", "jwt": "<pay_token>", "limitUsdc": "5.000000", "expiresAt": "..." }
-```
-
-### Proxy (Pay-per-call)
-
-```http
-ANY /api/proxy/<serviceId>/<upstream-path>
-Authorization: Bearer <pay_token>
-Idempotency-Key: <uuid>
-
-→ upstream response
-  + X-Charge-Id: ch_...
-  + X-Amount-Usdc: 0.001000
-```
-
-Error responses:
-```json
-{ "error": "Token limit exceeded", "used": "4.999", "limit": "5.000" }   // 402
-{ "error": "Insufficient balance: 1.23 USDC available" }                 // 402
-{ "error": "Token expired" }                                              // 401
-```
-
-### Services
-
-```http
-GET /api/services?reviewStatus=APPROVED&limit=50
-→ [{ "id": "...", "name": "...", "pricePerCallUsdc": "0.001", ... }]
-```
-
----
-
-## 🧑‍💻 Local Development
-
-```bash
-# 1. Clone
-git clone https://github.com/evidai/agent-payment-mcp.git
-cd agent-payment-mcp
-
-# 2. API server
-cd api
-cp .env.example .env
-npm install && npx prisma migrate dev
-npm run dev                    # http://localhost:3000
-
-# 3. Dashboard
-cd ../dashboard
-cp .env.example .env.local    # NEXT_PUBLIC_API_URL=http://localhost:3000
-npm install && npm run dev     # http://localhost:3001
-
-# 4. MCP server
-cd ../mcp-server
-npm install && npm run build
-
-# 5. Eliza plugin
-cd ../eliza-plugin-lemoncake
-npm install && npm run build
-```
-
-### Seed demo data
-
-```bash
-node api/seed_demo.js
-# Creates demo provider, 4 approved services, and 9,000+ sample charge records
-```
+The same architecture is registration-exempt under 🇺🇸 FinCEN (2019 guidance §4.5),
+🇪🇺 MiCA (non-CASP), 🇬🇧 FCA (Tech Service Provider), 🇸🇬 MAS (DPT non-applicable),
+🇨🇦 FINTRAC, and 🇨🇭 FINMA. See [lemoncake.xyz/security](https://lemoncake.xyz/security).
 
 ---
 
 ## 🛡 Security
 
-- **Brute-force protection** — 10 failed logins triggers a 15-minute lockout per email
-- **Pay Token scoping** — Each token is bound to a single `serviceId`; cross-service reuse is rejected
-- **No JWT storage** — Only the `jti` (token ID) is stored in the DB; the signed JWT never persists
-- **CSRF protection** — OAuth state parameter with 10-minute TTL and single-use consumption
-- **On-chain deposit verification** — JPYC transfers are verified against Polygon event logs before balance is credited
-
----
-
-## 🗺 Roadmap
-
-**Shipped:**
-- [x] **agent-payment-mcp** — USDC pay-per-call for any HTTP API, Demo Mode included
-- [x] **xstocks-mcp** — Jupiter DEX xStocks (AAPLx/TSLAx/SPYx) on Solana mainnet
-- [x] **alpaca-guard-mcp** — Alpaca Markets proxy with spend caps and kill switch
-- [x] **tokenized-stock-mcp** — Dinari dShares with USDC, sandbox default
-- [x] **@lemon-cake/mcp-sdk** — SDK for MCP developers to add Pay Token billing in 3 lines
-- [x] **Kill Switch** — atomic one-click token revocation (race-condition-free)
-- [x] **KYA (Know Your Agent)** — tiered spending limits: 10 → 1,000 → 50,000 USDC/day
-- [x] **Sandbox / Demo Mode** — full-flow dry-run without moving real USDC
-- [x] JPYC on-chain deposit with Polygon event-log verification
-
-**Next:**
-- [ ] Panic button — revoke all active tokens for a buyer in one click
-- [ ] LemonCake marketplace — register and monetize any REST API
-- [ ] Streaming / token-count billing for LLM APIs
-- [ ] Agent-to-agent sub-token delegation (parent caps child)
-- [ ] Self-hostable edition
+- **On-chain hard cap** — the daily cap is baked into the permit signature and enforced by the USDC contract itself. The MCP server cannot exceed it.
+- **No private keys in the MCP server** — the permit blob is mathematically scope-limited.
+- **Auto-revoke on expiry** — permits self-destruct after 90 days.
+- **Idempotency keys required** on paid calls (no double-charges on retries).
+- Audited May 2026 by [@kleosr](https://github.com/kleosr).
 
 ---
 
 ## 📄 License
 
-Proprietary — All rights reserved © 2026 LemonCake  
-MCP server and Eliza plugin source are available for review. Core API and payment engine are closed source.
-
----
-
-*Built for the agentic web. [lemoncake.xyz](https://lemoncake.xyz)*
+MIT.

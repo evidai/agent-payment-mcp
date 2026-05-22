@@ -28,7 +28,7 @@ You give your AI agent the ability to **buy real US stocks paying in USDC** — 
 - ✅ **No broker account needed** — pure on-chain
 - ✅ **No partnership / KYB wait** — Jupiter is public, xStocks are public mints
 - ✅ **Production-ready today** (Solana mainnet)
-- ✅ **Pay Token pass-through model**: your own Solana wallet signs the swap; LemonCake never custodies USDC
+- ✅ **Non-custodial**: your own Solana wallet signs the swap; LemonCake never holds USDC
 - ✅ **Sibling MCPs**: works alongside `agent-payment-mcp` (USDC for APIs), `alpaca-guard-mcp` (Alpaca brokerage guard), `tokenized-stock-mcp` (Dinari dShares)
 
 ---
@@ -203,4 +203,4 @@ MIT. Source at [github.com/evidai/lemon-cake/tree/main/xstocks-mcp](https://gith
 - [Backed Finance](https://backed.fi/) — the regulated issuer
 - [Jupiter](https://jup.ag/) — the DEX aggregator we route through
 - [xStocks Risk Disclosure (Kraken)](https://www.kraken.com/legal/xstocks)
-- [LemonCake](https://www.lemoncake.xyz/start) — interactive playground & docs
+- [LemonCake](https://lemoncake.xyz/start/v2) — interactive playground & docs
