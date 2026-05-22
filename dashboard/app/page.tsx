@@ -2541,6 +2541,38 @@ function AccountingPage({ buyerToken }: { buyerToken: string }) {
   );
 }
 
+// ── ProviderGate: provider 未登録のユーザーを /sellers へ強く誘導 ────────────
+// SubscriptionPanel / InvoicesPanel / OfframpPanel / PublishPage の上部で
+// providerV2Id が無いときに表示する共通カード。元々は "まず /sellers で…" の
+// inline テキストリンクだったが、見落とされやすいので大きい CTA に統一。
+function ProviderGate({ purpose }: { purpose: string }) {
+  const t = useT();
+  return (
+    <div className="rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+      <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500 text-white text-2xl">
+        🏪
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-base font-bold text-gray-900">
+          {t("まず Provider を登録してください", "Register as a provider first")}
+        </p>
+        <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+          {t(
+            `${purpose}を使うには、API 提供者として 1 分の登録が必要です。受取ウォレットと料金を設定するだけ。KYC / 法人登記は不要です。`,
+            `To use ${purpose}, complete a 1-minute provider registration. Just your receiving wallet + per-call price. No KYC, no LLC required.`,
+          )}
+        </p>
+      </div>
+      <a
+        href="/sellers"
+        className="shrink-0 inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800 transition whitespace-nowrap"
+      >
+        {t("Provider 登録へ →", "Register →")}
+      </a>
+    </div>
+  );
+}
+
 // ── Invoices panel (v2): 適格請求書の生成・閲覧・送信 ─────────────────────────
 // PublishPage > 会計連携 タブの下に表示。Provider が自分の providerV2Id を
 // 入力 → 期間指定で /api/invoices POST → 一覧に追加 → PDF プレビュー、
@@ -2674,10 +2706,12 @@ function InvoicesPanel() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+      {!providerV2Id && <ProviderGate purpose={t("インボイス発行", "invoice generation")} />}
+
+      <div className={`rounded-xl border border-gray-200 bg-white p-4 space-y-3 ${!providerV2Id ? "opacity-50 pointer-events-none" : ""}`}>
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">
-            {t("Provider ID（/sellers で発行）", "Provider ID (from /sellers)")}
+            {t("Provider ID", "Provider ID")}
           </label>
           <input
             type="text"
@@ -2807,8 +2841,34 @@ function PublishPage({
 }) {
   const t = useT();
   const [tab, setTab] = useState<PublishTab>("services");
+  const [providerV2Id, setProviderV2Id] = useState<string>("");
 
-  // Provider プロフィール未設定 → 入口のセットアッププロンプトに戻す
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lemon_provider_v2_id");
+      if (saved) setProviderV2Id(saved);
+    } catch { /* SSR */ }
+  }, []);
+
+  // v2 ProviderV2 未登録 → /sellers に強く誘導
+  if (!providerV2Id) {
+    return (
+      <div className="flex flex-col gap-5">
+        <ProviderGate purpose={t("API 公開機能", "API publishing")} />
+        {/* v1 SellerProfile 移行ユーザーには救済オプション */}
+        {sellerProfile && (
+          <button
+            onClick={onSellerStart}
+            className="self-start text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            {t("旧 SellerProfile を編集する（互換）", "Edit legacy SellerProfile (compat)")}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // v1 SellerProfile も無い場合はそのまま onboarding を促す
   if (!sellerProfile) {
     return <SellerSetupPrompt onStart={onSellerStart} />;
   }
@@ -3264,28 +3324,25 @@ function SubscriptionPanel() {
         </p>
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-gray-700 mb-1">{t("Provider ID（/sellers で発行）", "Provider ID (from /sellers)")}</label>
-        <input
-          type="text"
-          value={providerV2Id}
-          onChange={(e) => setProviderV2Id(e.target.value.trim())}
-          placeholder="c1xxx…"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
-        />
-        {!providerV2Id && (
-          <p className="mt-1 text-xs text-gray-500">
-            {t("まず ", "First, register a provider at ")}
-            <a href="/sellers" className="text-amber-700 underline">/sellers</a>
-            {t(" で provider を登録してください。", ".")}
-          </p>
-        )}
-      </div>
+      {!providerV2Id ? (
+        <ProviderGate purpose={t("プラン管理", "plan management")} />
+      ) : (
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">{t("Provider ID", "Provider ID")}</label>
+          <input
+            type="text"
+            value={providerV2Id}
+            onChange={(e) => setProviderV2Id(e.target.value.trim())}
+            placeholder="c1xxx…"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+      )}
 
       {loading && <p className="text-xs text-gray-400">{t("読み込み中…", "Loading…")}</p>}
       {error   && <p className="text-xs text-red-600">{error}</p>}
 
-      {sub && (
+      {sub && providerV2Id && (
         <>
           <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-sm">
             <p className="font-bold text-gray-900">
@@ -3497,11 +3554,7 @@ function OfframpPanel() {
       </div>
 
       {!providerV2Id && (
-        <p className="text-xs text-gray-500">
-          {t("まず ", "First, register at ")}
-          <a href="/sellers" className="text-amber-700 underline">/sellers</a>
-          {t(" で Provider を登録してください。", ".")}
-        </p>
+        <ProviderGate purpose={t("JPY オフランプ", "JPY off-ramp")} />
       )}
 
       {providerV2Id && (
