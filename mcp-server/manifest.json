@@ -1,9 +1,9 @@
 {
   "manifest_version": "0.3",
   "name": "lemon-cake",
-  "display_name": "agent-payment-mcp — Non-custodial USDC payments · Demo Mode (no signup)",
-  "version": "0.8.0",
-  "description": "Give your AI agent a USDC wallet. Pay-per-call any API. One ERC-2612 permit signature gives a 90-day, $25/day hard cap that the agent literally cannot exceed. USDC stays in your own wallet — LemonCake never touches it. Demo Mode works with zero signup. x402-compatible.",
+  "display_name": "agent-payment-mcp — Drop-in USDC billing for any API · Demo Mode (no signup, no env vars)",
+  "version": "0.8.1",
+  "description": "Stripe-style drop-in payment layer for any HTTP API or MCP server, but USDC and non-custodial. Demo Mode requires zero config — install and use immediately with real free APIs (Wikipedia, FX, httpbin, 国税庁). When you're ready for paid services, get a 90-day permit at lemoncake.xyz/start/v2 (15 seconds, $0 minimum). x402-compatible.",
   "long_description": "## 🚀 30-second start (no signup, no permit needed)\n\n1. Install this server in Claude Desktop / Cursor / Cline\n2. Leave the LEMON_CAKE_PERMIT field empty — it boots in DEMO MODE automatically\n3. Ask Claude: \"Use the setup tool to show me what's available\"\n4. Try a real free API: \"Search Wikipedia for 'MCP protocol' using demo_search\"\n\nThat's it. No account. No credit card. Three live APIs (Wikipedia search, live FX rates, httpbin echo) work for free in Demo Mode.\n\n💬 Stuck? GitHub issues: https://github.com/evidai/agent-payment-mcp/issues — we reply fast.\n\n---\n\n## Going live (paid APIs) — 1 signature, 90 days\n\n5. Open https://lemoncake.xyz/start/v2 in your browser\n6. Sign in with Google (Privy embedded wallet — keys stay on your device)\n7. Get USDC via Apple Pay / Coinbase / JPY bank transfer (built in, 30 sec)\n8. Sign ONE ERC-2612 permit — \"$25/day cap, 90 days, gas-free\"\n9. Paste the LEMON_CAKE_PERMIT blob into the field\n10. Ask Claude: \"List all available services\" → call any of 16+ APIs (Serper, Hunter.io, Firecrawl, Jina, IPinfo, gBizINFO, 国税庁, …)\n\nUSDC settles directly from your wallet → API provider. LemonCake never sees or holds it.\n\n---\n\n## What this server does\n\nLemonCake gives any AI agent a USDC wallet on Base. Instead of 15 different API keys, the agent uses one permit (an ERC-2612 EIP-712 signature with a daily cap enforced by the USDC contract itself). LemonCake routes per-call billing across the whole marketplace, FSA Q11-compliant.\n\nTools:\n- setup — interactive onboarding, works without credentials\n- list_services — browse 16+ APIs with prices and usage hints\n- call_service — execute any marketplace API, auto-billed in USDC via permit\n- check_balance — on-chain USDC balance + remaining daily cap\n- check_tax — Japanese 適格請求書 validation + 源泉徴収 calculation\n- get_service_stats — aggregate marketplace usage numbers\n\nSafety: the daily $25 cap is on-chain — the USDC contract refuses transfers above it. The agent physically cannot overspend. Permit expires after 90 days regardless.\n\n💬 GitHub: https://github.com/evidai/agent-payment-mcp | Docs: https://lemoncake.xyz/about\n\n🇯🇵 freee App Store: https://app.secure.freee.co.jp/applications/66063",
   "author": {
     "name": "Evid AI",
@@ -48,29 +48,10 @@
     "entry_point": "dist/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/index.js"],
-      "env": {
-        "LEMON_CAKE_PERMIT":  "${user_config.permit}",
-        "LEMON_CAKE_API_URL": "${user_config.api_url}"
-      }
+      "args": ["${__dirname}/dist/index.js"]
     }
   },
-  "user_config": {
-    "permit": {
-      "type": "string",
-      "title": "Permit blob — OPTIONAL (leave empty for instant Demo Mode)",
-      "description": "🎮 Leave this EMPTY to try Demo Mode right now — no signup, no account, no USDC needed. Three real free APIs (Wikipedia search, live FX rates, httpbin echo) work immediately.\n\nOnly fill this in when you want to call real paid APIs (Serper, Hunter, Tavily, etc.). Get your LEMON_CAKE_PERMIT in ~30 seconds at https://lemoncake.xyz/start/v2 — sign in with Google, get USDC via Apple Pay / Coinbase / JPY bank transfer, sign one ERC-2612 permit (gas-free, 90 days, $25/day hard cap), and paste the blob here. LemonCake never holds your USDC.",
-      "sensitive": true,
-      "required": false
-    },
-    "api_url": {
-      "type": "string",
-      "title": "API base URL",
-      "description": "LemonCake API base URL. Leave empty to use the production endpoint (https://api.lemoncake.xyz).",
-      "default": "https://api.lemoncake.xyz",
-      "required": false
-    }
-  },
+  "user_config": {},
   "tools": [
     {
       "name": "setup",

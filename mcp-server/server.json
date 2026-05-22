@@ -1,29 +1,20 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.evidai/agent-payment",
-  "description": "Non-custodial USDC for AI agents. One ERC-2612 permit, 90-day on-chain cap. x402-compatible.",
+  "description": "Stripe-style USDC billing layer for any API or MCP. Non-custodial. Demo Mode requires zero setup.",
   "repository": {
     "url": "https://github.com/evidai/agent-payment-mcp",
     "source": "github"
   },
-  "version": "0.8.0",
+  "version": "0.8.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "agent-payment-mcp",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "transport": {
         "type": "stdio"
-      },
-      "environmentVariables": [
-        {
-          "name": "LEMON_CAKE_PERMIT",
-          "description": "ERC-2612 permit blob from https://lemoncake.xyz/start/v2. One signature gives a 90-day, $25/day on-chain hard cap. LemonCake never holds your USDC. Leave unset for Demo Mode (no charges, no signup).",
-          "isRequired": false,
-          "isSecret": true,
-          "format": "string"
-        }
-      ]
+      }
     }
   ]
 }
