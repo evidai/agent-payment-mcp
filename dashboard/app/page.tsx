@@ -3063,6 +3063,289 @@ function SellerMyServicesPanel({
   );
 }
 
+// ── SubscriptionPanel (v2 plan + Stripe Billing) ─────────────────────────────
+// /settings ページに埋め込む。providerV2Id は localStorage から取り、未設定なら
+// 「まず /sellers で provider 登録」を案内する。
+
+interface SubscriptionInfo {
+  plan:               "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  status:             string;
+  freeCallsPerMonth:  number;
+  overagePerCallUsdc: string;
+  monthlyJpy:         number;
+  features: {
+    accountingIntegration: boolean;
+    invoiceGeneration:     boolean;
+    jpyOfframp:            boolean;
+    multiWallet:           boolean;
+    sla999:                boolean;
+  };
+  currentPeriodEnd:  string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
+  jaName: string; enName: string; jaTagline: string; enTagline: string;
+  jaFeatures: string[]; enFeatures: string[];
+}> = {
+  FREE: {
+    jaName: "Free", enName: "Free",
+    jaTagline: "個人開発者・実験用",
+    enTagline: "For solo developers and prototyping",
+    jaFeatures: ["月 1,000 call 無料", "$0.001/call 超過", "基本ダッシュボード"],
+    enFeatures: ["1,000 free calls/mo", "$0.001/call overage", "Basic dashboard"],
+  },
+  PRO: {
+    jaName: "Pro", enName: "Pro",
+    jaTagline: "本格的に AI API を提供する事業者向け",
+    enTagline: "For serious API providers",
+    jaFeatures: [
+      "月 10,000 call 無料",
+      "$0.001/call 超過",
+      "freee / MoneyForward 自動仕訳",
+      "適格請求書（インボイス）自動発行",
+      "分析ダッシュボード",
+    ],
+    enFeatures: [
+      "10,000 free calls/mo",
+      "$0.001/call overage",
+      "freee / MoneyForward auto-journal",
+      "Qualified invoice (Japan) auto-issue",
+      "Analytics dashboard",
+    ],
+  },
+  BUSINESS: {
+    jaName: "Business", enName: "Business",
+    jaTagline: "スケールフェーズ向け（量割引 + JPY オフランプ）",
+    enTagline: "Scale-up tier (volume discount + JPY off-ramp)",
+    jaFeatures: [
+      "月 100,000 call 無料",
+      "$0.0008/call 超過（量割引）",
+      "Pro の全機能",
+      "USDC → JPY 自動オフランプ (Coincheck)",
+      "複数 wallet 対応",
+      "SLA 99.9%",
+    ],
+    enFeatures: [
+      "100,000 free calls/mo",
+      "$0.0008/call overage (volume discount)",
+      "All Pro features",
+      "USDC → JPY auto off-ramp (Coincheck)",
+      "Multi-wallet support",
+      "SLA 99.9%",
+    ],
+  },
+  ENTERPRISE: {
+    jaName: "Enterprise", enName: "Enterprise",
+    jaTagline: "個別契約（白ラベル / 監査ログ / 専用サポート）",
+    enTagline: "Custom contract (white-label / audit log / dedicated support)",
+    jaFeatures: [
+      "無制限 call",
+      "$0.0005/call 超過",
+      "Business の全機能",
+      "白ラベル対応",
+      "監査ログ",
+      "専用 Slack サポート",
+    ],
+    enFeatures: [
+      "Unlimited calls",
+      "$0.0005/call overage",
+      "All Business features",
+      "White-label",
+      "Audit log",
+      "Dedicated Slack support",
+    ],
+  },
+};
+
+function SubscriptionPanel() {
+  const t = useT();
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
+
+  const [providerV2Id, setProviderV2Id] = useState<string>("");
+  const [sub,          setSub]          = useState<SubscriptionInfo | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [busy,         setBusy]         = useState<null | "checkout" | "portal">(null);
+  const [error,        setError]        = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lemon_provider_v2_id");
+      if (saved) setProviderV2Id(saved);
+    } catch { /* SSR */ }
+  }, []);
+
+  useEffect(() => {
+    if (providerV2Id) localStorage.setItem("lemon_provider_v2_id", providerV2Id);
+  }, [providerV2Id]);
+
+  useEffect(() => {
+    if (!providerV2Id) return;
+    setLoading(true);
+    fetch(`${API}/api/subscriptions/me?providerV2Id=${encodeURIComponent(providerV2Id)}`)
+      .then(r => r.ok ? r.json() as Promise<SubscriptionInfo> : Promise.reject(r.status))
+      .then(setSub)
+      .catch(() => setSub(null))
+      .finally(() => setLoading(false));
+  }, [providerV2Id, API]);
+
+  async function upgradeToCheckout(plan: "PRO" | "BUSINESS") {
+    if (!providerV2Id) return;
+    setBusy("checkout");
+    setError(null);
+    try {
+      const r = await fetch(`${API}/api/subscriptions/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerV2Id, plan,
+          successUrl: `${window.location.origin}/?subscription=success`,
+          cancelUrl:  `${window.location.origin}/?subscription=cancel`,
+        }),
+      });
+      const data = await r.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!r.ok || !data.url) throw new Error(data.error ?? `HTTP ${r.status}`);
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "checkout failed");
+      setBusy(null);
+    }
+  }
+
+  async function openPortal() {
+    if (!providerV2Id) return;
+    setBusy("portal");
+    setError(null);
+    try {
+      const r = await fetch(`${API}/api/subscriptions/portal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerV2Id,
+          returnUrl: window.location.href,
+        }),
+      });
+      const data = await r.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!r.ok || !data.url) throw new Error(data.error ?? `HTTP ${r.status}`);
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "portal failed");
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-5">
+      <div>
+        <h3 className="text-lg font-bold text-gray-900">{t("プラン", "Plan")}</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {t(
+            "AI エージェント / API 提供者向け月額プラン。Pro 以上で会計連携・インボイス発行が解放されます。",
+            "Monthly plans for API providers. Pro and above unlock accounting + invoicing.",
+          )}
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-gray-700 mb-1">{t("Provider ID（/sellers で発行）", "Provider ID (from /sellers)")}</label>
+        <input
+          type="text"
+          value={providerV2Id}
+          onChange={(e) => setProviderV2Id(e.target.value.trim())}
+          placeholder="c1xxx…"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-amber-500 focus:outline-none"
+        />
+        {!providerV2Id && (
+          <p className="mt-1 text-xs text-gray-500">
+            {t("まず ", "First, register a provider at ")}
+            <a href="/sellers" className="text-amber-700 underline">/sellers</a>
+            {t(" で provider を登録してください。", ".")}
+          </p>
+        )}
+      </div>
+
+      {loading && <p className="text-xs text-gray-400">{t("読み込み中…", "Loading…")}</p>}
+      {error   && <p className="text-xs text-red-600">{error}</p>}
+
+      {sub && (
+        <>
+          <div className="rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-sm">
+            <p className="font-bold text-gray-900">
+              {t("現在のプラン", "Current plan")}: {PLAN_DESCRIPTIONS[sub.plan].jaName}
+              <span className="ml-2 text-xs font-normal text-gray-500">({sub.status})</span>
+            </p>
+            <p className="mt-1 text-xs text-gray-700">
+              {t(
+                `月 ${sub.freeCallsPerMonth.toLocaleString()} call まで無料、超過分は ${sub.overagePerCallUsdc} USDC/call`,
+                `${sub.freeCallsPerMonth.toLocaleString()} free calls/mo, overage at ${sub.overagePerCallUsdc} USDC/call`,
+              )}
+            </p>
+            {sub.currentPeriodEnd && (
+              <p className="mt-1 text-xs text-gray-500">
+                {sub.cancelAtPeriodEnd
+                  ? t(`次回 ${sub.currentPeriodEnd.slice(0,10)} に解約予定`, `Cancels on ${sub.currentPeriodEnd.slice(0,10)}`)
+                  : t(`次回更新: ${sub.currentPeriodEnd.slice(0,10)}`, `Renews on ${sub.currentPeriodEnd.slice(0,10)}`)}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {(["FREE","PRO","BUSINESS"] as const).map((p) => {
+              const desc = PLAN_DESCRIPTIONS[p];
+              const isCurrent = sub.plan === p;
+              return (
+                <div key={p} className={`rounded-xl border p-4 flex flex-col gap-2 ${isCurrent ? "border-amber-500 bg-amber-50/30" : "border-gray-200 bg-white"}`}>
+                  <p className="font-bold text-gray-900">{t(desc.jaName, desc.enName)}</p>
+                  <p className="text-xs text-gray-500">{t(desc.jaTagline, desc.enTagline)}</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">
+                    {p === "FREE" ? "¥0" : `¥${PLAN_CONFIG_PUBLIC[p].monthlyJpy.toLocaleString()}`}
+                    <span className="text-xs font-normal text-gray-500">/mo</span>
+                  </p>
+                  <ul className="text-xs text-gray-600 space-y-1 mt-1">
+                    {(t(desc.jaFeatures.join("|"), desc.enFeatures.join("|")) as string).split("|").map((f, i) => (
+                      <li key={i} className="flex items-start gap-1"><span className="text-amber-500 mt-0.5">✓</span><span>{f}</span></li>
+                    ))}
+                  </ul>
+                  {!isCurrent && p !== "FREE" && (
+                    <button
+                      type="button"
+                      onClick={() => upgradeToCheckout(p as "PRO" | "BUSINESS")}
+                      disabled={busy !== null}
+                      className="mt-2 rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-600 disabled:opacity-50"
+                    >
+                      {busy === "checkout" ? t("移動中…", "Redirecting…") : (sub.plan === "FREE" ? t("アップグレード", "Upgrade") : t("プラン変更", "Switch"))}
+                    </button>
+                  )}
+                  {isCurrent && (
+                    <span className="mt-2 inline-block text-[11px] font-bold text-amber-700">{t("現在のプラン", "Current")}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {sub.plan !== "FREE" && (
+            <button
+              type="button"
+              onClick={openPortal}
+              disabled={busy !== null}
+              className="self-start rounded-full border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700 hover:border-gray-400 disabled:opacity-50"
+            >
+              {busy === "portal" ? t("移動中…", "Redirecting…") : t("請求書 / カード変更（Stripe ポータル）", "Invoices / Manage card (Stripe Portal)")}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// プラン公開設定（lib/plans.ts のミラー — 月額のみ）
+const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS", { monthlyJpy: number }> = {
+  PRO:      { monthlyJpy: 2980 },
+  BUSINESS: { monthlyJpy: 9800 },
+};
+
 function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { token: string; onLogout: () => void; onProfileUpdated?: () => void; isSeller?: boolean }) {
   const t = useT();
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
@@ -3154,6 +3437,9 @@ function AccountSettingsPage({ token, onLogout, onProfileUpdated, isSeller }: { 
         </svg>
         <h1 className="text-xl font-bold text-gray-900">{t("アカウント設定","Account Settings")}</h1>
       </div>
+
+      {/* v2 サブスクリプションパネル */}
+      <SubscriptionPanel />
 
       {/* 残高カード */}
       {profile?.buyer && (() => {

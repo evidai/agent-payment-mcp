@@ -44,6 +44,7 @@ import { coinbaseRouter }           from "./routes/coinbase.js";
 import { chargesPermitRouter }      from "./routes/charges-permit.js";
 import { providersV2Router }        from "./routes/providers-v2.js";
 import { invoicesRouter }           from "./routes/invoices.js";
+import { subscriptionsRouter, subscriptionsWebhookRouter } from "./routes/subscriptions.js";
 import { sdkRouter }                from "./routes/sdk.js";
 import { mcpAccessLog }                from "./middleware/mcpAccessLog.js";
 import { startUsdcTransferWorker, handleFailedJob } from "./workers/usdcTransfer.js";
@@ -92,6 +93,9 @@ app.route("/api/buyers",    buyersRouter);
 app.route("/api/services",  servicesRouter);
 app.route("/api/providers/v2", providersV2Router);  // v2 must come before /api/providers
 app.route("/api/invoices",     invoicesRouter);
+// Webhook は raw body 必須なので OpenAPI ルーターより先に固定パスで登録
+app.route("/api/subscriptions/webhook", subscriptionsWebhookRouter);
+app.route("/api/subscriptions",         subscriptionsRouter);
 app.route("/api/providers", providersRouter);
 app.route("/api/jpyc",      jpycRouter);
 app.route("/api/tax",       taxRouter);

@@ -25,6 +25,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { prisma } from "../lib/prisma.js";
 import { executePermitTransfer, type PermitParams } from "../lib/usdc-base-permit.js";
+import { resolvePlanFromName } from "../lib/plans.js";
 import { type Address, type Hex, parseUnits } from "viem";
 
 export const chargesPermitRouter = new OpenAPIHono();
@@ -90,10 +91,11 @@ chargesPermitRouter.openapi(
     const body = c.req.valid("json");
     const { permit, serviceId, amountUsdc, idempotencyKey } = body;
 
-    // ── Provider v2 取得（冪等性チェックより先にやる）────────
-    // suspended check を DB write より必ず前に実行するためここに置く
+    // ── Provider v2 取得 + プラン解決 ────────────────────────
+    // subscription を include して plan-based quota / overage を解決する
     const provider = await prisma.providerV2.findUnique({
       where: { id: serviceId },
+      include: { subscription: true },
     });
     if (!provider) {
       return c.json({ error: `Provider not found: ${serviceId}` }, 404);
@@ -101,6 +103,12 @@ chargesPermitRouter.openapi(
     if (!provider.active) {
       return c.json({ error: "Provider is suspended" }, 400);
     }
+
+    // プラン解決: subscription が無い / 非 ACTIVE なら FREE 扱い
+    const planName = provider.subscription?.status === "ACTIVE"
+      ? provider.subscription.plan
+      : "FREE";
+    const planCfg = resolvePlanFromName(planName);
 
     // ── メータリング: 今月の call 数（冪等性チェック前に計算）─
     const monthStart = new Date();
@@ -116,8 +124,8 @@ chargesPermitRouter.openapi(
       },
     });
 
-    const quotaRemaining = Math.max(0, provider.freeCallsPerMonth - monthlyCallCount);
-    const isFree = monthlyCallCount < provider.freeCallsPerMonth;
+    const quotaRemaining = Math.max(0, planCfg.freeCallsPerMonth - monthlyCallCount);
+    const isFree = monthlyCallCount < planCfg.freeCallsPerMonth;
 
     // ── 冪等性チェック ────────────────────────────────────────
     // 既存レコードがある場合は現在のクォータを計算し直して返す
@@ -136,8 +144,9 @@ chargesPermitRouter.openapi(
       });
     }
 
-    // 無料枠内なら amountUsdc を 0 に上書き
-    const effectiveAmount = isFree ? "0" : amountUsdc;
+    // 無料枠内なら 0、超過分はプランの overage を徴収（client 指定の
+    // amountUsdc より優先 — 価格はサーバー側でプラン-derive する）
+    const effectiveAmount = isFree ? "0" : planCfg.overagePerCallUsdc;
 
     // ── PermitCharge レコード作成（PENDING）──────────────────
     const charge = await prisma.permitCharge.create({
@@ -179,7 +188,8 @@ chargesPermitRouter.openapi(
         s:        permit.s as Hex,
       };
 
-      const amountRaw = parseUnits(amountUsdc, 6);
+      // overage の単価で transferFrom（client の amountUsdc は無視）
+      const amountRaw = parseUnits(effectiveAmount, 6);
 
       const { permitTxHash, transferTxHash } = await executePermitTransfer({
         permit:    permitParams,

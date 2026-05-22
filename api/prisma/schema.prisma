@@ -800,7 +800,63 @@ model ProviderV2 {
   // 発行したインボイス（Provider 単位）
   invoices Invoice[]
 
+  // サブスクリプション（1 provider に 1 subscription）
+  subscription Subscription?
+
   @@map("providers_v2")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Subscription — Stripe Billing と紐付くプラン管理
+//
+// Pattern 4: per-call は x402 と同価格 ($0.001) で底固定、
+//            真の収益はサブスクで稼ぐ。
+//
+// プラン:
+//   FREE       ¥0      1,000 call     $0.001/call 超過
+//   PRO        ¥2,980  10,000 call    $0.001/call 超過 + freee/MF/インボイス
+//   BUSINESS   ¥9,800  100,000 call   $0.0008/call + JPY オフランプ + SLA
+//   ENTERPRISE 個別    個別            $0.0005/call + 専用サポート
+// ─────────────────────────────────────────────────────────────
+model Subscription {
+  id String @id @default(cuid())
+
+  providerV2Id String     @unique
+  providerV2   ProviderV2 @relation(fields: [providerV2Id], references: [id])
+
+  plan SubscriptionPlan @default(FREE)
+
+  // Stripe 連携
+  stripeCustomerId      String? @unique
+  stripeSubscriptionId  String? @unique
+  stripePriceId         String?
+
+  status SubscriptionStatus @default(ACTIVE)
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stripeCustomerId])
+  @@map("subscriptions")
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  INCOMPLETE
 }
 
 // ─────────────────────────────────────────────────────────────
