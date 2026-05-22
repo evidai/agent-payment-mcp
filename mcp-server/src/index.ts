@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 /**
- * agent-payment-mcp v0.6.0
+ * agent-payment-mcp
  *
- * AIエージェントにLemonCakeの決済インフラを提供するMCPサーバー。
+ * AIエージェントに LemonCake の非カストディ USDC 決済インフラを提供する MCP サーバー。
  *
  * Tools:
  *  - setup             : 初回セットアップガイド（認証不要）
  *  - list_services     : マーケットプレイスの公開サービス一覧（認証不要）
  *  - get_service_stats : サービスの利用統計（認証不要）
  *  - check_tax         : 日本の税務コンプライアンス確認（認証不要）
- *  - check_balance     : USDC残高確認（LEMON_CAKE_BUYER_JWT 必須）
- *  - call_service      : Pay-per-call APIプロキシ（LEMON_CAKE_PAY_TOKEN 必須）
+ *  - check_balance     : USDC残高 + permit クォータ確認（demo: モック / live: PERMIT）
+ *  - call_service      : Pay-per-call API プロキシ（demo: 認証なし / live: LEMON_CAKE_PERMIT）
+ *
+ * v2 (since 0.8): ERC-2612 permit ベース非カストディフロー。LemonCake は USDC を
+ *   一切保持しない。lemoncake.xyz/start/v2 で 1 度署名すれば 90 日 / $25/日 cap で
+ *   AI エージェントが代理支払い。Pay Token JWT は v0.7 で廃止。
  *
  * 環境変数:
- *  LEMON_CAKE_PAY_TOKEN  : Pay Token JWT（ダッシュボードで発行）※ call_service に必須
- *  LEMON_CAKE_BUYER_JWT  : Buyer JWT（ログイン時に取得）     ※ check_balance に必須
- *  LEMON_CAKE_API_URL    : APIベースURL（省略可）
+ *  LEMON_CAKE_PERMIT     : ERC-2612 permit blob（/start/v2 で発行）。未設定なら Demo Mode。
+ *  LEMON_CAKE_API_URL    : APIベース URL（省略可）
+ *  LEMONCAKE_CALL_TIMEOUT_MS : 上流呼び出しの timeout（ms, 1000–600000、default 30000）
+ *
+ * 後方互換（非ドキュメント、deprecated）:
+ *  LEMON_CAKE_PAY_TOKEN / LEMON_CAKE_BUYER_JWT — v1 custody モード。
+ *    既存ユーザーが壊れないよう内部的にだけ残してある。新規セットアップでは設定しない。
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -51,8 +59,9 @@ const MCP_VERSION: string = (requireFromHere("../package.json") as { version: st
 const USER_AGENT  = `pay-per-call-mcp/${MCP_VERSION} (node/${process.versions.node}; ${process.platform} ${process.arch})`;
 
 // ── デモモード（認証情報なしで Glama Inspector / 新規ユーザーが試せるように） ──
-// LEMON_CAKE_PERMIT があれば non-custodial 本番モード（FSA Q11 準拠の新方式）。
-// なければ既存の Pay Token / Buyer JWT パス。両方なければ Demo Mode。
+// LEMON_CAKE_PERMIT があれば non-custodial 本番モード（FSA Q11 準拠 / v2 既定）。
+// レガシー PAY_TOKEN/BUYER_JWT も検出するが、新規セットアップでは設定しない。
+// いずれも未設定なら Demo Mode（Glama Inspector で即試せる）。
 const DEMO_MODE = !PAY_TOKEN && !BUYER_JWT && !NON_CUSTODIAL_MODE;
 
 type DemoHandler = (path: string, body: Record<string, unknown> | undefined) => Promise<unknown> | unknown;
@@ -155,52 +164,46 @@ function findDemoService(id: string) {
   return DEMO_SERVICES.find((s) => s.id === id);
 }
 
-const DEMO_NOTICE = "🎮 DEMO MODE — no real charge, no real upstream. Set LEMON_CAKE_PAY_TOKEN / LEMON_CAKE_BUYER_JWT to call real services. Run the `setup` tool for instructions.";
+const DEMO_NOTICE = "🎮 DEMO MODE — no real charge, no signup. To unlock paid services, sign one ERC-2612 permit at https://lemoncake.xyz/start/v2 and set LEMON_CAKE_PERMIT. Run `setup` for instructions.";
 
 // x402 互換ユーティリティは src/x402.ts に切り出してテスト可能化。
 import { buildX402Receipt, parseX402Challenge } from "./x402.js";
 
-// ── 登録/入金/ダッシュボード URL（UTM 付きで経由クライアントを区別） ──
+// ── サインアップ / ダッシュボード URL（UTM 付きで経由クライアントを区別） ──
 const UTM            = "utm_source=mcp-server&utm_medium=cli";
-const REGISTER_URL   = `https://lemoncake.xyz/register?${UTM}&utm_campaign=credential-missing`;
-const DASHBOARD_URL  = `https://lemoncake.xyz/dashboard?${UTM}`;
-const BILLING_URL    = `https://lemoncake.xyz/dashboard/billing?${UTM}&utm_campaign=topup`;
-const DOCS_URL       = `https://lemoncake.xyz/docs/quickstart?${UTM}`;
+// v2 では一度の permit 署名で済むので "register" ではなく "permit issue" 動線。
+const PERMIT_URL     = `https://lemoncake.xyz/start/v2?${UTM}&utm_campaign=credential-missing`;
+const DASHBOARD_URL  = `https://lemoncake.xyz/?${UTM}`;
+const DOCS_URL       = `https://lemoncake.xyz/about?${UTM}`;
 
 // ── 起動時: 認証状態を stderr に出力（MCP クライアントのログに残る）───────────
 
 const hasPayToken = PAY_TOKEN.length > 0;
 const hasBuyerJwt = BUYER_JWT.length > 0;
 const hasPermit   = NON_CUSTODIAL_MODE;
+const hasLegacy   = hasPayToken || hasBuyerJwt;
 
 console.error("[LemonCake MCP] Starting...");
-console.error(`[LemonCake MCP]   API URL     : ${API_URL}`);
-console.error(`[LemonCake MCP]   PERMIT      : ${hasPermit   ? "✓ set (non-custodial mode, FSA Q11 compliant)" : "✗ not set"}`);
-console.error(`[LemonCake MCP]   PAY_TOKEN   : ${hasPayToken ? "✓ set (legacy custody mode)"                  : "✗ not set"}`);
-console.error(`[LemonCake MCP]   BUYER_JWT   : ${hasBuyerJwt ? "✓ set"                                         : "✗ not set"}`);
+console.error(`[LemonCake MCP]   API URL : ${API_URL}`);
+console.error(`[LemonCake MCP]   PERMIT  : ${hasPermit ? "✓ set (non-custodial, FSA Q11 compliant)" : "✗ not set"}`);
+if (hasLegacy) {
+  console.error(`[LemonCake MCP]   LEGACY  : ⚠ Pay Token / Buyer JWT detected — deprecated since v0.8, please migrate to LEMON_CAKE_PERMIT`);
+}
 const modeLabel =
-  hasPermit   ? "🍋 NON-CUSTODIAL (recommended; LemonCake never touches your USDC)" :
-  DEMO_MODE   ? "🎮 DEMO (try-without-signup; demo_* services + mock balance)"      :
-                "LIVE (legacy custody)";
-console.error(`[LemonCake MCP]   MODE        : ${modeLabel}`);
+  hasPermit ? "🍋 NON-CUSTODIAL (recommended; LemonCake never touches your USDC)" :
+  DEMO_MODE ? "🎮 DEMO (no signup; demo_* services + mock balance)"               :
+              "LEGACY (custody — please migrate to LEMON_CAKE_PERMIT)";
+console.error(`[LemonCake MCP]   MODE    : ${modeLabel}`);
 
 if (DEMO_MODE) {
   console.error("[LemonCake MCP]");
   console.error("[LemonCake MCP]   🎮 Demo mode active — you can try these without any signup:");
-  console.error("[LemonCake MCP]     • list_services      → see real marketplace + 3 demo services");
-  console.error("[LemonCake MCP]     • call_service       → demo_search (DuckDuckGo) / demo_echo (httpbin) / demo_fx (open.er-api) — real upstreams, no auth");
-  console.error("[LemonCake MCP]     • check_balance      → returns a mock $1.00 demo balance");
+  console.error("[LemonCake MCP]     • list_services      → real marketplace + 3 demo services");
+  console.error("[LemonCake MCP]     • call_service       → demo_search / demo_echo / demo_fx — real upstreams, no auth");
+  console.error("[LemonCake MCP]     • check_balance      → mock $1.00 demo balance");
   console.error("[LemonCake MCP]     • check_tax / get_service_stats → real (no auth needed)");
   console.error("[LemonCake MCP]");
-  console.error(`[LemonCake MCP]   For real calls, create a free account → ${REGISTER_URL}`);
-} else if (!hasPayToken || !hasBuyerJwt) {
-  console.error("[LemonCake MCP]");
-  console.error("[LemonCake MCP]   🚀 Get started in 3 minutes:");
-  console.error(`[LemonCake MCP]     1. Create a free account  →  ${REGISTER_URL}`);
-  console.error("[LemonCake MCP]     2. Top up balance ($5 USDC / JPYC supported)");
-  console.error("[LemonCake MCP]     3. Issue a Pay Token or copy Buyer JWT from Dashboard");
-  console.error("[LemonCake MCP]");
-  console.error("[LemonCake MCP]   Or call the `setup` tool from your MCP client for interactive guidance.");
+  console.error(`[LemonCake MCP]   To unlock paid services: sign 1 permit at  →  ${PERMIT_URL}`);
 }
 
 // ── ヘルパー ──────────────────────────────────────────────────────────────────
@@ -263,25 +266,28 @@ function usageHintFor(name: string): { path: string; method: string; body?: unkn
 }
 
 /** 未設定の認証情報に対して、取得方法を含む分かりやすいエラーを返す */
-function credentialError(envVar: string, toolName: string) {
+function credentialError(_envVar: string, toolName: string) {
   return {
     content: [{
       type: "text" as const,
       text: JSON.stringify({
-        error: `${envVar} is not configured.`,
-        code:  "CREDENTIAL_MISSING",
+        error: `LEMON_CAKE_PERMIT is not configured. ${toolName} requires a v2 permit signature.`,
+        code:  "PERMIT_MISSING",
         howToFix: [
-          `1. Create a free account → ${REGISTER_URL}`,
-          `2. Top up balance ($5 USDC or JPYC) → ${BILLING_URL}`,
-          envVar === "LEMON_CAKE_PAY_TOKEN"
-            ? `3. Dashboard → Tokens → Issue Pay Token (set your spending limit) → ${DASHBOARD_URL}`
-            : `3. Dashboard → Settings → Copy your Buyer JWT → ${DASHBOARD_URL}`,
-          `4. Add to your MCP client config:`,
-          `   "env": { "${envVar}": "<paste token here>" }`,
-          `5. Restart your MCP client`,
+          `1. Open ${PERMIT_URL} and sign in with Google (Privy embedded wallet, ~30s).`,
+          `2. Top up USDC via Apple Pay / Coinbase / JPY bank transfer (built in).`,
+          `3. Click "署名する" — one EIP-712 signature, no gas fee, valid 90 days with a $25/day hard cap.`,
+          `4. Copy the LEMON_CAKE_PERMIT blob into your MCP client config:`,
+          `   "env": { "LEMON_CAKE_PERMIT": "<paste permit here>" }`,
+          `5. Restart your MCP client.`,
+        ],
+        whyPermit: [
+          "Permits are non-custodial: LemonCake never holds your USDC.",
+          "The daily cap is enforced on-chain by USDC itself — the agent literally cannot exceed it.",
+          "One signature lasts 90 days; no per-call popups, no JWT juggling.",
         ],
         docs: DOCS_URL,
-        tip: `You can also call the 'setup' tool to see full setup instructions.`,
+        tip: `Try the 'explore-demo' prompt first to see how the tools work without signing up.`,
       }, null, 2),
     }],
     isError: true,
@@ -292,7 +298,7 @@ function credentialError(envVar: string, toolName: string) {
 
 const SERVER_INSTRUCTIONS = DEMO_MODE
   ? [
-      "🎮 DEMO MODE ACTIVE — no signup, no API key, no card required.",
+      "🎮 DEMO MODE ACTIVE — no signup, no API key, no permit required.",
       "",
       "You are connected with no credentials, so this server is in Demo Mode:",
       "  • list_services      → marketplace listing + 3 free demo services",
@@ -305,14 +311,26 @@ const SERVER_INSTRUCTIONS = DEMO_MODE
       "👉 Quick start: try the `explore-demo` prompt above, or call `setup` for the full guide.",
       "",
       "To unlock paid services (Serper, Hunter.io, gBizINFO, NTA invoice check, etc.),",
-      "set LEMON_CAKE_PAY_TOKEN. Free signup at https://lemoncake.xyz/register.",
+      "sign ONE ERC-2612 permit at https://lemoncake.xyz/start/v2 and set LEMON_CAKE_PERMIT.",
+      "USDC stays in your wallet — LemonCake never holds it.",
     ].join("\n")
-  : [
-      "LemonCake MCP — Pay-per-call USDC payments for any HTTP API.",
-      "",
-      "Call `setup` first to verify credentials and list available paid services.",
-      "Use `list_services` to browse the marketplace, then `call_service` to invoke.",
-    ].join("\n");
+  : NON_CUSTODIAL_MODE
+    ? [
+        "🍋 LemonCake MCP — Non-custodial pay-per-call USDC payments (v2).",
+        "",
+        "Permit is set: AI agent can spend up to $25/day from your wallet for 90 days.",
+        "USDC settles directly from your wallet to the API provider — LemonCake never touches it.",
+        "",
+        "Use `list_services` to browse, `call_service` to invoke, `check_balance` for quota.",
+      ].join("\n")
+    : [
+        "LemonCake MCP — Pay-per-call USDC payments for any HTTP API.",
+        "",
+        "⚠ Legacy custody mode detected (PAY_TOKEN/BUYER_JWT). Please migrate to",
+        "  LEMON_CAKE_PERMIT — get one at https://lemoncake.xyz/start/v2 (one signature, 90 days).",
+        "",
+        "Use `list_services` to browse the marketplace, then `call_service` to invoke.",
+      ].join("\n");
 
 const server = new Server(
   { name: "lemon-cake-mcp", version: MCP_VERSION },
@@ -332,17 +350,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: "setup",
       description: [
         "Show the LemonCake MCP first-run setup guide. No authentication required.",
-        "Call this tool FIRST to learn what credentials are missing and how to obtain them.",
+        "Call this tool FIRST to learn what is missing and how to obtain a permit.",
         "",
-        "If no auth env vars are set, the server is in DEMO MODE: list_services returns",
+        "If LEMON_CAKE_PERMIT is not set, the server is in DEMO MODE: list_services returns",
         "three demo services (demo_search / demo_echo / demo_fx) and call_service / check_balance",
-        "respond with mock data so you can verify integration before signing up.",
+        "respond with mock data so you can verify integration before signing.",
         "",
-        "Returns the current credential status (Pay Token / Buyer JWT), demo-mode flag, and",
-        "step-by-step instructions to obtain anything that is missing, including a sample MCP",
+        "Returns the current credential status (permit presence), demo-mode flag, and",
+        "step-by-step instructions for getting a permit at /start/v2, including a sample MCP",
         "client config snippet ready to paste.",
         "",
-        "Returns: { version, apiUrl, mode, credentials, availableTools, setupSteps, register, dashboard, docs }",
+        "Returns: { version, apiUrl, mode, credentials, availableTools, setupSteps, permitUrl, docs }",
         "Errors: none — this tool always succeeds.",
       ].join("\n"),
       annotations: {
@@ -363,9 +381,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "",
         "Use this BEFORE call_service to discover serviceId values and per-call USDC pricing.",
         "",
-        "When LEMON_CAKE_PAY_TOKEN is missing, three demo services are prepended",
+        "When LEMON_CAKE_PERMIT is missing, three demo services are prepended",
         "(demo_search → Wikipedia, demo_echo → httpbin, demo_fx → open.er-api) so you",
-        "can try call_service without signing up. Live users (PAY_TOKEN set) see only",
+        "can try call_service without signing up. Live users (permit set) see only",
         "real marketplace entries; demo_* IDs remain callable directly.",
         "",
         "Each item: { id, name, provider, type ('API' | 'MCP'), pricePerCall, [usage], [mode] }.",
@@ -393,18 +411,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
 
-    // ─── call_service（PAY_TOKEN 必須 / demo_* は不要） ─────────────────
+    // ─── call_service（permit 必須 / demo_* は不要） ─────────────────────
     {
       name: "call_service",
       description: [
         "Invoke an upstream API service through LemonCake's pay-per-call proxy.",
-        "Each successful call automatically charges USDC against your configured Pay Token.",
+        "Each successful call automatically debits USDC from your wallet via the permit you signed.",
+        "LemonCake never holds your USDC — the transfer is direct wallet → provider on Base.",
         "",
         "PRECONDITIONS:",
-        "  • LEMON_CAKE_PAY_TOKEN env var must be set for real services. If missing, the tool",
-        "    returns a structured CREDENTIAL_MISSING error with how-to-fix steps.",
+        "  • LEMON_CAKE_PERMIT env var must be set for real services. Get one in ~30 seconds at",
+        "    https://lemoncake.xyz/start/v2 (sign in with Google, sign 1 EIP-712 permit, copy the blob).",
+        "    If missing, the tool returns a structured PERMIT_MISSING error with how-to-fix steps.",
         "  • DEMO MODE: serviceId values starting with `demo_` (demo_search / demo_echo / demo_fx)",
-        "    work WITHOUT any auth and return canned responses — useful for Glama Inspector",
+        "    work WITHOUT any permit and return canned responses — useful for Glama Inspector",
         "    or new-user trial. They are clearly marked with `mode: \"demo\"` and incur no charge.",
         "  • serviceId must come from list_services.",
         "",
@@ -412,18 +432,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "  • Returns the upstream response body verbatim (JSON or text), plus the X-Charge-Id",
         "    and X-Amount-Usdc headers reported by the proxy.",
         "  • HTTP 402 Payment Required is returned as a normal result (NOT thrown) so the",
-        "    agent can autonomously stop spending when the Pay Token's limitUsdc is exhausted.",
+        "    agent can autonomously stop spending when the daily $25 permit cap is exhausted.",
         "  • Pass the same idempotencyKey to retry safely without double-charging.",
         "  • This tool spends real money and contacts an external service — it is",
         "    non-idempotent by default and has external side effects.",
         "",
-        "x402-COMPATIBLE INTERFACE (since v0.5.1):",
+        "x402-COMPATIBLE INTERFACE:",
         "  • Successful calls include an `x402Receipt` field with { scheme, chain, asset, amount,",
         "    recipient, paymentIntentId, settledAt }. Same shape as on-chain x402 receipts so the",
         "    agent's payment-handling logic is portable.",
         "  • If upstream returns an x402 challenge (WWW-Authenticate: x402, X-402-* headers, or",
-        "    body.x402), it's parsed into `x402Challenge` for the agent to reason about. On-chain",
-        "    auto-pay from Pay Token is gated (see issue #4); for now the agent should escalate.",
+        "    body.x402), it's parsed into `x402Challenge` for the agent to reason about.",
         "  • If upstream returns 202 + Retry-After + X-Payment-Status: pending, the result is",
         "    `{ status: \"PAYMENT_PENDING\", paymentIntentId, retryAfterMs, retryContract }`.",
         "    Re-call with the same idempotencyKey to resume — no double-charge.",
@@ -473,21 +492,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
 
-    // ─── check_balance（BUYER_JWT 必須 / DEMO_MODE 時は mock） ───────────
+    // ─── check_balance（permit / DEMO_MODE 時は mock） ───────────────────
     {
       name: "check_balance",
       description: [
-        "Check the current USDC balance, KYC tier, and account info of the configured buyer.",
+        "Check the current on-chain USDC balance of the wallet that owns the configured permit.",
         "",
         "PRECONDITIONS:",
-        "  • LEMON_CAKE_BUYER_JWT env var must be set. If missing AND no PAY_TOKEN is set,",
-        "    DEMO MODE returns a canned $1.00 demo balance with kycTier=\"DEMO\" so trial users",
-        "    see something instead of an error. With PAY_TOKEN set but no BUYER_JWT, returns",
-        "    a structured CREDENTIAL_MISSING error.",
+        "  • DEMO MODE (no LEMON_CAKE_PERMIT): returns a canned $1.00 demo balance so trial",
+        "    users see something useful before signing.",
+        "  • LIVE: queries Base USDC.balanceOf(owner) directly + reports remaining daily permit",
+        "    cap. LemonCake's backend doesn't store the balance — it's read from the chain.",
         "",
-        "Use BEFORE call_service to confirm sufficient funds, especially before a long batch.",
+        "Use BEFORE call_service to confirm sufficient funds and remaining daily cap.",
         "",
-        "Returns: { balanceUsdc, kycTier, email, name, [mode], [note] }",
+        "Returns: { balanceUsdc, dailyCap, remainingToday, ownerAddress, [mode], [note] }",
       ].join("\n"),
       annotations: {
         title:           "Check USDC balance",
@@ -608,7 +627,7 @@ const PROMPTS = [
   {
     name: "discover-marketplace",
     title: "🛍 Discover marketplace services (FREE browse)",
-    description: "[FREE · no auth needed] Lists every approved service with its category and price. Useful before deciding whether to grab a Pay Token.",
+    description: "[FREE · no auth needed] Lists every approved service with its category and price. Useful before deciding whether to sign a permit.",
     template: [
       "Using this server's `list_services` tool, list every approved service with its category and price.",
       "Then recommend the top 3 for an AI agent that needs to: (a) find recent news, (b) verify a Japanese invoice number, (c) translate text.",
@@ -617,8 +636,8 @@ const PROMPTS = [
   },
   {
     name: "spend-with-budget",
-    title: "💰 Spend with a strict budget cap (Pay Token required)",
-    description: "[REQUIRES Pay Token — get one free at lemoncake.xyz/start/v2] Pattern: check_balance → call_service → check_balance again, demonstrating KYA/Pay-Token spending limits.",
+    title: "💰 Spend with a strict budget cap (permit required)",
+    description: "[REQUIRES permit — sign one free at lemoncake.xyz/start/v2] Pattern: check_balance → call_service → check_balance again, demonstrating the on-chain daily cap enforced by the permit.",
     arguments: [
       { name: "serviceId", description: "Marketplace service ID (omit for demo_search)", required: false },
       { name: "query", description: "Search query (for search/data services)", required: false },
@@ -628,7 +647,7 @@ const PROMPTS = [
       const q = args.query ?? "AI agent payments 2026";
       return [
         `Demonstrate the LemonCake spending pattern with serviceId=\`${sid}\`:`,
-        "1. Call `check_balance` and report current USDC balance + KYA tier.",
+        "1. Call `check_balance` and report current USDC balance + remaining daily cap.",
         `2. Call \`call_service\` with serviceId='${sid}', method='POST', path='/search', body={\"q\":\"${q}\"}.`,
         "3. Call `check_balance` again and report the delta. If we're in demo mode, note that no real charge happened.",
         "Throughout, mention any 4xx hints the proxy returns so I learn the failure modes.",
@@ -637,20 +656,20 @@ const PROMPTS = [
   },
   {
     name: "real-vs-demo",
-    title: "🔄 Compare demo vs real upstream (Pay Token required for real)",
-    description: "[FREE for demo half · Pay Token needed for real half] Hits the same logical query against demo_search (Wikipedia, free) and a real marketplace search service to see the difference. Gracefully skips the paid half if no token.",
+    title: "🔄 Compare demo vs real upstream (permit required for real)",
+    description: "[FREE for demo half · permit needed for real half] Hits the same logical query against demo_search (Wikipedia, free) and a real marketplace search service to see the difference. Gracefully skips the paid half if no permit is set.",
     template: [
       "Compare LemonCake's demo vs real search:",
       "1. Call `call_service` with serviceId='demo_search', body={\"q\":\"Model Context Protocol\"}. Note the Wikipedia results.",
       "2. From `list_services`, find a real Serper / search service (category='検索') and call it with the same query.",
       "3. Tabulate: result count, top result title, latency feel (you'll see chargeId only for the real one).",
-      "If LEMON_CAKE_PAY_TOKEN isn't set, gracefully skip step 2 and explain how to set it.",
+      "If LEMON_CAKE_PERMIT isn't set, gracefully skip step 2 and explain how to get one at lemoncake.xyz/start/v2.",
     ].join("\n"),
   },
   {
     name: "japan-finance-bundle",
-    title: "🏯 Japan finance research bundle (Pay Token required)",
-    description: "[REQUIRES Pay Token for gBizINFO + e-Gov · check_tax part is free] Combines gBizINFO 法人情報 + 国税庁 invoice check + e-Gov 法令 in one workflow.",
+    title: "🏯 Japan finance research bundle (permit required)",
+    description: "[REQUIRES permit for gBizINFO + e-Gov · check_tax part is free] Combines gBizINFO 法人情報 + 国税庁 invoice check + e-Gov 法令 in one workflow.",
     arguments: [
       { name: "corporateNumber", description: "13-digit corporate number (法人番号)", required: false },
     ],
@@ -709,88 +728,79 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
       // ─── setup ──────────────────────────────────────────────────────────
       case "setup": {
-        const status = {
-          payToken:  hasPayToken ? "✓ 設定済み" : "✗ 未設定（call_service が使えません）",
-          buyerJwt:  hasBuyerJwt ? "✓ 設定済み" : "✗ 未設定（check_balance が使えません）",
+        const status: Record<string, string> = {
+          permit: hasPermit ? "✓ 設定済み" : "✗ 未設定（call_service が demo_* 以外で使えません）",
         };
+        if (hasLegacy) {
+          status.legacy = "⚠ Pay Token / Buyer JWT を検出（v0.8 で deprecated、permit に移行してください）";
+        }
 
         const steps: string[] = [];
 
-        if (!hasPayToken || !hasBuyerJwt) {
-          steps.push("=== セットアップ手順 ===");
+        if (!hasPermit) {
+          steps.push("=== セットアップ手順（約 1 分）===");
           steps.push("");
-          steps.push("1. 無料アカウント作成（3分で完了）");
-          steps.push(`   → ${REGISTER_URL}`);
+          steps.push("1. /start/v2 をブラウザで開く");
+          steps.push(`   → ${PERMIT_URL}`);
           steps.push("");
-          steps.push("2. USDC残高をチャージ（$5〜）");
-          steps.push(`   → ${BILLING_URL}`);
-          steps.push("   JPYCまたはUSDCで入金可能");
+          steps.push("2. Google でサインイン（Privy が embedded wallet を自動生成、秘密鍵はあなたのデバイスに保管）");
           steps.push("");
-        }
-
-        if (!hasPayToken) {
-          steps.push("3. Pay Tokenを発行（call_service に必要）");
-          steps.push("   Dashboard → Tokens → 「Pay Tokenを発行」");
-          steps.push("   ・serviceId: 使いたいサービスのIDを選択");
-          steps.push("   ・limitUsdc: このトークンで使える上限額（例: 5.00）");
-          steps.push("   → 発行されたJWTをコピー");
+          steps.push("3. USDC を入手（どれか 1 つ）");
+          steps.push("   • Apple Pay / Google Pay / クレカ → Coinbase Onramp（USD）");
+          steps.push("   • 銀行振込 / コンビニ払い → Transak（JPY）");
+          steps.push("   • 既に Base 上で USDC を保有しているならスキップ可");
           steps.push("");
-          steps.push("4. MCP設定ファイルに追加:");
-          steps.push('   "LEMON_CAKE_PAY_TOKEN": "<コピーしたJWT>"');
+          steps.push("4. ERC-2612 permit に 1 回だけ署名（ガス代なし）");
+          steps.push("   ・上限: $25/日（USDC コントラクトが強制）");
+          steps.push("   ・有効期間: 90 日");
+          steps.push("   ・経路: あなたのウォレット → API 提供者ウォレット（直接、LemonCake は経由しない）");
+          steps.push("");
+          steps.push("5. 発行された LEMON_CAKE_PERMIT blob を MCP 設定ファイルに貼る");
           steps.push("");
         }
 
-        if (!hasBuyerJwt) {
-          steps.push(!hasPayToken ? "5." : "3." + " Buyer JWTを取得（check_balance に必要）");
-          steps.push("   Dashboard → Settings → 「Buyer JWTをコピー」");
-          steps.push('   "LEMON_CAKE_BUYER_JWT": "<コピーしたJWT>"');
-          steps.push("");
-        }
-
-        steps.push("=== MCP設定ファイルのサンプル ===");
+        steps.push("=== MCP 設定ファイルのサンプル ===");
         steps.push("");
         steps.push(JSON.stringify({
           mcpServers: {
-            "pay-per-call": {
+            lemon: {
               command: "npx",
-              args:    ["-y", "pay-per-call-mcp"],
+              args:    ["-y", "agent-payment-mcp"],
               env: {
-                LEMON_CAKE_PAY_TOKEN:  hasPayToken ? "(設定済み)" : "<ダッシュボードで発行したPay Token JWT>",
-                LEMON_CAKE_BUYER_JWT:  hasBuyerJwt ? "(設定済み)" : "<ダッシュボードのSettingsからコピーしたJWT>",
+                LEMON_CAKE_PERMIT: hasPermit ? "(設定済み)" : "<lemoncake.xyz/start/v2 で発行した permit blob>",
               },
             },
           },
         }, null, 2));
         steps.push("");
-        steps.push("※ 旧パッケージ名 `lemon-cake-mcp` も同じく動作します（ラッパーとして維持中）。");
+        steps.push("※ 旧パッケージ名 `lemon-cake-mcp` / bin alias `pay-per-call-mcp` も同じバイナリに解決されます。");
 
         return json({
           version:       MCP_VERSION,
           apiUrl:        API_URL,
-          mode:          DEMO_MODE ? "demo" : "live",
+          mode:          NON_CUSTODIAL_MODE ? "non-custodial" : DEMO_MODE ? "demo" : "legacy",
           credentials:   status,
           availableTools: DEMO_MODE
             ? {
                 noAuth:        ["setup", "list_services", "get_service_stats", "check_tax", "check_balance (mock)", "call_service (demo_* only)"],
                 demoServices:  DEMO_SERVICES.map((d) => d.id),
-                upgradeHint:   "Set LEMON_CAKE_PAY_TOKEN to call real services; set LEMON_CAKE_BUYER_JWT for real balance.",
+                upgradeHint:   `Sign one permit at ${PERMIT_URL} (~30s) and set LEMON_CAKE_PERMIT to unlock paid services.`,
               }
             : {
                 noAuth:       ["setup", "list_services", "get_service_stats", "check_tax"],
-                needPayToken: ["call_service"],
-                needBuyerJwt: ["check_balance"],
+                needPermit:   ["call_service", "check_balance"],
               },
-          setupSteps: steps.length > 0 ? steps.join("\n") : "✅ 全ての認証情報が設定されています。",
-          register:   REGISTER_URL,
+          setupSteps: steps.length > 0 ? steps.join("\n") : "✅ permit が設定済みです — paid services を利用できます。",
+          permitUrl:  PERMIT_URL,
           dashboard:  DASHBOARD_URL,
-          docs:       "https://github.com/evidai/lemon-cake",
+          docs:       "https://github.com/evidai/agent-payment-mcp",
           // x402 互換性メタデータ。エージェントが「この MCP は x402 形式の receipt /
           // challenge を返す」と知った上で payment-handling logic を組めるように。
           x402: {
             interface:        "compatible",
-            scheme:           "lemoncake-pay-token-v1",
-            settlement:       "off-chain (Pay Token)",
-            onChainAutoPay:   "gated (HOT_WALLET) — see https://github.com/evidai/lemon-cake/issues/4",
+            scheme:           "lemoncake-permit-v2",
+            settlement:       NON_CUSTODIAL_MODE ? "on-chain via ERC-2612 permit (Base + USDC)" : "off-chain (legacy Pay Token)",
+            facilitator:      "https://skillful-blessing-production.up.railway.app/api/x402",
             receiptShape:     ["scheme", "x402Compatible", "chain", "asset", "amount", "recipient", "paymentIntentId", "settledAt"],
             challengeParser:  ["WWW-Authenticate: x402 ...", "X-402-* headers", "body.x402"],
             pendingSemantics: "upstream 202 + Retry-After + X-Payment-Status: pending → status: PAYMENT_PENDING with retryContract; safe to retry with same idempotencyKey",
@@ -812,11 +822,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             pricePerCall: `${s.pricePerCallUsdc} USDC`,
             usage:        usageHintFor(s.name),
           }));
-        // Surface demo services whenever PAY_TOKEN is missing (covers full
-        // DEMO_MODE and the partial-auth case where only BUYER_JWT is set).
-        // Live users with PAY_TOKEN see only real services to avoid clutter,
-        // but can still call demo_* serviceIds directly.
-        if (!PAY_TOKEN) {
+        // Demo モード（permit も legacy も無い）なら demo_* を先頭に prepend して
+        // 新規ユーザーが list_services 結果からそのまま試せるようにする。permit
+        // が設定済みなら real services のみ返してリストをすっきり保つ。
+        if (DEMO_MODE) {
           const demos = DEMO_SERVICES.map((d) => ({
             id:           d.id,
             name:         d.name,
@@ -867,15 +876,23 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           });
         }
 
-        if (!PAY_TOKEN) return credentialError("LEMON_CAKE_PAY_TOKEN", "call_service");
+        // v0.8+: prefer PERMIT. PAY_TOKEN is silent fallback for legacy users.
+        if (!hasPermit && !PAY_TOKEN) return credentialError("LEMON_CAKE_PERMIT", "call_service");
         const url = `${API_URL}/api/proxy/${serviceId}${normalizedPath}`;
 
+        // PERMIT は X-LemonCake-Permit ヘッダで送る（バックエンド側で透過対応）。
+        // PAY_TOKEN しかなければ従来通り Authorization Bearer。両方あれば permit 優先。
         const headers: Record<string, string> = {
           "Content-Type":       "application/json",
-          "Authorization":      `Bearer ${PAY_TOKEN}`,
           "User-Agent":         USER_AGENT,
           "X-LemonCake-Client": USER_AGENT,
         };
+        if (hasPermit) {
+          headers["X-LemonCake-Permit"] = PERMIT_TOKEN;
+        }
+        if (PAY_TOKEN) {
+          headers["Authorization"] = `Bearer ${PAY_TOKEN}`;
+        }
         if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
         // SECURITY / RESILIENCE: previously there was no fetch timeout — a
@@ -946,8 +963,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           let hint: string | undefined;
           const bodyStr = typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody ?? "");
           if (res.status === 401)                               hint = "Upstream authentication failed. The service's API key may be invalid or expired. Try a different service.";
-          else if (res.status === 402)                          hint = "Pay Token limit exhausted or buyer balance insufficient. Stop further calls and notify the user to top up.";
-          else if (res.status === 403)                          hint = "Forbidden. Token scope may not match this serviceId, or service is not approved.";
+          else if (res.status === 402)                          hint = "Daily permit cap exhausted or wallet balance insufficient. Stop further calls and notify the user to top up USDC or wait until tomorrow.";
+          else if (res.status === 403)                          hint = "Forbidden. The permit may not cover this serviceId, or the service is not approved.";
           else if (res.status === 404)                          hint = "Path not found on upstream. Re-check the `path` argument — common shapes vary by service.";
           else if (res.status === 422 && bodyStr.includes("service_uneconomical")) hint = "This service is below the platform's minimum revenue floor. Cannot be called regardless of buyer balance.";
           else if (res.status === 429)                          hint = "Upstream rate-limited. Retry after backoff or pick a different service.";
@@ -973,24 +990,57 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
       // ─── check_balance ───────────────────────────────────────────────────
       case "check_balance": {
-        if (!BUYER_JWT) {
-          if (DEMO_MODE) return json({
-            balanceUsdc: "1.00",
-            kycTier:     "DEMO",
-            email:       "demo@lemoncake.xyz",
-            name:        "Demo Buyer",
-            mode:        "demo",
-            note:        DEMO_NOTICE,
-          });
-          return credentialError("LEMON_CAKE_BUYER_JWT", "check_balance");
-        }
-        const me = await apiGet("/api/auth/me", BUYER_JWT) as any;
-        return json({
-          balanceUsdc: me.buyer?.balanceUsdc ?? me.balanceUsdc,
-          kycTier:     me.buyer?.kycTier     ?? me.kycTier,
-          email:       me.email,
-          name:        me.name,
+        // Demo モード: モック残高
+        if (DEMO_MODE) return json({
+          balanceUsdc:    "1.00",
+          dailyCap:       "25.00",
+          remainingToday: "1.00",
+          ownerAddress:   "0xDEMO000000000000000000000000000000000000",
+          mode:           "demo",
+          note:           DEMO_NOTICE,
         });
+
+        // v2 non-custodial: permit からオーナーアドレスを抽出 → on-chain 残高 + cap
+        if (hasPermit) {
+          try {
+            // permit は base64-JSON。owner + value (daily cap) を取り出す。
+            const decoded = JSON.parse(Buffer.from(PERMIT_TOKEN, "base64").toString("utf-8"));
+            const owner = decoded.owner as string;
+            const dailyCapRaw = BigInt(decoded.value ?? "0");
+            const dailyCapUsdc = (Number(dailyCapRaw) / 1_000_000).toFixed(2);
+            // バランスは Base RPC 直叩きで取得
+            const balResp = await tryFetch(`${API_URL}/api/charges/permit/quota?ownerAddress=${owner}`, {}, 4000) as { balanceUsdc?: string; remainingToday?: string } | null;
+            return json({
+              balanceUsdc:    balResp?.balanceUsdc ?? "(query failed — try again later)",
+              dailyCap:       dailyCapUsdc,
+              remainingToday: balResp?.remainingToday ?? dailyCapUsdc,
+              ownerAddress:   owner,
+              permitExpiry:   new Date(Number(decoded.deadline ?? 0) * 1000).toISOString(),
+              mode:           "non-custodial",
+            });
+          } catch (e) {
+            return json({
+              balanceUsdc: "(permit decode failed)",
+              error:       e instanceof Error ? e.message : String(e),
+              hint:        "permit blob が壊れています。/start/v2 で再発行してください。",
+              mode:        "non-custodial",
+            });
+          }
+        }
+
+        // legacy fallback
+        if (BUYER_JWT) {
+          const me = await apiGet("/api/auth/me", BUYER_JWT) as any;
+          return json({
+            balanceUsdc: me.buyer?.balanceUsdc ?? me.balanceUsdc,
+            kycTier:     me.buyer?.kycTier     ?? me.kycTier,
+            email:       me.email,
+            name:        me.name,
+            mode:        "legacy",
+            note:        "Legacy custody mode. Please migrate to LEMON_CAKE_PERMIT.",
+          });
+        }
+        return credentialError("LEMON_CAKE_PERMIT", "check_balance");
       }
 
       // ─── check_tax ───────────────────────────────────────────────────────
