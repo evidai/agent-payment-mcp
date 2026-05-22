@@ -181,8 +181,6 @@ async function main(): Promise<void> {
 
   const PORT = parseInt(process.env.PORT ?? "3002", 10);
 
-  // DEPLOY MARKER — log unique build signature so we can verify code is fresh
-  console.log("[BUILD] v2-routes-registered marker:2026-05-22-v2-deploy-check");
   serve({ fetch: app.fetch, port: PORT }, () => {
     console.log(`\n🚀 KYAPay API started`);
     console.log(`   Local:   http://localhost:${PORT}`);
