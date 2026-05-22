@@ -45,7 +45,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
     stripePriceEnv:    null,
   },
   PRO: {
-    monthlyJpy:         4980,
+    monthlyJpy:         9800,
     freeCallsPerMonth:  10000,
     features: {
       accountingIntegration: true,
@@ -57,7 +57,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
     stripePriceEnv:    "STRIPE_PRICE_PRO",
   },
   BUSINESS: {
-    monthlyJpy:         14800,
+    monthlyJpy:         29800,
     freeCallsPerMonth:  100000,
     features: {
       accountingIntegration: true,
@@ -67,6 +67,18 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
       sla999:                true,
     },
     stripePriceEnv:    "STRIPE_PRICE_BUSINESS",
+  },
+  SCALE: {
+    monthlyJpy:         98000,
+    freeCallsPerMonth:  500000,
+    features: {
+      accountingIntegration: true,
+      invoiceGeneration:     true,
+      jpyOfframp:            true,
+      multiWallet:           true,
+      sla999:                true,
+    },
+    stripePriceEnv:    "STRIPE_PRICE_SCALE",
   },
   ENTERPRISE: {
     monthlyJpy:         0,  // 個別見積もり

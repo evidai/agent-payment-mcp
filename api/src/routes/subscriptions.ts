@@ -36,7 +36,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://lemoncake.xyz";
 
 const CheckoutBody = z.object({
   providerV2Id: z.string().min(1),
-  plan:         z.enum(["PRO", "BUSINESS"]),  // FREE は checkout 不要、Enterprise は手動
+  plan:         z.enum(["PRO", "BUSINESS", "SCALE"]),  // FREE は checkout 不要、Enterprise は手動
   successUrl:   z.string().url().optional(),
   cancelUrl:    z.string().url().optional(),
 });
@@ -162,7 +162,7 @@ subscriptionsRouter.openapi(
     responses: {
       200: {
         content: { "application/json": { schema: z.object({
-          plan:               z.enum(["FREE","PRO","BUSINESS","ENTERPRISE"]),
+          plan:               z.enum(["FREE","PRO","BUSINESS","SCALE","ENTERPRISE"]),
           status:             z.string(),
           freeCallsPerMonth:  z.number(),
           // 旧 overagePerCallUsdc は廃止: per-call 単価は Provider 個別の
@@ -195,7 +195,7 @@ subscriptionsRouter.openapi(
     if (!provider) return c.json({ error: "Provider not found" }, 404);
 
     const sub = provider.subscription;
-    const plan = (sub?.status === "ACTIVE" ? sub.plan : "FREE") as "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+    const plan = (sub?.status === "ACTIVE" ? sub.plan : "FREE") as "FREE" | "PRO" | "BUSINESS" | "SCALE" | "ENTERPRISE";
     const cfg = PLAN_CONFIG[plan];
 
     return c.json({
@@ -277,7 +277,7 @@ async function syncSubscriptionFromStripe(stripe: StripeClient, event: any): Pro
     catch { /* deleted 等 */ }
   }
 
-  const plan = (planFromMetadata ?? "FREE") as "FREE"|"PRO"|"BUSINESS"|"ENTERPRISE";
+  const plan = (planFromMetadata ?? "FREE") as "FREE"|"PRO"|"BUSINESS"|"SCALE"|"ENTERPRISE";
   const status = mapStripeStatus(stripeSub?.status, event.type);
 
   const periodStart = stripeSub?.current_period_start

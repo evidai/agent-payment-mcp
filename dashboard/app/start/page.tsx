@@ -327,7 +327,7 @@ export default function StartPage() {
           />
           <PriceCard
             label="Provider Pro"
-            value="¥4,980"
+            value="¥9,800"
             sub="freee/MF 自動仕訳 + 適格請求書自動発行 (publish your API)"
             accent
           />

@@ -848,6 +848,7 @@ enum SubscriptionPlan {
   FREE
   PRO
   BUSINESS
+  SCALE
   ENTERPRISE
 }
 

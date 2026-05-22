@@ -3132,7 +3132,7 @@ function SellerMyServicesPanel({
 // 「まず /sellers で provider 登録」を案内する。
 
 interface SubscriptionInfo {
-  plan:               "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  plan:               "FREE" | "PRO" | "BUSINESS" | "SCALE" | "ENTERPRISE";
   status:             string;
   freeCallsPerMonth:  number;
   monthlyJpy:         number;
@@ -3179,8 +3179,8 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
   },
   BUSINESS: {
     jaName: "Business", enName: "Business",
-    jaTagline: "スケールフェーズ向け（量割引 + JPY オフランプ）",
-    enTagline: "Scale-up tier (volume discount + JPY off-ramp)",
+    jaTagline: "JPY オフランプと multi-wallet が解放",
+    enTagline: "JPY off-ramp + multi-wallet unlocks here",
     jaFeatures: [
       "月 100,000 call 無料（LemonCake 負担）",
       "超過は自分の単価で 100% 受取",
@@ -3196,6 +3196,29 @@ const PLAN_DESCRIPTIONS: Record<SubscriptionInfo["plan"], {
       "USDC → JPY auto off-ramp (Coincheck)",
       "Multi-wallet support",
       "SLA 99.9%",
+    ],
+  },
+  SCALE: {
+    jaName: "Scale", enName: "Scale",
+    jaTagline: "高頻度 API・チーム運用 Provider 向け",
+    enTagline: "High-volume APIs and team operations",
+    jaFeatures: [
+      "月 500,000 call 無料（LemonCake 負担）",
+      "超過は自分の単価で 100% 受取",
+      "Business の全機能",
+      "監査ログ（電子帳簿保存法対応）",
+      "チーム機能（複数 admin / 役割）",
+      "専用 Slack サポート",
+      "SLA 99.95%",
+    ],
+    enFeatures: [
+      "500,000 free calls/mo (we cover it)",
+      "Above that: 100% of your price",
+      "All Business features",
+      "Audit log (7-year retention)",
+      "Team features (multi-admin / roles)",
+      "Dedicated Slack support",
+      "SLA 99.95%",
     ],
   },
   ENTERPRISE: {
@@ -3240,7 +3263,7 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
       .finally(() => setLoading(false));
   }, [providerV2Id, API]);
 
-  async function upgradeToCheckout(plan: "PRO" | "BUSINESS") {
+  async function upgradeToCheckout(plan: "PRO" | "BUSINESS" | "SCALE") {
     if (!providerV2Id) return;
     setBusy("checkout");
     setError(null);
@@ -3322,8 +3345,8 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(["FREE","PRO","BUSINESS"] as const).map((p) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {(["FREE","PRO","BUSINESS","SCALE"] as const).map((p) => {
               const desc = PLAN_DESCRIPTIONS[p];
               const isCurrent = sub.plan === p;
               return (
@@ -3342,7 +3365,7 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
                   {!isCurrent && p !== "FREE" && (
                     <button
                       type="button"
-                      onClick={() => upgradeToCheckout(p as "PRO" | "BUSINESS")}
+                      onClick={() => upgradeToCheckout(p as "PRO" | "BUSINESS" | "SCALE")}
                       disabled={busy !== null}
                       className="mt-2 rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-600 disabled:opacity-50"
                     >
@@ -3374,9 +3397,10 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
 }
 
 // プラン公開設定（lib/plans.ts のミラー — 月額のみ）
-const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS", { monthlyJpy: number }> = {
-  PRO:      { monthlyJpy: 4980 },
-  BUSINESS: { monthlyJpy: 14800 },
+const PLAN_CONFIG_PUBLIC: Record<"PRO" | "BUSINESS" | "SCALE", { monthlyJpy: number }> = {
+  PRO:      { monthlyJpy: 9800 },
+  BUSINESS: { monthlyJpy: 29800 },
+  SCALE:    { monthlyJpy: 98000 },
 };
 
 // ── OfframpPanel: USDC → JPY オフランプ（Business 以上） ──────────────────────
