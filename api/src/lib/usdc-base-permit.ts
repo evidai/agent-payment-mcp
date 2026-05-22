@@ -29,7 +29,7 @@ import { base } from "viem/chains";
 export const BASE_USDC_ADDRESS =
   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const satisfies Address;
 
-// ─── ERC-20 + ERC-2612 最小 ABI ──────────────────────────────
+// ─── ERC-20 + ERC-2612 + ERC-3009 最小 ABI ───────────────────
 const USDC_ABI = [
   {
     name: "permit",
@@ -43,6 +43,26 @@ const USDC_ABI = [
       { name: "v",        type: "uint8"   },
       { name: "r",        type: "bytes32" },
       { name: "s",        type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  // ERC-3009 — x402 が採用する署名スキーム
+  // owner が validAfter ~ validBefore の窓内で、特定 (to, value, nonce) を
+  // 第三者にプッシュしてもらう
+  {
+    name: "transferWithAuthorization",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from",        type: "address" },
+      { name: "to",          type: "address" },
+      { name: "value",       type: "uint256" },
+      { name: "validAfter",  type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce",       type: "bytes32" },
+      { name: "v",           type: "uint8"   },
+      { name: "r",           type: "bytes32" },
+      { name: "s",           type: "bytes32" },
     ],
     outputs: [],
   },
@@ -168,6 +188,68 @@ export async function executePermitTransfer(
   await publicClient.waitForTransactionReceipt({ hash: transferTxHash });
 
   return { permitTxHash, transferTxHash };
+}
+
+// ─── ERC-3009 transferWithAuthorization ──────────────────────
+// x402 が使う署名スキーム。owner が「from → to に value を windowed nonce で
+// 転送してよい」と EIP-712 署名し、誰でもオンチェーンで relay できる。
+
+export interface TransferWithAuthorizationParams {
+  from:        Address;
+  to:          Address;
+  value:       bigint;  // USDC units (6 decimals)
+  validAfter:  bigint;
+  validBefore: bigint;
+  nonce:       Hex;     // bytes32
+  v:           number;
+  r:           Hex;
+  s:           Hex;
+}
+
+export interface TransferWithAuthorizationResult {
+  txHash: Hex;
+}
+
+/**
+ * ERC-3009 transferWithAuthorization を spender wallet がガス代を払って relay する。
+ * x402 サーバーが 402 → 署名 → /verify を受け取ったあとに呼ぶ。
+ */
+export async function executeTransferWithAuthorization(
+  params: TransferWithAuthorizationParams,
+): Promise<TransferWithAuthorizationResult> {
+  const account = getSpenderAccount();
+  const rpcUrl  = getRpcUrl();
+
+  const walletClient = createWalletClient({
+    account,
+    chain:     base,
+    transport: http(rpcUrl),
+  });
+  const publicClient = createPublicClient({
+    chain:     base,
+    transport: http(rpcUrl),
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const txHash = await (walletClient.writeContract as any)({
+    address:      BASE_USDC_ADDRESS,
+    abi:          USDC_ABI,
+    functionName: "transferWithAuthorization",
+    args: [
+      params.from,
+      params.to,
+      params.value,
+      params.validAfter,
+      params.validBefore,
+      params.nonce,
+      params.v,
+      params.r,
+      params.s,
+    ],
+  }) as Hex;
+
+  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  return { txHash };
 }
 
 /**

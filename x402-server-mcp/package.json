@@ -1,0 +1,40 @@
+{
+  "name": "@lemon-cake/x402-server",
+  "version": "0.1.0",
+  "description": "Drop-in HTTP 402 Payment Required middleware for Express / Hono. Routes payment verification through LemonCake's facilitator (Base + USDC). Pay-per-call your API in 3 lines, no JWT, no API key juggling.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "x402",
+    "mcp",
+    "payment",
+    "usdc",
+    "non-custodial",
+    "lemoncake",
+    "middleware",
+    "402",
+    "agent-payment",
+    "monetization"
+  ],
+  "author": "Evid AI (LemonCake)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/evidai/agent-payment-mcp.git",
+    "directory": "x402-server-mcp"
+  },
+  "homepage": "https://lemoncake.xyz",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
