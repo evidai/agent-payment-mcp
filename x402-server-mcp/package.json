@@ -1,6 +1,6 @@
 {
   "name": "@lemon-cake/x402-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "HTTP 402 middleware with hybrid facilitator routing: settle through Coinbase CDP for x402 Bazaar / AWS AgentCore discovery AND record to LemonCake for freee/MF auto-journal, qualified invoices (適格請求書), and JPY off-ramp. Express + Hono supported. 3 lines to monetize an API, no JWT, no API key juggling.",
   "type": "module",
   "main": "dist/index.js",

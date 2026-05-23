@@ -52,9 +52,14 @@ export interface X402Options {
    */
   serviceId: string;
   /**
-   * Price per call in USD. The facilitator caps actual charges at the
-   * provider's subscription plan overage, so this is upper-bound.
-   * Default: 0.001 (x402 baseline).
+   * **Fallback** price per call in USD（API 到達不能時にのみ使用）。
+   *
+   * v0.2.2+: 単価のシングルソースは LemonCake DB（`/sellers` wizard で
+   * 設定した `pricePerCallUsdc`）。ミドルウェアは起動後 `/api/providers/v2/:id`
+   * から取得して 60 秒キャッシュ。ダッシュボードで単価変更すれば再デプロイ不要。
+   *
+   * この値を渡しても通常は無視される。LemonCake API がダウンしている時の
+   * 安全弁としてのみ機能。デフォルト: 0.001 (x402 baseline)。
    */
   pricePerCallUsd?: number;
   /**
@@ -98,6 +103,38 @@ function lemoncakeUrl(opts: X402Options): string {
     ?? DEFAULT_LEMONCAKE;
 }
 
+// ─── Canonical pricing (single source of truth = LemonCake DB) ────────
+// /sellers wizard で provider が決めた pricePerCallUsdc を真とし、
+// middleware に書かれた opts.pricePerCallUsd は **fallback only**（API
+// 到達不能時にだけ使う）。60 秒キャッシュで毎リクエスト fetch を避ける。
+// これで provider はダッシュボードから単価変更すれば再デプロイ不要に。
+interface CachedPrice {
+  pricePerCallUsd: number;
+  fetchedAt:       number;
+}
+const _priceCache = new Map<string, CachedPrice>();
+const PRICE_TTL_MS = 60_000;
+
+async function resolvePricePerCallUsd(opts: X402Options): Promise<number> {
+  const fallback = opts.pricePerCallUsd ?? 0.001;
+  const key = `${lemoncakeUrl(opts)}|${opts.serviceId}`;
+  const cached = _priceCache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < PRICE_TTL_MS) {
+    return cached.pricePerCallUsd;
+  }
+  try {
+    const r = await fetch(`${lemoncakeUrl(opts)}/api/providers/v2/${encodeURIComponent(opts.serviceId)}`);
+    if (!r.ok) return fallback;
+    const data = await r.json() as { pricePerCallUsdc?: string };
+    const fromApi = parseFloat(data.pricePerCallUsdc ?? "");
+    if (!Number.isFinite(fromApi) || fromApi <= 0) return fallback;
+    _priceCache.set(key, { pricePerCallUsd: fromApi, fetchedAt: Date.now() });
+    return fromApi;
+  } catch {
+    return fallback;
+  }
+}
+
 function coinbaseUrl(opts: X402Options): string {
   return opts.coinbaseFacilitatorUrl
     ?? process.env.COINBASE_X402_FACILITATOR
@@ -132,8 +169,9 @@ async function fetchLemoncakeAccepts(opts: X402Options, resourceUrl: string): Pr
  * facilitator here — we just shape the manifest with metadata Coinbase's
  * Bazaar will pick up after the first settle.
  */
-function buildCoinbaseAccepts(opts: X402Options, resourceUrl: string): AcceptsResponse {
-  const microUsdc = Math.round((opts.pricePerCallUsd ?? 0.001) * 1_000_000);
+async function buildCoinbaseAccepts(opts: X402Options, resourceUrl: string): Promise<AcceptsResponse> {
+  const pricePerCallUsd = await resolvePricePerCallUsd(opts);
+  const microUsdc = Math.round(pricePerCallUsd * 1_000_000);
   return {
     x402Version: 1,
     accepts: [{
@@ -165,13 +203,16 @@ function buildCoinbaseAccepts(opts: X402Options, resourceUrl: string): AcceptsRe
 async function buildAccepts(opts: X402Options, resourceUrl: string): Promise<AcceptsResponse> {
   const mode = opts.facilitator ?? "lemoncake";
   if (mode === "coinbase") {
-    return buildCoinbaseAccepts(opts, resourceUrl);
+    return await buildCoinbaseAccepts(opts, resourceUrl);
   }
   if (mode === "both") {
     // Both: LemonCake accepts first (preferred for JPY-aware buyers),
     // CDP entry second (Bazaar discovery + AgentCore reach).
-    const lc = await fetchLemoncakeAccepts(opts, resourceUrl);
-    const cb = buildCoinbaseAccepts(opts, resourceUrl);
+    // 並行 fetch で latency 上乗せ無し（どちらも LemonCake API を叩く）。
+    const [lc, cb] = await Promise.all([
+      fetchLemoncakeAccepts(opts, resourceUrl),
+      buildCoinbaseAccepts(opts, resourceUrl),
+    ]);
     if (!lc) return cb;
     return { x402Version: 1, accepts: [...lc.accepts, ...cb.accepts] };
   }

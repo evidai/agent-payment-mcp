@@ -103,7 +103,12 @@ app.get("/api/search", (c) => c.json({ results: [/* … */] }));`}</pre>
         <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">設定オプション</h2>
         <ul className="text-sm text-gray-700 leading-relaxed pl-5 list-disc space-y-1.5">
           <li><code className="text-xs bg-gray-100 px-1 rounded">serviceId</code>（必須）：<Link href="/sellers" className="text-amber-700">/sellers</Link> で発行した providerV2Id</li>
-          <li><code className="text-xs bg-gray-100 px-1 rounded">pricePerCallUsd</code>（任意、デフォルト 0.001）：1 call の単価</li>
+          <li>
+            <code className="text-xs bg-gray-100 px-1 rounded">pricePerCallUsd</code>（任意、fallback only）：
+            v0.2.2+ では単価のシングルソースは <Link href="/sellers" className="text-amber-700">/sellers</Link> wizard で設定した DB 値。
+            この値は LemonCake API 到達不能時の安全弁としてのみ使う。
+            ダッシュボードから単価変更すれば <strong>コード再デプロイ不要</strong>で 60 秒以内に反映
+          </li>
           <li><code className="text-xs bg-gray-100 px-1 rounded">facilitator</code>（任意、デフォルト "lemoncake"）：上記 3 モード</li>
           <li><code className="text-xs bg-gray-100 px-1 rounded">bazaar.&#123;name, description, category, tags&#125;</code>：Bazaar 掲載時の表示メタ</li>
         </ul>
