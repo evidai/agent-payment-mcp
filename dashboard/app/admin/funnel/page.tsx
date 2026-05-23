@@ -137,47 +137,47 @@ export default function FunnelPage() {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
               <FunnelCard
                 step="01"
-                title="LP visitors"
+                title="LP 訪問者"
                 value={t.lpUniqueVisitors}
-                sub={`${t.lpDemoRuns.toLocaleString()} runs`}
+                sub={`デモ実行 ${t.lpDemoRuns.toLocaleString()} 回`}
                 color="gray"
               />
               <FunnelCard
                 step="02"
-                title="LP demo runs"
+                title="デモ実行"
                 value={t.lpDemoRuns}
-                sub="playground 実行"
+                sub="playground 実行回数"
                 color="gray"
                 rate={t.lpUniqueVisitors > 0 ? t.lpDemoRuns / t.lpUniqueVisitors : 0}
-                rateLabel="runs/visitor"
+                rateLabel="回 / 訪問者"
               />
               <FunnelCard
                 step="03"
-                title="Providers"
+                title="登録 Provider"
                 value={t.providersRegistered}
                 sub="/sellers 登録完了"
                 color="amber"
                 rate={data.rates.visitorToProvider}
-                rateLabel="visitor → provider"
+                rateLabel="訪問者 → 登録"
               />
               <FunnelCard
                 step="04"
-                title="Subscribers"
+                title="有料サブスク"
                 value={t.subscriptionsCreated}
-                sub="PRO 以上"
+                sub="PRO プラン以上"
                 color="violet"
                 rate={data.rates.providerToSubscriber}
-                rateLabel="provider → sub"
+                rateLabel="Provider → 有料化"
               />
               <FunnelCard
                 step="05"
-                title="Revenue"
+                title="売上"
                 value={`$${parseFloat(t.permitChargesUsdc).toFixed(2)}`}
-                sub={`${t.permitChargesCount.toLocaleString()} charges`}
+                sub={`課金 ${t.permitChargesCount.toLocaleString()} 件`}
                 color="emerald"
                 isMonetary
                 rate={data.rates.providerToCharger}
-                rateLabel="provider → charger"
+                rateLabel="Provider → 課金あり"
               />
             </div>
 
@@ -186,7 +186,7 @@ export default function FunnelPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-bold text-gray-900">日次推移</h2>
                 <span className="text-[10px] text-gray-400">
-                  generated: {new Date(data.generatedAt).toLocaleString("ja-JP")}
+                  生成時刻: {new Date(data.generatedAt).toLocaleString("ja-JP")}
                 </span>
               </div>
               <div style={{ width: "100%", height: 260 }}>
@@ -216,9 +216,9 @@ export default function FunnelPage() {
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }}/>
-                    <Area type="monotone" dataKey="lpUniqueVisitors"     name="LP visitors"  stroke="#9ca3af" fill="url(#g_visitors)"  strokeWidth={1.5}/>
-                    <Area type="monotone" dataKey="providersRegistered"  name="Providers"    stroke="#f59e0b" fill="url(#g_providers)" strokeWidth={2}/>
-                    <Area type="monotone" dataKey="subscriptionsCreated" name="Subs (paid)"  stroke="#8b5cf6" fill="url(#g_subs)"      strokeWidth={2}/>
+                    <Area type="monotone" dataKey="lpUniqueVisitors"     name="LP 訪問者"      stroke="#9ca3af" fill="url(#g_visitors)"  strokeWidth={1.5}/>
+                    <Area type="monotone" dataKey="providersRegistered"  name="登録 Provider"  stroke="#f59e0b" fill="url(#g_providers)" strokeWidth={2}/>
+                    <Area type="monotone" dataKey="subscriptionsCreated" name="有料サブスク"    stroke="#8b5cf6" fill="url(#g_subs)"      strokeWidth={2}/>
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -251,10 +251,10 @@ export default function FunnelPage() {
 
               {/* Conversion rates */}
               <div className="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-sm font-bold text-gray-900 mb-3">Conversion rates</h2>
+                <h2 className="text-sm font-bold text-gray-900 mb-3">転換率</h2>
                 <div className="space-y-3">
                   <RateBar
-                    label="LP visitor → Provider 登録"
+                    label="LP 訪問者 → /sellers 登録"
                     rate={data.rates.visitorToProvider}
                     color="bg-amber-500"
                   />
@@ -264,14 +264,14 @@ export default function FunnelPage() {
                     color="bg-violet-500"
                   />
                   <RateBar
-                    label="Provider → 実課金（distinct payer / provider）"
+                    label="Provider → 実課金あり（課金者数 / Provider 数）"
                     rate={data.rates.providerToCharger}
                     color="bg-emerald-500"
                   />
                 </div>
                 <p className="mt-4 text-[10px] text-gray-400 leading-relaxed">
                   ※ 課金は <code>PermitCharge.status = COMPLETED</code> をカウント。<br/>
-                  ※ visitor は <code>PlaygroundLog.ipHash</code> のユニーク数（playground を踏んだ訪問者のみ。素通り訪問者は GA4 で別途）。
+                  ※ 訪問者は <code>PlaygroundLog.ipHash</code> のユニーク数（playground を踏んだ訪問者のみ。素通り訪問者は GA4 で別途）。
                 </p>
               </div>
             </div>
@@ -281,12 +281,12 @@ export default function FunnelPage() {
               <table className="w-full min-w-[640px] text-xs">
                 <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-3 py-2 text-left font-bold">date</th>
-                    <th className="px-3 py-2 text-right font-bold">visitors</th>
-                    <th className="px-3 py-2 text-right font-bold">demo runs</th>
-                    <th className="px-3 py-2 text-right font-bold">providers</th>
-                    <th className="px-3 py-2 text-right font-bold">subs</th>
-                    <th className="px-3 py-2 text-right font-bold">charges</th>
+                    <th className="px-3 py-2 text-left font-bold">日付</th>
+                    <th className="px-3 py-2 text-right font-bold">訪問者</th>
+                    <th className="px-3 py-2 text-right font-bold">デモ実行</th>
+                    <th className="px-3 py-2 text-right font-bold">登録</th>
+                    <th className="px-3 py-2 text-right font-bold">有料化</th>
+                    <th className="px-3 py-2 text-right font-bold">課金</th>
                   </tr>
                 </thead>
                 <tbody className="text-gray-700 font-mono">
