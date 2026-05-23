@@ -19,21 +19,28 @@
  * was removed when v2 went live (2026-05-22) to keep the UI honest.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createWalletClient, custom, type WalletClient } from "viem";
-import { base } from "viem/chains";
+import { base, polygon } from "viem/chains";
 // We construct the Coinbase Onramp URL manually so we can hand it the
 // Privy embedded-wallet address. The OnchainKit `<FundButton />` would
 // otherwise gate the flow behind a wagmi connector and force the user
 // through a redundant "Connect Wallet" step.
 import {
+  DEFAULT_CHAIN,
   encodePermit,
+  getTokenAddress,
   permitDeadlineFromNow,
-  signUsdcPermit,
-  USDC_ADDRESS,
+  resolveToken,
+  signStablePermit,
+  type Currency,
   type SignedPermit,
 } from "@/lib/permit";
+import {
+  detectDefaultCurrency,
+  saveCurrencyPreference,
+} from "@/lib/locale-detector";
 import { trackEvent } from "@/lib/analytics";
 import { PRIVY_ENABLED, COINBASE_ENABLED } from "@/Providers";
 
@@ -124,6 +131,37 @@ function buildTransakUrl(walletAddress: string, fiatAmountJpy: number): string {
 
 // $25.00 USDC daily cap (USDC uses 6 decimals).
 const DEFAULT_DAILY_CAP_USDC_BASE = BigInt(25_000_000);
+// ¥3,000 JPYC daily cap (JPYC uses 18 decimals).
+// Roughly matches the USDC default ($25 ≈ ¥3,750 at recent rates) so
+// Japanese demo users hit comparable budget headroom.
+// (`10n ** 18n` literal needs ES2020; tsconfig targets ES2017 so we
+// spell it out with BigInt() to keep the build green.)
+const DEFAULT_DAILY_CAP_JPYC_POLYGON = BigInt(3_000) * (BigInt(10) ** BigInt(18));
+
+/**
+ * Daily-cap default per currency. The actual signed value can later be
+ * raised by the user from the dashboard — this is just the "first
+ * signature" amount, sized for safe demoing.
+ */
+const DEFAULT_DAILY_CAP: Record<Currency, bigint> = {
+  USDC: DEFAULT_DAILY_CAP_USDC_BASE,
+  JPYC: DEFAULT_DAILY_CAP_JPYC_POLYGON,
+};
+
+/**
+ * Human-readable display of the cap (the signature pane shows this).
+ * Kept separate from `describePermit()` because we render it before any
+ * permit exists.
+ */
+function formatCap(currency: Currency): string {
+  return currency === "JPYC" ? "¥3,000 / day" : "$25 / day";
+}
+
+/** Brief label for the UI ("USDC on Base", "JPYC on Polygon"). */
+function chainLabel(currency: Currency): string {
+  const chainId = DEFAULT_CHAIN[currency];
+  return currency === "JPYC" ? `JPYC (Polygon ${chainId})` : `USDC (Base ${chainId})`;
+}
 
 const STEPS = [
   { id: 1, label: "サインイン",      detail: "Google で 1 クリック / wallet 自動作成" },
@@ -139,16 +177,18 @@ function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-// Read the current `nonces(owner)` value from the USDC contract on the
-// user's chain. The permit signature is bound to this nonce so the
-// contract knows the order of permits to apply.
-async function readUsdcNonce(
+// Read the current `nonces(owner)` value from the stablecoin contract
+// on the user's chain. The permit signature is bound to this nonce so
+// the contract knows the order of permits to apply. Both USDC and JPYC
+// expose the same `nonces(address)` selector — only the contract
+// address differs.
+async function readPermitNonce(
   walletClient: WalletClient,
+  currency: Currency,
   chainId: number,
   owner: `0x${string}`,
 ): Promise<bigint> {
-  const usdc = USDC_ADDRESS[chainId];
-  if (!usdc) throw new Error(`USDC not configured on chain ${chainId}`);
+  const tokenAddr = getTokenAddress(currency, chainId);
 
   // EIP-1474 eth_call with the `nonces(address)` ABI selector
   // (0x7ecebe00) + the owner address right-padded.
@@ -158,7 +198,7 @@ async function readUsdcNonce(
   };
   const hex = await transport.request({
     method: "eth_call",
-    params: [{ to: usdc, data }, "latest"],
+    params: [{ to: tokenAddr, data }, "latest"],
   });
   return BigInt(hex);
 }
@@ -171,6 +211,35 @@ export default function StartV2Page() {
   const [error, setError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const [showExchanges, setShowExchanges] = useState(false);
+  // Default to USDC on the server render so SSR markup is deterministic
+  // (navigator/localStorage aren't available there). The effect below
+  // upgrades to JPYC for Japanese users once we hydrate on the client.
+  // This is the dual-currency entry point — flipping the toggle changes
+  // which contract gets signed in Step 3.
+  const [currency, setCurrency] = useState<Currency>("USDC");
+
+  // Run locale + localStorage detection after hydration so SSR and the
+  // first client render agree. Without the effect, navigator.language
+  // would only be read once the component mounts, which is fine — we
+  // just paint the toggle in its detected position on the first paint.
+  useEffect(() => {
+    const detected = detectDefaultCurrency();
+    if (detected !== currency) {
+      setCurrency(detected);
+      trackEvent("v2_currency_auto_detected", { currency: detected });
+    }
+    // We only want this on mount — the user may flip the toggle later,
+    // and re-running detection would clobber their choice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Flip the toggle. Persists the choice so reloads/return visits keep it. */
+  function handleSwitchCurrency(next: Currency) {
+    if (next === currency) return;
+    setCurrency(next);
+    saveCurrencyPreference(next);
+    trackEvent("v2_currency_switched", { currency: next });
+  }
 
   const privy = usePrivy();
   const { wallets } = useWallets();
@@ -214,33 +283,57 @@ export default function StartV2Page() {
     }
     setSigning(true);
     try {
-      const owner = userWallet.address as `0x${string}`;
+      const owner   = userWallet.address as `0x${string}`;
+      const chainId = DEFAULT_CHAIN[currency]; // 8453 USDC / 137 JPYC
+      // Hand the wagmi chain object straight through — viem rejects
+      // arbitrary chain objects in `signTypedData`, but accepts the
+      // wagmi-exported ones because they share the same shape.
+      const chain   = chainId === 8453 ? base : polygon;
+
+      // Make sure the Privy wallet is on the right network before we
+      // signal the typed-data request. For embedded wallets this is a
+      // no-op; for injected/walletconnect EOAs it triggers the network
+      // switch prompt.
+      try {
+        await userWallet.switchChain(chainId);
+      } catch {
+        // switchChain is fire-and-forget for embedded wallets — they're
+        // chain-agnostic. The real chain enforcement happens in viem
+        // below.
+      }
+
       const eip1193 = await userWallet.getEthereumProvider();
       const walletClient = createWalletClient({
-        account: owner,
-        chain: base,
+        account:   owner,
+        chain,
         transport: custom(eip1193),
       });
-      const nonce = await readUsdcNonce(walletClient, base.id, owner);
-      const signed = await signUsdcPermit({
+      const nonce = await readPermitNonce(walletClient, currency, chainId, owner);
+      const value = DEFAULT_DAILY_CAP[currency];
+      const signed = await signStablePermit({
         walletClient,
-        chainId: base.id,
+        currency,
+        chainId,
         owner,
         spender: MARKETPLACE_SPENDER,
-        value: DEFAULT_DAILY_CAP_USDC_BASE,
+        value,
         nonce,
         deadline: permitDeadlineFromNow(),
       });
       setPermit(signed);
       setEncodedPermit(encodePermit(signed));
       trackEvent("v2_permit_signed", {
-        chain_id: 8453,
-        cap_usdc: 25,
+        chain_id:      chainId,
+        currency,
+        cap_human:     formatCap(currency),
         validity_days: 90,
       });
       setStep(4);
     } catch (e) {
-      trackEvent("v2_permit_sign_failed", { error: e instanceof Error ? e.message : "unknown" });
+      trackEvent("v2_permit_sign_failed", {
+        currency,
+        error: e instanceof Error ? e.message : "unknown",
+      });
       setError(e instanceof Error ? e.message : "署名に失敗しました");
     } finally {
       setSigning(false);
@@ -259,13 +352,76 @@ export default function StartV2Page() {
       <div className="mx-auto max-w-3xl px-6 py-16">
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
-          <p className="font-bold">🍋 LemonCake は USDC を一切預かりません。AI エージェントが直接 API 提供者に支払います。</p>
+          <p className="font-bold">
+            🍋 LemonCake は {currency} を一切預かりません。AI エージェントが直接 API 提供者に支払います。
+          </p>
         </div>
 
         <h1 className="text-3xl font-bold text-gray-900">2 分で始める</h1>
         <p className="mt-2 text-gray-600">
           サインは 90 日に 1 回。以降は完全ノーサインで AI が API を呼びます。
         </p>
+
+        {/* Currency toggle — wins over the rest of the flow. Lives above
+            the step bar so it's hard to miss; users coming in from a
+            partner with ?currency=JPYC see the toggle already on JPYC. */}
+        <div
+          role="radiogroup"
+          aria-label="Choose currency"
+          className="mt-6 grid grid-cols-2 gap-3"
+        >
+          {(["JPYC", "USDC"] as const).map((c) => {
+            const active   = c === currency;
+            const isJpyc   = c === "JPYC";
+            const sub      = isJpyc
+              ? "日本円ステーブルコイン / Polygon"
+              : "US Dollar / Base — グローバル";
+            const detail   = isJpyc
+              ? "為替リスクなし・JPYC EX で銀行振込/カード"
+              : "Apple Pay・Google Pay・カード対応";
+            return (
+              <button
+                key={c}
+                role="radio"
+                aria-checked={active}
+                onClick={() => handleSwitchCurrency(c)}
+                className={`text-left rounded-2xl border-2 px-4 py-3 transition-all ${
+                  active
+                    ? "border-amber-500 bg-amber-50 shadow-sm"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{isJpyc ? "💴" : "💵"}</span>
+                  <span className="text-base font-bold text-gray-900">{c}</span>
+                  {active && (
+                    <span className="ml-auto rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      Default
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-xs font-semibold text-gray-700">{sub}</div>
+                <div className="mt-0.5 text-[11px] text-gray-500 leading-snug">{detail}</div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[11px] text-gray-500">
+          選択した通貨で permit を発行します。あとからダッシュボードでもう一方を追加できます。
+          {currency === "JPYC" && (
+            <> 日本ユーザー向けデフォルト（要件: 東京都ステーブルコイン社会実装促進事業 / JPYC 株式会社規制版）。</>
+          )}
+        </p>
+        {currency === "JPYC" && (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-900">
+            <p className="font-bold">🚧 JPYC 統合は実験的機能</p>
+            <p className="mt-1 leading-relaxed">
+              現在 JPYC 株式会社へ EIP-712 ドメイン詳細 + JPYC EX 法人 API アクセスを申請中。
+              UI / トグル / 通貨ルーティングは本番動作しますが、Polygon 上の実 permit 署名は
+              JPYC社からの version 文字列確定待ちです。デモ用途は問題なくご利用いただけます。
+            </p>
+          </div>
+        )}
 
         {/* Step progress */}
         <ol className="mt-10 grid grid-cols-4 gap-2">
@@ -315,10 +471,10 @@ export default function StartV2Page() {
 
           {step === 2 && (
             <>
-              <h2 className="text-xl font-bold">Step 2 · USDC（任意）</h2>
+              <h2 className="text-xl font-bold">Step 2 · {currency}（任意）</h2>
               <p className="mt-2 text-sm text-gray-600">
-                permit 署名は USDC 残高がなくても発行できます。<strong>まず署名だけ取って試したい場合はスキップ可</strong>。
-                USDC は後で入金しても、無料デモサービスはすぐ使えます。
+                permit 署名は {currency} 残高がなくても発行できます。<strong>まず署名だけ取って試したい場合はスキップ可</strong>。
+                {currency} は後で入金しても、無料デモサービスはすぐ使えます。
               </p>
               {userWallet?.address && (
                 <p className="mt-4 text-xs text-gray-500">
@@ -326,12 +482,12 @@ export default function StartV2Page() {
                   <span className="font-mono text-gray-700" title={userWallet.address}>
                     {shortAddr(userWallet.address)}
                   </span>{" "}
-                  <span className="text-gray-400">(Base 8453)</span>
+                  <span className="text-gray-400">({chainLabel(currency)})</span>
                 </p>
               )}
 
               {/* 巨大 skip CTA — Glama 訪問者の摩擦削減の最重要 button.
-                  USDC 入金は permit 取得に必須ではない（permit は上限を
+                  入金は permit 取得に必須ではない（permit は上限を
                   署名するだけ。残高ゼロでも署名できる）ので、最上部に
                   目立つ skip ボタンを置く。 */}
               <div className="mt-6 rounded-2xl border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 shadow-sm">
@@ -342,22 +498,22 @@ export default function StartV2Page() {
                       とりあえず permit だけ欲しい人はこちら
                     </p>
                     <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                      USDC 入金をスキップして直接署名へ。発行された permit で：
+                      {currency} 入金をスキップして直接署名へ。発行された permit で：
                       <br />
                       ✓ 無料デモサービス（Wikipedia / FX / httpbin）が使える
                       <br />
                       ✓ list_services / check_tax など無料機能も全部試せる
                       <br />
-                      ✓ paid サービスを使いたくなった時に戻って USDC 入金すれば即解禁
+                      ✓ paid サービスを使いたくなった時に戻って {currency} 入金すれば即解禁
                     </p>
                     <button
                       onClick={() => {
-                        trackEvent("v2_skipped_usdc_funding");
+                        trackEvent("v2_skipped_funding", { currency });
                         handleHasUsdc();
                       }}
                       className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800"
                     >
-                      USDC スキップ → 署名へ進む →
+                      {currency} スキップ → 署名へ進む →
                     </button>
                   </div>
                 </div>
@@ -366,14 +522,66 @@ export default function StartV2Page() {
               {/* divider */}
               <div className="mt-8 mb-4 flex items-center gap-3">
                 <span className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400 font-medium">または 今すぐ USDC を取得</span>
+                <span className="text-xs text-gray-400 font-medium">
+                  または 今すぐ {currency} を取得
+                </span>
                 <span className="flex-1 h-px bg-gray-200" />
               </div>
 
+              {/* JPYC charge path — visible only when JPYC is selected.
+                  Until the JPYC EX法人 API access lands (申請中, blocking
+                  on JPYC社 review), we deep-link to jpyc.co.jp for the
+                  bank-transfer / card flow. Once we have an API key we
+                  swap this for the embedded modal designed in
+                  docs/tokyo-stablecoin-grant/04-currency-routing-design.md. */}
+              {currency === "JPYC" && (
+                <div className="mt-6 rounded-2xl border-2 border-rose-400 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-bold text-gray-900">
+                    🏦 JPYC EX で 円建て購入（銀行振込 / カード）
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                    JPYC 株式会社（資金移動業ライセンス取得済）が運営する公式オンランプ。
+                    銀行振込・クレジットカードで JPYC を即時購入し、あなたの Polygon ウォレットに直接届きます。
+                    手数料無料、為替リスクなしの円建てステーブルコイン。LemonCake は決済経路に一切介在しません。
+                  </p>
+                  {userWallet?.address && (
+                    <p className="mt-3 text-[11px] text-gray-500">
+                      受取先ウォレット:{" "}
+                      <span className="font-mono text-gray-700">{shortAddr(userWallet.address)}</span>{" "}
+                      <span className="text-gray-400">(Polygon 137)</span>
+                    </p>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[1000, 3000, 5000].map((amt) => (
+                      <a
+                        key={amt}
+                        href={`https://jpyc.co.jp/?amount=${amt}`}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={() => trackEvent("v2_jpyc_ex_clicked", { amount_jpy: amt })}
+                        className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600"
+                      >
+                        ¥{amt.toLocaleString()} 分購入
+                      </a>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
+                    所要時間: 銀行振込 数分・カード 即時。初回のみ JPYC EX 本人確認あり。
+                    購入完了後、下の「JPYC 入金完了 → 署名へ進む」をクリック。
+                  </p>
+                  <p className="mt-2 text-[11px] text-amber-700">
+                    🚧 JPYC EX 法人 API 統合は申請中（補助金事業 Phase 1）。
+                    本実装後はこのモーダル内で完結します。
+                  </p>
+                </div>
+              )}
+
               {/* Apple Pay primary path — Coinbase Onramp. Falls back to
                   the "持っていない" exchange list when the project ID is
-                  missing or the user prefers to bridge manually. */}
-              {COINBASE_ENABLED && userWallet?.address && (
+                  missing or the user prefers to bridge manually.
+                  Coinbase Onramp only ships USDC to Base, so this entire
+                  block is gated on currency === "USDC". */}
+              {currency === "USDC" && COINBASE_ENABLED && userWallet?.address && (
                 <div className="mt-6 rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-gray-900">
                     💳 カードでいますぐ USDC を取得
@@ -433,10 +641,11 @@ export default function StartV2Page() {
               )}
 
               {/* Transak — JP bank / convenience-store path.
-                  Shown alongside Coinbase so domestic users have a
-                  native JPY option even though Coinbase Onramp is
-                  geo-blocked in Japan. */}
-              {TRANSAK_API_KEY && userWallet?.address && (
+                  Only relevant for USDC purchases (JPYC has its own
+                  JPYC EX path above). Kept alongside Coinbase so
+                  domestic users buying USDC have a native JPY option
+                  even though Coinbase Onramp is geo-blocked in Japan. */}
+              {currency === "USDC" && TRANSAK_API_KEY && userWallet?.address && (
                 <div className="mt-4 rounded-2xl border-2 border-indigo-500 bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-gray-900">
                     🏦 銀行振込 / コンビニ払いで USDC 購入（JPY 対応）
@@ -471,14 +680,16 @@ export default function StartV2Page() {
                   onClick={handleHasUsdc}
                   className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600"
                 >
-                  USDC 入金完了 → 署名へ進む
+                  {currency} 入金完了 → 署名へ進む
                 </button>
-                <button
-                  onClick={() => setShowExchanges((v) => !v)}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 hover:border-gray-400"
-                >
-                  他の入手方法を見る
-                </button>
+                {currency === "USDC" && (
+                  <button
+                    onClick={() => setShowExchanges((v) => !v)}
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 hover:border-gray-400"
+                  >
+                    他の入手方法を見る
+                  </button>
+                )}
               </div>
 
               {showExchanges && (
@@ -563,16 +774,19 @@ export default function StartV2Page() {
             <>
               <h2 className="text-xl font-bold">Step 3 · 1 回だけ署名</h2>
               <p className="mt-2 text-sm text-gray-600">
-                「90 日間、最大 $25/日まで LemonCake マーケットに使ってよい」と署名します。
+                「90 日間、最大 {formatCap(currency)} まで LemonCake マーケットに使ってよい」と署名します。
                 これはオンチェーン取引ではなく <strong>EIP-712 形式の署名</strong>のみ。
                 ガス代は発生しません。
                 <span className="block mt-2 text-[11px] text-gray-500">
-                  ※ USDC 残高ゼロでも署名 OK。実際に USDC が動くのは AI が paid サービスを呼んだ瞬間だけ。
+                  ※ {currency} 残高ゼロでも署名 OK。
+                  実際に {currency} が動くのは AI が paid サービスを呼んだ瞬間だけ。
                 </span>
               </p>
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs font-mono leading-relaxed text-gray-700">
-                <div>chain:    Base (8453)</div>
-                <div>cap:      25 USDC / day</div>
+                <div>currency: {currency}</div>
+                <div>chain:    {currency === "JPYC" ? "Polygon (137)" : "Base (8453)"}</div>
+                <div>token:    {shortAddr(resolveToken(currency, DEFAULT_CHAIN[currency]).address)}</div>
+                <div>cap:      {formatCap(currency)}</div>
                 <div>validity: 90 days</div>
                 <div>spender:  {shortAddr(MARKETPLACE_SPENDER)}</div>
                 {userWallet?.address && (
@@ -607,10 +821,10 @@ export default function StartV2Page() {
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-700">
                 <p className="font-bold text-gray-800">この permit が動かしているもの</p>
                 <ul className="mt-2 space-y-1 list-disc list-inside">
-                  <li>AI が API を呼ぶ瞬間、permit 署名が USDC コントラクトに渡される</li>
-                  <li>USDC はあなたのウォレット → API 提供者へ <strong>直接転送</strong></li>
+                  <li>AI が API を呼ぶ瞬間、permit 署名が {permit.currency} コントラクトに渡される</li>
+                  <li>{permit.currency} はあなたのウォレット → API 提供者へ <strong>直接転送</strong></li>
                   <li>LemonCake のアドレスは経路に登場しない（FSA Q11 準拠）</li>
-                  <li>$25/日の上限はあなただけが調整可能</li>
+                  <li>{formatCap(permit.currency)} の上限はあなただけが調整可能</li>
                 </ul>
               </div>
 

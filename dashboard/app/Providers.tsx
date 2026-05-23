@@ -27,7 +27,7 @@
 import type { ReactNode } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { base } from "wagmi/chains";
+import { base, polygon } from "wagmi/chains";
 import { coinbaseWallet } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
@@ -35,11 +35,17 @@ import { OnchainKitProvider } from "@coinbase/onchainkit";
 const PRIVY_APP_ID         = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
 const COINBASE_PROJECT_ID  = process.env.NEXT_PUBLIC_COINBASE_PROJECT_ID ?? "";
 
-// Single wagmi config — Base only for now. Coinbase Smart Wallet is the
-// primary connector; users who already have MetaMask still go through
-// Privy's wallet-connect path, which mounts above wagmi.
+// Wagmi now spans Base + Polygon so the same connector tree can sign
+// USDC permits on Base AND JPYC permits on Polygon. Coinbase Smart
+// Wallet is still the primary connector (Base-native, passkey UX); on
+// Polygon it just falls back to a normal Smart Wallet account.
+//
+// We deliberately do NOT add Polygon to OnchainKit below — Onramp's
+// Apple Pay flow only ships USDC to Base. JPYC has its own onramp
+// (JPYC EX / Transak with `defaultCryptoCurrency=JPYC`) wired directly
+// in the page, so OnchainKit stays scoped to its happy path.
 const wagmiConfig = createConfig({
-  chains: [base],
+  chains: [base, polygon],
   connectors: [
     coinbaseWallet({
       appName: "LemonCake",
@@ -48,7 +54,8 @@ const wagmiConfig = createConfig({
     }),
   ],
   transports: {
-    [base.id]: http("https://mainnet.base.org"),
+    [base.id]:    http("https://mainnet.base.org"),
+    [polygon.id]: http("https://polygon-rpc.com"),
   },
 });
 
