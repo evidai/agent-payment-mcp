@@ -177,6 +177,9 @@ export default function AboutPageEn() {
           </div>
           <div className="flex items-center gap-3">
             <LangSwitcher current="en" basePath="/about" variant="dark" />
+            <Link href="/me" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+              My account
+            </Link>
             <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
               Log in
             </Link>

@@ -194,6 +194,10 @@ export default function MePage() {
   const expiresInDays = permitMeta ? Math.max(0, Math.ceil((permitMeta.deadline * 1000 - Date.now()) / 86400000)) : null;
   const totalChargedUsdc = charges ? Number(charges.totalUsdc) : 0;
 
+  // 既存 buyer 救済: on-chain では allowance 有効だが localStorage にメタ無し
+  // = 過去に v0.2.1 以前で署名した人。「詳細不明だが有効」状態を表示。
+  const permitMetaMissing = permitActive && !permitMeta;
+
   // ─── レンダリング ─────────────────────────────────────────
 
   if (!isPrivyReady) {
@@ -267,12 +271,16 @@ export default function MePage() {
             color="emerald"
           />
           <KpiCard
-            label="permit 残量"
+            label="支払い権限 残量"
             value={allowanceUsdc != null ? `$${allowanceUsdc.toFixed(2)}` : "—"}
             sub={
               permitActive
-                ? (expiresInDays != null ? `あと ${expiresInDays} 日有効` : "有効")
-                : "permit 未発行 or 失効"
+                ? (expiresInDays != null
+                    ? `あと ${expiresInDays} 日有効`
+                    : permitMetaMissing
+                      ? "有効（期限詳細は再署名で記録）"
+                      : "有効")
+                : "未発行 / 失効"
             }
             color={permitActive ? "amber" : "gray"}
           />
@@ -294,6 +302,16 @@ export default function MePage() {
                 ハードキャップを超えた支払いは USDC スマートコントラクト自体が拒否します。
                 いつでも下のボタンで即時取消可能（ガス代 ~$0.01）。
               </p>
+
+              {/* 期限詳細不明な既存 buyer 向け案内 */}
+              {permitMetaMissing && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900 leading-relaxed">
+                  ⚠️ オンチェーン上では権限が有効ですが、署名日時 / 有効期限の記録がこの端末に残っていません。
+                  <Link href="/start/v2" className="ml-1 font-bold underline">再署名</Link>すると詳細が記録され、
+                  期限切れ前の通知も届くようになります。
+                </div>
+              )}
+
               <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                 <div className="text-gray-500">状態</div>
                 <div className="font-bold">
@@ -309,6 +327,14 @@ export default function MePage() {
                     <div>{new Date(permitMeta.signedAt).toLocaleString("ja-JP")}</div>
                     <div className="text-gray-500">有効期限</div>
                     <div>{new Date(permitMeta.deadline * 1000).toLocaleString("ja-JP")}{expiresInDays != null && `（あと ${expiresInDays} 日）`}</div>
+                  </>
+                )}
+                {permitMetaMissing && (
+                  <>
+                    <div className="text-gray-500">署名日時</div>
+                    <div className="text-gray-400">— 記録なし</div>
+                    <div className="text-gray-500">有効期限</div>
+                    <div className="text-gray-400">— 記録なし（最大 90 日想定）</div>
                   </>
                 )}
                 <div className="text-gray-500">受取 spender</div>

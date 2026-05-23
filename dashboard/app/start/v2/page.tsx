@@ -179,10 +179,10 @@ function stepsFor(currency: Currency): ReadonlyArray<{
       ? "後で入金 OK / 今入れたければ JPYC EX で銀行振込 / カード"
       : "後で入金 OK / 今入れたければ Apple Pay / 銀行振込";
   return [
-    { id: 1, label: "サインイン",       detail: "Google で 1 クリック / wallet 自動作成" },
+    { id: 1, label: "サインイン",       detail: "Google で 1 クリック / 専用ウォレットが自動生成" },
     { id: 2, label: `${currency}（任意）`, detail: fundingDetail },
-    { id: 3, label: "1 回だけ署名",      detail: "ERC-2612 permit — 90日間有効" },
-    { id: 4, label: "完了",             detail: "permit blob をコピー / 以降ノーサイン" },
+    { id: 3, label: "1 回だけ署名",      detail: "支払い権限の委譲（90 日有効・$25/日 上限）" },
+    { id: 4, label: "完了",             detail: "トークンをコピー → 以降は AI が自動課金" },
   ];
 }
 
@@ -816,14 +816,14 @@ export default function StartV2Page() {
 
           {step === 3 && (
             <>
-              <h2 className="text-xl font-bold">Step 3 · 1 回だけ署名</h2>
+              <h2 className="text-xl font-bold">Step 3 · AI に支払い権限を渡す</h2>
               <p className="mt-2 text-sm text-gray-600">
-                「90 日間、最大 {formatCap(currency)} まで LemonCake マーケットに使ってよい」と署名します。
-                これはオンチェーン取引ではなく <strong>EIP-712 形式の署名</strong>のみ。
-                ガス代は発生しません。
+                「90 日間、最大 {formatCap(currency)} まで LemonCake マーケットに使ってよい」と
+                <strong>1 度だけ署名</strong>します（送金ではなく承認メッセージ）。
+                ガス代ゼロ、{currency} は今ウォレットから動きません。
                 <span className="block mt-2 text-[11px] text-gray-500">
-                  ※ {currency} 残高ゼロでも署名 OK。
-                  実際に {currency} が動くのは AI が paid サービスを呼んだ瞬間だけ。
+                  ※ 技術名: ERC-2612 permit（{currency} スマートコントラクトに直接焼かれる承認、LemonCake の介在不要）。
+                  実際に {currency} が動くのは AI が paid API を呼んだ瞬間だけ。
                 </span>
               </p>
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs font-mono leading-relaxed text-gray-700">

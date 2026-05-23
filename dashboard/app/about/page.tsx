@@ -276,6 +276,9 @@ export default function AboutPage() {
           </div>
           <div className="flex items-center gap-3">
             <LangSwitcher current="ja" basePath="/about" variant="dark" />
+            <Link href="/me" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+              マイページ
+            </Link>
             <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
               ログイン
             </Link>
