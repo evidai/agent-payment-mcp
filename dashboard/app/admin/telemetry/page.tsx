@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { AdminShell } from "../_components/AdminPageNav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -179,23 +180,14 @@ export default function TelemetryPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AdminShell title="Client Telemetry">
       <div className="max-w-6xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <button
-              onClick={() => router.push("/admin")}
-              className="text-xs text-gray-400 hover:text-gray-700 mb-3 flex items-center gap-1"
-            >
-              ← Admin Console
-            </button>
             <h1 className="text-2xl font-bold text-gray-900">Client Telemetry</h1>
             <p className="text-sm text-gray-500 mt-1">
               実ユーザーいるかは <strong>1 番上のヒーローカード</strong> で判定。詳細指標は下に。
-            </p>
-            <p className="text-xs text-amber-700 mt-1">
-              → conversion funnel は <a href="/admin/funnel" className="underline font-semibold">/admin/funnel</a>
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -624,7 +616,7 @@ export default function TelemetryPage() {
           </>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }
 

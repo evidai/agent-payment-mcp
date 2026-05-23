@@ -2224,6 +2224,32 @@ function AdminSidebar({nav, setNav, openFlags, pendingSvc}: {nav:NavSection; set
             );
           })}
         </div>
+
+        {/* Cross-page jump (separate admin pages) */}
+        <p className="px-3 mt-6 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">他の管理ページ</p>
+        <div className="space-y-1">
+          <a href="/admin/funnel" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
+            <span className="text-base leading-none flex-shrink-0">📉</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium leading-tight">Funnel</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate">DB 直結 conversion 漏斗</p>
+            </div>
+          </a>
+          <a href="/admin/telemetry" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
+            <span className="text-base leading-none flex-shrink-0">📊</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium leading-tight">Telemetry</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate">SDK / MCP family 集計</p>
+            </div>
+          </a>
+          <a href="/founder" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
+            <span className="text-base leading-none flex-shrink-0">📝</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium leading-tight">Founder Notes</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate">個人運営メモ + リンク集</p>
+            </div>
+          </a>
+        </div>
       </nav>
 
       {/* Footer */}

@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { AdminShell } from "@/admin/_components/AdminPageNav";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -334,8 +335,9 @@ export default function FounderCockpit() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <AdminShell title="Founder Cockpit">
+      <div className="min-h-full bg-gray-950 text-gray-100 p-6">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div>
@@ -555,7 +557,8 @@ export default function FounderCockpit() {
           データは localStorage のみに保存されています（サーバー送信なし）。<br/>
           定期的に Export JSON でバックアップしてください。
         </footer>
+        </div>
       </div>
-    </div>
+    </AdminShell>
   );
 }
