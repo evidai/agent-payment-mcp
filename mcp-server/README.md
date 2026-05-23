@@ -1,19 +1,26 @@
 # agent-payment-mcp 🍋
 
-**Give your AI agent a USDC wallet. Pay-per-call any API. One signature, 90 days, done.**
+**Stripe-style drop-in USDC billing for any HTTP API. Try in 5 seconds, zero signup.**
 
 [![npm](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
-[![Non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
+[![non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
+[![x402](https://img.shields.io/badge/x402-Bazaar_discoverable-blueviolet)](https://www.x402.org/)
 [![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
 
 ---
 
-## ⚡ Try in 30 seconds — no signup, no API key
+## ⚡ Try in 5 seconds
 
-**1.** Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (or your Cursor / Cline MCP config):
+### Easiest — Glama Playground (no install)
+
+👉 Hit **"Try in Browser"** at the top of this page. Demo Mode starts instantly, no env vars needed.
+
+### Claude Desktop / Cursor / Cline
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (or your Cursor / Cline MCP config):
 
 ```json
 {
@@ -26,31 +33,61 @@
 }
 ```
 
-**2.** Restart Claude Desktop.
-
-**3.** Ask Claude:
-
-> **"list the services available in lemon"**
+Restart, then ask:
+> **"use lemon to translate 'Hello, agent payments' to Japanese"**
 >
 > or
 >
-> **"use lemon to search Wikipedia for AI agents"**
+> **"use lemon to get current weather in Akihabara"**
 
-That's it. **Demo Mode** runs against real Wikipedia, real FX rate, and real httpbin APIs. No credentials, no USDC, no signup.
+**Zero env vars. Zero signup. Zero credit card.** Demo Mode activates automatically.
 
 ---
 
-## 💳 Unlock paid services — 90-second setup, no JWT, no API key
+## 🎁 8 free demo tools (real APIs, no auth)
 
-Demo Mode is fully functional but limited. To unlock **Serper (Google search), Hunter.io (verified emails), gBizINFO (JP corporate data)**, NTA invoice verification, and 20+ more:
+All powered by real free upstreams. Useful enough that many users never need to upgrade.
 
-1. Open [**lemoncake.xyz/start/v2**](https://lemoncake.xyz/start/v2?utm_source=npm)
-2. Sign in with Google (Privy creates an embedded wallet — keys stay on your device)
-3. Get USDC: Apple Pay / Google Pay / Coinbase / JPY bank transfer (built in, 30 sec)
-4. **Sign one ERC-2612 permit** — "up to $25/day, valid 90 days". One click. No gas.
-5. Copy the resulting `LEMON_CAKE_PERMIT` blob
+| Tool | What it does | Upstream |
+|---|---|---|
+| 🔍 `demo_search` | Search Wikipedia (5 results + URLs) | en.wikipedia.org |
+| 💱 `demo_fx` | Live FX rates (160+ currencies, USD base) | open.er-api.com |
+| 🌐 `demo_translate` | Translate 80+ languages | MyMemory |
+| 🌤 `demo_weather` | Current weather for any lat/lon | Open-Meteo |
+| 📍 `demo_geocode` | Place name → coordinates | OpenStreetMap Nominatim |
+| 🕐 `demo_time` | Current time + DST for any IANA timezone | worldtimeapi |
+| 📖 `demo_dictionary` | English definitions / synonyms / phonetics | dictionaryapi.dev |
+| 🔁 `demo_echo` | HTTP echo (request inspector) | httpbin.org |
 
-Then your MCP config becomes:
+Plus `check_tax` — **live Japanese 適格請求書 (T+13)** validation against 国税庁. No other LLM can do this without hallucinating.
+
+Compose them: `demo_geocode` → `demo_weather` ("weather in Tokyo"), `demo_translate` → `demo_dictionary`, etc.
+
+---
+
+## 📊 vs Stripe (when you go live)
+
+| | Stripe | **LemonCake** |
+|---|---|---|
+| **Min charge** | $0.30+ | **$0.001** (60× cheaper) |
+| **Settlement** | 2–7 days | **2 seconds** (Base L2) |
+| **Chargeback** | Possible | **Impossible** (USDC) |
+| **Global** | Card-network dependent | **USDC works everywhere** |
+| **Setup** | Stripe account + KYB | **One signature** (90 days) |
+| **Custody** | Stripe holds | **You hold** (non-custodial) |
+| **Reg burden** | PCI / chargeback ops | FSA Q11-confirmed exempt |
+
+---
+
+## 💳 Unlock paid services — when you need more
+
+Need Serper (Google search) / Hunter.io (verified emails) / Tavily / Firecrawl / gBizINFO (JP corporate registry)? One 90-day signature unlocks all of them:
+
+1. Open [**lemoncake.xyz/start/v2**](https://lemoncake.xyz/start/v2)
+2. Google sign-in (Privy embedded wallet — keys stay on your device)
+3. **Sign ONE ERC-2612 permit** — `$25/day cap, 90 days, gas-free`
+4. Copy the `LEMON_CAKE_PERMIT` blob
+5. Add to your MCP config:
 
 ```json
 {
@@ -58,127 +95,83 @@ Then your MCP config becomes:
     "lemon": {
       "command": "npx",
       "args": ["-y", "agent-payment-mcp"],
-      "env": {
-        "LEMON_CAKE_PERMIT": "<paste the permit blob here>"
-      }
+      "env": { "LEMON_CAKE_PERMIT": "<paste the permit blob>" }
     }
   }
 }
 ```
 
-After that, every API call settles **directly from your wallet to the API
-provider** with no signing prompts for 90 days. LemonCake's address never
-appears in the transaction path.
+That's it. Every API call settles **directly from your wallet to the provider** on Base. LemonCake never touches your USDC.
 
 ---
 
-## Why ERC-2612 permit beats Pay Token JWT
+## 🏪 Publish your own API (for sellers)
 
-We retired the old JWT-based "Pay Token" in v0.7. The current permit-based
-flow is strictly better:
+Want to **monetize your MCP / HTTP API**? Self-service registration at [**lemoncake.xyz/sellers**](https://lemoncake.xyz/sellers):
 
-| | Old (Pay Token JWT) | **New (ERC-2612 permit)** |
-|---|---|---|
-| Signup | Required | Required only for paid services |
-| Custody | LemonCake held your USDC | **You hold your USDC** |
-| Signature count | Every top-up | **Once per 90 days** |
-| Revoke | Dashboard → API call | Spend the daily cap, expire naturally, or revoke on-chain |
-| FSA registration | Required | **Not required** (confirmed Q11) |
-| Reach | Japan-friendly | Same |
+- 1-minute signup (name / email / Base wallet address — no KYC)
+- Get a `serviceId` instantly
+- **First 1,000 calls / month free** (LemonCake absorbs)
+- Above: $0.001/call (you set the price, 100% to you)
+- USDC settles **directly to your wallet** on every call
 
-Lost permit blob = bounded loss (≤ $25/day until you revoke or it expires).
-The agent literally cannot spend more than the cap encoded in the on-chain
-signature.
-
----
-
-## What an agent can do with it
-
-```
-Agent (Claude Desktop, Cursor, Cline, any MCP client)
-  │
-  ├─ list_services()          → browse LemonCake API marketplace
-  ├─ check_balance()          → see your USDC balance + permit expiry
-  ├─ call_service(...)        → pay-per-call any HTTP API
-  │   ├── demo_search         (Wikipedia, free)
-  │   ├── demo_fx             (live FX rates, free)
-  │   ├── demo_echo           (httpbin, free)
-  │   ├── serper              (Google search, $0.005)
-  │   ├── hunter              (verified emails, $0.05)
-  │   ├── gbizinfo            (JP company registry, $0.01)
-  │   ├── nta_invoice         (JP tax invoice verify, $0.005)
-  │   └── …more added monthly
-  └─ check_tax(taxid)         → verify a JP T-number (free)
-```
-
----
-
-## For developers building MCP servers
-
-Want to **monetize your own MCP server**? Add USDC pay-per-call billing in 3 lines with [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk):
+Add billing in 3 lines:
 
 ```typescript
-import { withPayment } from "@lemon-cake/mcp-sdk";
+import { x402Hono } from "@lemon-cake/x402-server";
 
-server.tool("my_premium_tool", withPayment({ price: 0.01 }, async (args) => {
-  // your existing tool logic
-  return { content: [{ type: "text", text: "result" }] };
+app.use("/api/search", x402Hono({
+  serviceId:       "your-providerV2-id",
+  pricePerCallUsd: 0.001,
+  facilitator:     "both",  // Coinbase Bazaar + LemonCake metering
 }));
 ```
 
-Self-service registration at [**lemoncake.xyz/sellers**](https://lemoncake.xyz/sellers?utm_source=npm):
-
-- Enter your name, email, and Base wallet address
-- Get a `serviceId` instantly
-- Set your price per call (min $0.001)
-- **First 1,000 calls/month are free** — Pattern 4 metering
-- Above the free tier: $0.005/call default (you choose)
-- USDC settles **directly to your wallet** on every call
-
-No Stripe setup, no KYC on your side, no platform middleman holding your revenue.
+Hybrid `facilitator: "both"` mode → settle through Coinbase CDP for **x402 Bazaar / AWS Bedrock AgentCore discoverability**, while LemonCake records the call for **freee/MF auto-journal + 適格請求書 + JPY off-ramp** (Pro plan).
 
 ---
 
-## Why this is FSA-compliant (and global-compliant)
+## 🌍 Compliance — registration-exempt in 7 jurisdictions
 
-The 2026-05-21 reply from Japan's FSA Fintech Support Desk (Q11) confirmed
-that a pure SDK distribution model where:
+The 2026-05-21 ruling from Japan's FSA Fintech Support Desk (Q11) confirmed that a pure non-custodial SDK model does **NOT** require the "electronic payment means management" registration.
 
-- LemonCake never touches user USDC
-- LemonCake never operates the smart contract
-- All payments settle directly from user wallet → provider wallet
+Same architecture is exempt under:
 
-…does NOT require the "electronic payment means management" registration.
-
-The same architecture is registration-exempt under:
-
-| Jurisdiction | Reasoning |
+| Jurisdiction | Basis |
 |---|---|
-| 🇺🇸 USA | FinCEN 2019 guidance §4.5 — non-custodial software is not a money services business |
+| 🇯🇵 Japan | FSA Q11 — confirmed non-applicable |
+| 🇺🇸 USA | FinCEN 2019 guidance §4.5 — non-custodial software ≠ MSB |
 | 🇪🇺 EU | MiCA — non-CASP (non-custodial wallet software) |
 | 🇬🇧 UK | FCA — Tech Service Provider |
 | 🇸🇬 Singapore | MAS — DPT non-applicable |
 | 🇨🇦 Canada | FINTRAC — non-custodial MSB exemption |
 | 🇨🇭 Switzerland | FINMA — non-financial intermediary |
 
-See [lemoncake.xyz/security](https://lemoncake.xyz/security) for the full posture.
+Full posture: [lemoncake.xyz/security](https://lemoncake.xyz/security).
 
 ---
 
-## Security
+## 🔌 The LemonCake family
 
-Audited May 2026 by [@kleosr](https://github.com/kleosr). All critical and
-high-severity findings fixed in v0.7+. See
-[GitHub Security Advisories](https://github.com/evidai/agent-payment-mcp/security/advisories)
-for details.
+| Package | Use |
+|---|---|
+| [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) | **Main MCP** — pay-per-call any HTTP API (this one) |
+| [`@lemon-cake/x402-server`](https://www.npmjs.com/package/@lemon-cake/x402-server) | HTTP 402 middleware for sellers (Express / Hono) |
+| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | SDK to monetize your own MCP server |
+| [`xstocks-mcp`](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized US stocks (AAPLx, TSLAx, …) on Solana |
+| [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) | Alpaca paper / live trading with hard USD cap |
+| [`tokenized-stock-mcp`](https://www.npmjs.com/package/tokenized-stock-mcp) | Dinari dShares in USDC |
+| [`polymarket-guard-mcp`](https://www.npmjs.com/package/polymarket-guard-mcp) | Polymarket prediction markets |
 
-Built-in protections:
+---
 
-- **On-chain hard cap** — agent cannot exceed the daily cap baked into the permit signature
-- **No private keys in the MCP server** — permit signature is mathematically scope-limited
-- **Auto-revoke on expiry** — permits self-destruct after 90 days
-- Idempotency keys required on paid calls (no double-charges on retries)
-- Real-time quota check on the metering API
+## 🛡 Security
+
+- **On-chain hard cap** — the daily $25 limit is enforced by the USDC contract itself. The agent literally cannot exceed it.
+- **No private keys in the MCP server** — the permit blob is a scope-limited EIP-712 signature.
+- **Auto-revoke on expiry** — permits self-destruct after 90 days.
+- **Idempotency keys required** on paid calls (no double-charges on retries).
+- Audited May 2026 by [@kleosr](https://github.com/kleosr). See [security advisories](https://github.com/evidai/agent-payment-mcp/security/advisories).
 
 ---
 
@@ -186,22 +179,10 @@ Built-in protections:
 
 | | |
 |---|---|
-| **Try it (no signup)** | Add the config above and ask Claude |
-| **Unlock paid services** | [lemoncake.xyz/start/v2](https://lemoncake.xyz/start/v2?utm_source=npm) |
-| **Publish your API** | [lemoncake.xyz/sellers](https://lemoncake.xyz/sellers?utm_source=npm) |
-| **Source code** | [github.com/evidai/agent-payment-mcp](https://github.com/evidai/agent-payment-mcp) |
-| **SDK for sellers** | [@lemon-cake/mcp-sdk](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) |
+| **Try it (no signup)** | "Try in Browser" button above, or `npx -y agent-payment-mcp` |
+| **Get a permit** (paid services) | [lemoncake.xyz/start/v2](https://lemoncake.xyz/start/v2) |
+| **Publish your API** | [lemoncake.xyz/sellers](https://lemoncake.xyz/sellers) |
+| **Source** | [github.com/evidai/agent-payment-mcp](https://github.com/evidai/agent-payment-mcp) |
 | **MCP Registry** | [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) |
 | **Discord** | [#showcase in MCP Discord](https://discord.com/invite/model-context-protocol-1312302100125843476) |
 | **License** | MIT |
-
----
-
-## Other LemonCake MCPs (Demo Mode all work the same way)
-
-- [**alpaca-guard-mcp**](https://www.npmjs.com/package/alpaca-guard-mcp) — Alpaca paper trading with hard USD cap
-- [**xstocks-mcp**](https://www.npmjs.com/package/xstocks-mcp) — Buy tokenized stocks (AAPLx, TSLAx, etc.) on Solana with USDC
-- [**tokenized-stock-mcp**](https://www.npmjs.com/package/tokenized-stock-mcp) — Buy Dinari dShares with USDC
-- [**polymarket-guard-mcp**](https://www.npmjs.com/package/polymarket-guard-mcp) — Polymarket prediction markets with USDC
-
-All built on [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk).
