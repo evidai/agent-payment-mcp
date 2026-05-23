@@ -79,10 +79,11 @@ interface PlaygroundResponse {
 }
 
 interface GlanceResponse {
-  signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE";
+  signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE" | "UNKNOWN_ONLY";
   weeklyCalls: number;
   weeklyExternalCalls: number;
   weeklySelfCalls: number;
+  weeklyUnknownCalls: number;
   weeklyExternalIps: number;
   weeklyVsLastWeek: number;
   topPaths: Array<{ path: string; count: number }>;
@@ -217,6 +218,7 @@ export default function TelemetryPage() {
           <div className="mb-6 rounded-2xl border-2 bg-white p-5 shadow-sm" style={{
             borderColor:
               glance.signal === "NO_TRAFFIC"      ? "#ef4444" :
+              glance.signal === "UNKNOWN_ONLY"    ? "#9ca3af" :
               glance.signal === "SELF_ONLY"       ? "#f59e0b" :
               glance.signal === "EXTERNAL_SEEN"   ? "#10b981" :
                                                     "#3b82f6",
@@ -245,7 +247,7 @@ export default function TelemetryPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
                 {
                   label:  "外部 IP 数（今週）",
@@ -253,14 +255,19 @@ export default function TelemetryPage() {
                   sub:    selfIp ? "自分を除外" : "「自分の IP 除外」を押すと正確に",
                 },
                 {
-                  label:  "外部からの call（今週）",
+                  label:  "外部 call",
                   value:  glance.weeklyExternalCalls,
-                  sub:    `自分: ${glance.weeklySelfCalls}`,
+                  sub:    "ipHash あり & 自分以外",
                 },
                 {
-                  label:  "週次の総 call",
-                  value:  glance.weeklyCalls,
-                  sub:    glance.weeklyVsLastWeek === 0 ? "先週 0 件" : `先週比 ×${glance.weeklyVsLastWeek}`,
+                  label:  "自分 call",
+                  value:  glance.weeklySelfCalls,
+                  sub:    selfIp ? "登録済 self-IP" : "未登録",
+                },
+                {
+                  label:  "不明（旧）",
+                  value:  glance.weeklyUnknownCalls,
+                  sub:    "IP 記録前のデータ",
                 },
                 {
                   label:  "TOP API",

@@ -677,10 +677,11 @@ const GlanceQuerySchema = z.object({
 });
 
 const GlanceResponseSchema = z.object({
-  signal: z.enum(["NO_TRAFFIC", "SELF_ONLY", "EXTERNAL_SEEN", "EXTERNAL_ACTIVE"]),
+  signal: z.enum(["NO_TRAFFIC", "SELF_ONLY", "EXTERNAL_SEEN", "EXTERNAL_ACTIVE", "UNKNOWN_ONLY"]),
   weeklyCalls: z.number(),
   weeklyExternalCalls: z.number(),
   weeklySelfCalls: z.number(),
+  weeklyUnknownCalls: z.number().describe("ipHash が NULL（schema update 前の旧データ）"),
   weeklyExternalIps: z.number(),
   weeklyVsLastWeek: z.number().describe("week-over-week ratio (1.0 = same)"),
   topPaths: z.array(z.object({ path: z.string(), count: z.number() })),
@@ -729,11 +730,14 @@ telemetryRouter.openapi(
     const thisWeek = logs.filter((l) => l.createdAt >= weekAgo);
     const lastWeek = logs.filter((l) => l.createdAt <  weekAgo);
 
-    const isSelf = (h: string | null) => selfIp ? h === selfIp : false;
+    const isSelf = (h: string | null) => !!selfIp && h === selfIp;
 
     const weeklyCalls = thisWeek.length;
-    const weeklySelfCalls = thisWeek.filter((l) => isSelf(l.ipHash)).length;
-    const weeklyExternalCalls = weeklyCalls - weeklySelfCalls;
+    // ipHash が NULL（schema update 前の旧データ）は外部にも自分にも数えない
+    // → 自分 / 外部 / 不明 の 3 カテゴリで誤判定を防ぐ
+    const weeklyUnknownCalls  = thisWeek.filter((l) => l.ipHash === null).length;
+    const weeklySelfCalls     = thisWeek.filter((l) => isSelf(l.ipHash)).length;
+    const weeklyExternalCalls = thisWeek.filter((l) => l.ipHash !== null && !isSelf(l.ipHash)).length;
     const weeklyExternalIps = new Set(
       thisWeek.filter((l) => l.ipHash && !isSelf(l.ipHash)).map((l) => l.ipHash),
     ).size;
@@ -751,14 +755,17 @@ telemetryRouter.openapi(
       .slice(0, 3)
       .map(([path, count]) => ({ path, count }));
 
-    let signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE";
+    let signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE" | "UNKNOWN_ONLY";
     let message: string;
     if (weeklyCalls === 0) {
       signal = "NO_TRAFFIC";
       message = "🔴 今週まだ API call なし。Glama / npm DL があってもサーバー呼び出しまで到達してない。";
+    } else if (weeklyExternalCalls === 0 && weeklySelfCalls === 0 && weeklyUnknownCalls > 0) {
+      signal = "UNKNOWN_ONLY";
+      message = `⚪ 今週の ${weeklyUnknownCalls} call は schema update 前の旧データ（IP 記録なし）。明日以降の数字で実利用判定可能。`;
     } else if (weeklyExternalCalls === 0) {
       signal = "SELF_ONLY";
-      message = "🟡 今週の call は全部あなたの IP から。実ユーザーはまだ。";
+      message = `🟡 今週の外部 call なし（自分: ${weeklySelfCalls} / 旧データ: ${weeklyUnknownCalls}）。実ユーザーはまだ。`;
     } else if (weeklyExternalCalls < 10) {
       signal = "EXTERNAL_SEEN";
       message = `🟢 外部 IP から ${weeklyExternalCalls} call 検知。実利用が始まりつつある。`;
@@ -772,6 +779,7 @@ telemetryRouter.openapi(
       weeklyCalls,
       weeklyExternalCalls,
       weeklySelfCalls,
+      weeklyUnknownCalls,
       weeklyExternalIps,
       weeklyVsLastWeek,
       topPaths,
