@@ -286,56 +286,6 @@ export default function TelemetryPage() {
           </div>
         )}
 
-        {/* v2 migration tracking — custody vs non-custodial split */}
-        <div className="mb-6 bg-gradient-to-br from-amber-50 via-white to-emerald-50 border border-amber-200 rounded-xl px-4 py-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">
-              v2 移行進捗 — Custody vs Non-custodial
-            </div>
-            <a
-              href="/security"
-              className="text-[10px] text-gray-500 hover:text-amber-700 hover:underline"
-            >
-              FSA Q11 → /security
-            </a>
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wide text-emerald-700 font-bold">
-                Non-custodial (v2)
-              </div>
-              <div className="mt-1 text-xl font-bold text-emerald-900 tabular-nums">
-                {/* TODO: wire to v2_permit_signed event count from GA4 */}
-                0
-              </div>
-              <div className="text-[10px] text-gray-500">permit 発行数（90日）</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wide text-gray-600 font-bold">
-                Custody (legacy)
-              </div>
-              <div className="mt-1 text-xl font-bold text-gray-900 tabular-nums">
-                {/* TODO: wire to Pay Token 発行数 from /admin/buyers */}
-                7
-              </div>
-              <div className="text-[10px] text-gray-500">Pay Token 発行数（累計）</div>
-            </div>
-            <div className="rounded-lg border border-amber-200 bg-white px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">
-                Custody 残高
-              </div>
-              <div className="mt-1 text-xl font-bold text-amber-900 tabular-nums">
-                {/* TODO: wire to sum(USDC balance) of all buyers */}
-                $4.79
-              </div>
-              <div className="text-[10px] text-gray-500">移行時に refund 対象</div>
-            </div>
-          </div>
-          <div className="mt-2 text-[11px] text-gray-600 leading-snug">
-            目標: 全 Pay Token を permit に移行 → Custody 残高 $0 → 旧エンドポイント削除。
-          </div>
-        </div>
-
         {/* External user-behavior dashboards */}
         <div className="mb-8 bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-2">外部ユーザー行動ダッシュボード</div>
