@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { ProviderRegistrationWizard } from "@/components/ProviderRegistrationWizard";
+import { trackEvent } from "@/lib/analytics";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const LangContext = createContext<"ja" | "en">("ja");
@@ -3264,6 +3265,18 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
       .finally(() => setLoading(false));
   }, [providerV2Id, API]);
 
+  // Stripe Checkout から /?subscription=success で戻った時に 1 度だけ計測
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    const s = q.get("subscription");
+    if (s === "success") {
+      trackEvent("plan_purchase_success");
+    } else if (s === "cancel") {
+      trackEvent("plan_purchase_cancel");
+    }
+  }, []);
+
   async function upgradeToCheckout(plan: "PRO" | "BUSINESS" | "SCALE") {
     if (!providerV2Id) return;
     setBusy("checkout");
@@ -3274,6 +3287,7 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
         typeof document !== "undefined" && document.cookie.includes("lemon_locale=en")
           ? "usd"
           : "jpy";
+      trackEvent("plan_upgrade_click", { plan, currency });
       const r = await fetch(`${API}/api/subscriptions/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3285,9 +3299,11 @@ function SubscriptionPanel({ providerV2Id }: { providerV2Id: string }) {
       });
       const data = await r.json().catch(() => ({})) as { url?: string; error?: string };
       if (!r.ok || !data.url) throw new Error(data.error ?? `HTTP ${r.status}`);
+      trackEvent("plan_checkout_redirect", { plan, currency });
       window.location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "checkout failed");
+      trackEvent("plan_checkout_failed", { plan, error: e instanceof Error ? e.message : "unknown" });
       setBusy(null);
     }
   }

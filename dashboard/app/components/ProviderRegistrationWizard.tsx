@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -118,9 +119,17 @@ export function ProviderRegistrationWizard({
       setResult(data);
       // 即座に dashboard 側にも反映
       try { localStorage.setItem("lemon_provider_v2_id", data.id); } catch { /* */ }
+      trackEvent("seller_wizard_complete", {
+        price_per_call_usd: parseFloat(pricePerCall),
+        has_registration_number: !!registrationNumber,
+        auto_issue_invoices: autoIssue,
+      });
       onSuccess?.(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登録に失敗しました");
+      trackEvent("seller_wizard_submit_failed", {
+        error: err instanceof Error ? err.message : "unknown",
+      });
     } finally {
       setLoading(false);
     }
@@ -129,8 +138,11 @@ export function ProviderRegistrationWizard({
   function nextStep() {
     const idx = STEP_ORDER.indexOf(step);
     if (idx < STEP_ORDER.length - 1) {
-      setStep(STEP_ORDER[idx + 1]!);
+      const next = STEP_ORDER[idx + 1]!;
+      trackEvent("seller_wizard_step", { from: step, to: next, step_index: idx + 1 });
+      setStep(next);
     } else {
+      trackEvent("seller_wizard_submit_start");
       handleSubmit();
     }
   }

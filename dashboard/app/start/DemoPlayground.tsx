@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type ServiceId = "demo_search" | "demo_fx" | "demo_echo";
 
@@ -67,6 +68,7 @@ export function DemoPlayground() {
   async function run() {
     setLoading(true);
     setResult(null);
+    trackEvent("lp_demo_run", { service: svc.id });
     try {
       let body: Record<string, unknown> = {};
       if (svc.id === "demo_search") {

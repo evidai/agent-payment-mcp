@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 export function CopyCommand({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -10,6 +11,7 @@ export function CopyCommand({ value, label }: { value: string; label?: string })
         try {
           await navigator.clipboard.writeText(value);
           setCopied(true);
+          trackEvent("lp_install_command_copied", { label: label ?? "install" });
           setTimeout(() => setCopied(false), 1600);
         } catch {
           // ignore
