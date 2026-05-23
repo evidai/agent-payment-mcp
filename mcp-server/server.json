@@ -6,12 +6,12 @@
     "url": "https://github.com/evidai/agent-payment-mcp",
     "source": "github"
   },
-  "version": "0.9.0",
+  "version": "0.9.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "agent-payment-mcp",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "transport": {
         "type": "stdio"
       }
