@@ -130,7 +130,7 @@ app.get("/api/search", (c) => c.json({ results: [/* … */] }));`}</pre>
         </p>
 
         <hr className="my-10 border-gray-200" />
-        <p className="text-xs text-gray-500">関連：<Link href="/docs/sellers/quickstart" className="text-amber-700">/sellers 登録ガイド →</Link></p>
+        <p className="text-xs text-gray-500">関連：<Link href="/sellers" className="text-amber-700">/sellers 登録 wizard →</Link></p>
       </article>
     </main>
   );

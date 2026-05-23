@@ -22,7 +22,7 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
     items: [
       {
         title: "5 分でセットアップ",
-        desc:  "npx -y agent-payment-mcp で Demo Mode → 必要に応じて permit 発行 → Claude / Cursor / Cline に接続",
+        desc:  "npx -y agent-payment-mcp で Demo Mode（8 つの無料実 API）→ 必要に応じて permit 発行 → Claude / Cursor / Cline に接続",
         href:  "/docs/quickstart",
         icon:  "🚀",
       },
@@ -32,35 +32,17 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
         href:  "/docs/permit",
         icon:  "🎫",
       },
-      {
-        title: "Demo Mode の使い方",
-        desc:  "サインアップなしで動く 8 つの実 API デモ（search / weather / FX 等）",
-        href:  "/docs/demo-mode",
-        icon:  "🎮",
-      },
     ],
   },
   {
     heading: "Seller (API 提供者)",
     items: [
       {
-        title: "/sellers 登録ガイド",
-        desc:  "1 分で provider 登録 → serviceId / apiKey 発行 → ダッシュボード機能解放",
-        href:  "/docs/sellers/quickstart",
-        icon:  "🏪",
-      },
-      {
         title: "x402 hybrid モード",
-        desc:  "@lemon-cake/x402-server 3 行で組み込み。CDP 経由 settle → Bazaar / AgentCore 自動掲載 + LemonCake metering 連動",
+        desc:  "@lemon-cake/x402-server 3 行で組み込み。CDP 経由 settle → Bazaar / AgentCore 自動掲載 + LemonCake metering 連動。/sellers 登録は wizard 上で完結",
         href:  "/docs/x402-hybrid",
         icon:  "⚡",
         badge: "RECOMMENDED",
-      },
-      {
-        title: "MCP SDK で MCP サーバー収益化",
-        desc:  "@lemon-cake/mcp-sdk の withPayment() で MCP server を pay-per-call 化",
-        href:  "/docs/mcp-sdk",
-        icon:  "🧩",
       },
       {
         title: "freee / MF 自動仕訳",
@@ -104,12 +86,6 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
   {
     heading: "リソース",
     items: [
-      {
-        title: "Changelog",
-        desc:  "最近のアップデート履歴",
-        href:  "/changelog",
-        icon:  "📝",
-      },
       {
         title: "Security",
         desc:  "監査結果・FSA 確認内容・脅威モデル",

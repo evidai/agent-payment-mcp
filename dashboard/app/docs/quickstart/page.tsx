@@ -32,9 +32,24 @@ export default function QuickstartPage() {
     }
   }
 }`}</pre>
-        <p className="text-xs text-gray-500 leading-relaxed mt-2">
-          env vars 無しで起動すると <strong className="text-gray-700">Demo Mode</strong>。サインアップ不要・課金なしで Wikipedia / FX / weather / translate など 8 つの実 API を試せる。
-        </p>
+        <div className="text-xs text-gray-500 leading-relaxed mt-2 rounded-lg border border-amber-200 bg-amber-50/30 px-3 py-2.5">
+          <p>
+            env vars 無しで起動すると <strong className="text-gray-700">Demo Mode</strong>。サインアップ不要・課金なしで以下 8 つの実 API を試せる：
+          </p>
+          <ul className="mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-0.5 text-[11px] font-mono text-gray-700">
+            <li>demo_search</li>
+            <li>demo_translate</li>
+            <li>demo_weather</li>
+            <li>demo_geocode</li>
+            <li>demo_time</li>
+            <li>demo_dictionary</li>
+            <li>demo_fx</li>
+            <li>demo_echo</li>
+          </ul>
+          <p className="mt-1.5">
+            レート制限: 1 ツール <strong className="text-gray-700">60 calls/h</strong>。気に入ったら Step 3 で paid services を解放。
+          </p>
+        </div>
 
         <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">Step 2: Claude にアクセス</h2>
         <p className="text-sm text-gray-700 leading-relaxed">
