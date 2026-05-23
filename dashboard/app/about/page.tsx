@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ContactButton from "./ContactButton";
 import AuthedRedirect from "./AuthedRedirect";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — AI エージェントに財布を持たせる M2M 決済・会計インフラ",
@@ -9,7 +10,7 @@ export const metadata = {
     canonical: "https://lemoncake.xyz/about",
     languages: {
       "ja-JP": "https://lemoncake.xyz/about",
-      "en-US": "https://lemoncake.xyz/about/en",
+      "en-US": "https://lemoncake.xyz/en/about",
     },
   },
   openGraph: {
@@ -274,6 +275,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <LangSwitcher current="ja" basePath="/about" variant="dark" />
             <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
               ログイン
             </Link>

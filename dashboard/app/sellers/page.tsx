@@ -9,11 +9,17 @@
  */
 
 import { ProviderRegistrationWizard } from "@/components/ProviderRegistrationWizard";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 export default function SellersPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50">
       <div className="mx-auto max-w-3xl px-5 py-12 sm:py-16">
+
+        {/* Lang switcher */}
+        <div className="flex justify-end mb-4">
+          <LangSwitcher current="ja" basePath="/sellers" variant="light" />
+        </div>
 
         {/* Hero */}
         <div className="text-center mb-10">

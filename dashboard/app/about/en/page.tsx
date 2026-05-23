@@ -1,10 +1,19 @@
 import Link from "next/link";
 import ContactButton from "../ContactButton";
 import AuthedRedirect from "../AuthedRedirect";
+import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — M2M Payment Infrastructure for AI Agents",
   description: "ERC-2612 permits + USDC balance management for autonomous Machine-to-Machine payments. Give your AI agent a wallet with a kill switch. Works with Claude, Cursor, Eliza.",
+  // canonical を /en/about に統一（middleware が非 JP IP をこちらに送るため）
+  alternates: {
+    canonical: "https://lemoncake.xyz/en/about",
+    languages: {
+      "ja-JP": "https://lemoncake.xyz/about",
+      "en-US": "https://lemoncake.xyz/en/about",
+    },
+  },
 };
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -167,9 +176,7 @@ export default function AboutPageEn() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/about" className="text-[13px] text-white/40 hover:text-white/70 transition-colors">
-              日本語
-            </Link>
+            <LangSwitcher current="en" basePath="/about" variant="dark" />
             <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
               Log in
             </Link>
