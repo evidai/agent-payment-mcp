@@ -83,26 +83,20 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "LemonCake — AI エージェントに財布を持たせる。日本の税務・会計まで全自動。",
+    title: "LemonCake — AI エージェント向け 非カストディ USDC 決済 (x402 native, FSA 確認済)",
     description: DESC_JA,
     locale: "ja_JP",
     alternateLocale: ["en_US"],
-    images: [
-      {
-        url: `${SITE_URL}/logo.png`,
-        width: 1200,
-        height: 630,
-        alt: "LemonCake — AI Agent M2M Payment Infrastructure",
-      },
-    ],
+    // 動的 OG 画像 (app/opengraph-image.tsx) が自動で /opengraph-image を生成。
+    // 個別ページが独自の opengraph-image.tsx を持っていればそれが優先される。
   },
   twitter: {
     card: "summary_large_image",
     site: "@aievid",
     creator: "@aievid",
-    title: "LemonCake — AI エージェント向け M2M 決済・会計インフラ",
+    title: "LemonCake — Non-custodial USDC payments for AI agents",
     description: DESC_JA,
-    images: [`${SITE_URL}/logo.png`],
+    // 動的 Twitter image (app/twitter-image.tsx) が自動で生成。
   },
   icons: {
     icon: "/logo.png",

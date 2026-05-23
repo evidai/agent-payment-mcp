@@ -334,6 +334,77 @@ export default function AboutPage() {
         </section>
       </div>
 
+      {/* ── Trust strip ── */}
+      <section className="bg-black/40 border-y border-white/8 py-8">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-center text-[10px] uppercase tracking-[0.18em] text-white/30 mb-6">
+            Trusted by the ecosystem
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 text-center">
+            <a
+              href="https://www.freee.co.jp/app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col items-center"
+            >
+              <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📒</span>
+              <p className="text-[13px] font-bold text-white/90">freee アプリストア</p>
+              <p className="text-[10px] text-white/40 mt-0.5">公式パートナー 2026-05 公開</p>
+            </a>
+            <a
+              href="/security"
+              className="group flex flex-col items-center"
+            >
+              <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">⚖️</span>
+              <p className="text-[13px] font-bold text-white/90">FSA Q1-Q11 確認済</p>
+              <p className="text-[10px] text-white/40 mt-0.5">非カストディ・登録不要</p>
+            </a>
+            <a
+              href="https://docs.cdp.coinbase.com/x402/bazaar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col items-center"
+            >
+              <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🪙</span>
+              <p className="text-[13px] font-bold text-white/90">Coinbase x402 Bazaar</p>
+              <p className="text-[10px] text-white/40 mt-0.5">Hybrid 互換 / 自動掲載</p>
+            </a>
+            <a
+              href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/payments.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col items-center"
+            >
+              <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">☁️</span>
+              <p className="text-[13px] font-bold text-white/90">AWS Bedrock AgentCore</p>
+              <p className="text-[10px] text-white/40 mt-0.5">Payments 互換</p>
+            </a>
+          </div>
+
+          {/* Distribution channels */}
+          <div className="mt-8 pt-6 border-t border-white/8">
+            <p className="text-center text-[10px] uppercase tracking-[0.18em] text-white/30 mb-4">
+              Distribution channels
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[12px] text-white/40">
+              <a href="https://www.npmjs.com/~evidai_lemoncake" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition">
+                <span className="text-white/30">npm</span> <span className="font-bold text-white/70">6 packages</span>
+              </a>
+              <a href="https://glama.ai/mcp/servers/evidai/lemon-cake" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition">
+                <span className="text-white/30">Glama</span> <span className="font-bold text-white/70">Listed (AAB)</span>
+              </a>
+              <a href="https://registry.modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition">
+                <span className="text-white/30">MCP Registry</span> <span className="font-bold text-white/70">Official</span>
+              </a>
+              <span className="text-white/30">Smithery</span>
+              <span className="text-white/30">mcp.so</span>
+              <span className="text-white/30">Cline</span>
+              <span className="text-white/30">LobeHub</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Integrations ── */}
       <section id="integrations" className="relative overflow-hidden py-28">
         {/* Video background */}
@@ -698,6 +769,136 @@ export default function AboutPage() {
           </div>
         </section>
       </div>
+
+      {/* ── Competitive comparison ── */}
+      <section id="comparison" className="max-w-6xl mx-auto px-6 py-28">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Comparison</p>
+        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+          他の AI 決済基盤と<br className="md:hidden" />何が違うか
+        </h2>
+        <p className="text-center text-[14px] text-white/40 mb-12 max-w-2xl mx-auto">
+          グローバル流量は x402 commodity（$0.001/call）で受け、収益は日本ビジネス特化機能のサブスクで取る。これが LemonCake の構造。
+        </p>
+
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full min-w-[720px] border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left py-4 pr-4 font-bold text-white/60 text-[11px] uppercase tracking-widest">機能</th>
+                <th className="text-center py-4 px-3 font-bold text-white/50 text-[11px]">Stripe<br />Agentic</th>
+                <th className="text-center py-4 px-3 font-bold text-white/50 text-[11px]">Coinbase<br />CDP x402</th>
+                <th className="text-center py-4 px-3 font-bold text-white/50 text-[11px]">Skyfire</th>
+                <th className="text-center py-4 px-3 font-bold text-white/50 text-[11px]">Circle<br />Agent Stack</th>
+                <th className="text-center py-4 pl-3 font-bold bg-[#fffd43]/10 text-[#fffd43] text-[11px] uppercase tracking-widest border-x-2 border-[#fffd43]/30">🍋 LemonCake</th>
+              </tr>
+            </thead>
+            <tbody className="text-white/70">
+              {[
+                {
+                  label: "カストディ性",
+                  stripe: { mark: "❌", text: "保持あり" },
+                  cdp:    { mark: "✓", text: "non-custodial" },
+                  skyfire:{ mark: "❌", text: "保持あり" },
+                  circle: { mark: "✓", text: "non-custodial" },
+                  lemon:  { mark: "✓", text: "non-custodial (FSA Q1-Q11)" },
+                },
+                {
+                  label: "per-call 単価",
+                  stripe: { mark: "$$$", text: "2.9% + ¥45" },
+                  cdp:    { mark: "$", text: "$0.001" },
+                  skyfire:{ mark: "$$", text: "2-3%" },
+                  circle: { mark: "$", text: "$0.000001~" },
+                  lemon:  { mark: "$", text: "$0.001 (commodity)" },
+                },
+                {
+                  label: "対応通貨",
+                  stripe: { mark: "—", text: "Card / USD" },
+                  cdp:    { mark: "—", text: "USDC" },
+                  skyfire:{ mark: "—", text: "USDC" },
+                  circle: { mark: "—", text: "USDC" },
+                  lemon:  { mark: "—", text: "USDC + JPY ON/オフランプ" },
+                },
+                {
+                  label: "x402 native",
+                  stripe: { mark: "❌", text: "" },
+                  cdp:    { mark: "✓", text: "ホスト元" },
+                  skyfire:{ mark: "△", text: "互換" },
+                  circle: { mark: "✓", text: "互換" },
+                  lemon:  { mark: "✓", text: "Facilitator + Hybrid モード" },
+                },
+                {
+                  label: "Bazaar 自動掲載",
+                  stripe: { mark: "❌", text: "" },
+                  cdp:    { mark: "✓", text: "ネイティブ" },
+                  skyfire:{ mark: "❌", text: "" },
+                  circle: { mark: "✓", text: "" },
+                  lemon:  { mark: "✓", text: "Hybrid モード経由" },
+                },
+                {
+                  label: "freee / MF 自動仕訳",
+                  stripe: { mark: "❌", text: "" },
+                  cdp:    { mark: "❌", text: "" },
+                  skyfire:{ mark: "❌", text: "" },
+                  circle: { mark: "❌", text: "" },
+                  lemon:  { mark: "✓", text: "Pro プラン" },
+                },
+                {
+                  label: "適格請求書（インボイス）",
+                  stripe: { mark: "❌", text: "" },
+                  cdp:    { mark: "❌", text: "" },
+                  skyfire:{ mark: "❌", text: "" },
+                  circle: { mark: "❌", text: "" },
+                  lemon:  { mark: "✓", text: "Pro プラン・自動発行" },
+                },
+                {
+                  label: "JPY オフランプ",
+                  stripe: { mark: "❌", text: "" },
+                  cdp:    { mark: "❌", text: "" },
+                  skyfire:{ mark: "❌", text: "" },
+                  circle: { mark: "❌", text: "" },
+                  lemon:  { mark: "✓", text: "Business・Coincheck 経由" },
+                },
+                {
+                  label: "規制 (日本)",
+                  stripe: { mark: "—", text: "US only" },
+                  cdp:    { mark: "△", text: "Provider 任せ" },
+                  skyfire:{ mark: "—", text: "US 中心" },
+                  circle: { mark: "△", text: "Provider 任せ" },
+                  lemon:  { mark: "✓", text: "FSA 確認済・登録不要" },
+                },
+              ].map((row, i) => (
+                <tr key={row.label} className={`border-b border-white/5 ${i % 2 === 1 ? "bg-white/[0.015]" : ""}`}>
+                  <td className="py-3 pr-4 font-medium text-white/80">{row.label}</td>
+                  <td className="py-3 px-3 text-center text-[12px]">
+                    <div className="text-lg">{row.stripe.mark}</div>
+                    {row.stripe.text && <div className="text-[10px] text-white/40 mt-0.5">{row.stripe.text}</div>}
+                  </td>
+                  <td className="py-3 px-3 text-center text-[12px]">
+                    <div className="text-lg">{row.cdp.mark}</div>
+                    {row.cdp.text && <div className="text-[10px] text-white/40 mt-0.5">{row.cdp.text}</div>}
+                  </td>
+                  <td className="py-3 px-3 text-center text-[12px]">
+                    <div className="text-lg">{row.skyfire.mark}</div>
+                    {row.skyfire.text && <div className="text-[10px] text-white/40 mt-0.5">{row.skyfire.text}</div>}
+                  </td>
+                  <td className="py-3 px-3 text-center text-[12px]">
+                    <div className="text-lg">{row.circle.mark}</div>
+                    {row.circle.text && <div className="text-[10px] text-white/40 mt-0.5">{row.circle.text}</div>}
+                  </td>
+                  <td className="py-3 pl-3 text-center text-[12px] bg-[#fffd43]/5 border-x-2 border-[#fffd43]/30">
+                    <div className="text-lg">{row.lemon.mark}</div>
+                    {row.lemon.text && <div className="text-[10px] text-[#fffd43]/80 mt-0.5 font-medium">{row.lemon.text}</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-6 text-center text-[11px] text-white/30">
+          ※ 各サービスの仕様は 2026-05 時点。x402 / Coinbase / Circle は全て急速進化中、最新は公式ドキュメント参照。
+        </p>
+      </section>
 
       {/* ── The Infrastructure ── */}
       <section id="infrastructure" className="max-w-6xl mx-auto px-6 py-28">

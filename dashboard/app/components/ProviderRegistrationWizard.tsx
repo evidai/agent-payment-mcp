@@ -218,6 +218,53 @@ export function ProviderRegistrationWizard({
           <pre className="rounded-xl bg-gray-950 p-4 text-xs font-mono text-gray-300 overflow-x-auto leading-relaxed">{mcpConfig}</pre>
         </div>
 
+        {/* Next steps cards */}
+        <div className="mt-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">次にやること</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <a
+              href={`https://basescan.org/address/${result.baseWalletAddress}`}
+              target="_blank"
+              rel="noopener"
+              className="rounded-2xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition group"
+            >
+              <div className="text-xl">🔍</div>
+              <p className="mt-2 text-sm font-bold text-gray-900">ウォレット確認</p>
+              <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">受取アドレスを Basescan で開く。最初の課金がここに着金</p>
+              <p className="mt-2 text-[11px] text-amber-700 font-bold group-hover:underline">Basescan →</p>
+            </a>
+
+            <a
+              href="https://www.npmjs.com/package/@lemon-cake/x402-server"
+              target="_blank"
+              rel="noopener"
+              className="rounded-2xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition group"
+            >
+              <div className="text-xl">⚡</div>
+              <p className="mt-2 text-sm font-bold text-gray-900">x402 middleware</p>
+              <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">既存の Express/Hono に <code className="font-mono text-[10px]">@lemon-cake/x402-server</code> 入れて Bazaar 自動掲載</p>
+              <p className="mt-2 text-[11px] text-amber-700 font-bold group-hover:underline">npm →</p>
+            </a>
+
+            <a
+              href={variant === "embed" ? "#" : "/"}
+              onClick={(e) => {
+                if (variant === "embed") {
+                  e.preventDefault();
+                  window.location.reload();
+                }
+              }}
+              className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 hover:border-amber-500 hover:bg-amber-100 transition group"
+            >
+              <div className="text-xl">🚀</div>
+              <p className="mt-2 text-sm font-bold text-gray-900">Pro にアップグレード</p>
+              <p className="mt-1 text-[11px] text-gray-700 leading-relaxed">freee 自動仕訳 + 適格請求書自動発行（¥9,800/月）</p>
+              <p className="mt-2 text-[11px] text-amber-800 font-bold group-hover:underline">{variant === "embed" ? "ダッシュボードへ →" : "プラン選択 →"}</p>
+            </a>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
         {variant === "embed" ? (
           <button
             type="button"
