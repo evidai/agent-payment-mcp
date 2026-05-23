@@ -2228,18 +2228,18 @@ function AdminSidebar({nav, setNav, openFlags, pendingSvc}: {nav:NavSection; set
         {/* Cross-page jump (separate admin pages) */}
         <p className="px-3 mt-6 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">他の管理ページ</p>
         <div className="space-y-1">
+          <a href="/admin/telemetry" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all border border-amber-200">
+            <span className="text-base leading-none flex-shrink-0">🔍</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-bold leading-tight">実ユーザー検知</p>
+              <p className="text-[10px] text-amber-600 mt-0.5 truncate">外部 IP 数 / 週次 call / 信号機</p>
+            </div>
+          </a>
           <a href="/admin/funnel" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
             <span className="text-base leading-none flex-shrink-0">📉</span>
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-medium leading-tight">Funnel</p>
               <p className="text-[10px] text-gray-400 mt-0.5 truncate">DB 直結 conversion 漏斗</p>
-            </div>
-          </a>
-          <a href="/admin/telemetry" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
-            <span className="text-base leading-none flex-shrink-0">📊</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium leading-tight">Telemetry</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate">SDK / MCP family 集計</p>
             </div>
           </a>
           <a href="/founder" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
