@@ -160,6 +160,9 @@ export default function TelemetryPage() {
             <p className="text-sm text-gray-500 mt-1">
               SDK / プラグイン経由の Pay Token 発行を、User-Agent 単位で集計
             </p>
+            <p className="text-xs text-amber-700 mt-1">
+              → conversion funnel は <a href="/admin/funnel" className="underline font-semibold">/admin/funnel</a>
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <select

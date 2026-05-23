@@ -539,6 +539,7 @@ export default function FounderCockpit() {
           {/* リンク集 */}
           <Card title="🔗 よく使うリンク">
             <ul className="text-sm space-y-2">
+              <li><a href="/admin/funnel" className="text-yellow-300 hover:underline">→ Conversion Funnel（自前）</a></li>
               <li><a href="/admin/telemetry" className="text-yellow-300 hover:underline">→ LemonCake テレメトリ</a></li>
               <li><a href="/admin" className="text-yellow-300 hover:underline">→ Admin ダッシュボード</a></li>
               <li><a href="https://analytics.google.com" target="_blank" rel="noreferrer" className="text-yellow-300 hover:underline">→ Google Analytics 4</a></li>

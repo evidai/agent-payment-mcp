@@ -500,3 +500,169 @@ async function sha256Prefix(input: string, len: number): Promise<string> {
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/telemetry/funnel
+//
+// 自前ファネル可視化用集計。GA4 に依存せず、DB のグラウンドトゥルース
+// だけで Buyer/Seller の conversion funnel を返す。
+// ─────────────────────────────────────────────────────────────
+const FunnelDailySchema = z.object({
+  date:                  z.string(),  // "YYYY-MM-DD"
+  lpDemoRuns:            z.number().int(),
+  lpUniqueVisitors:      z.number().int(),
+  providersRegistered:   z.number().int(),
+  subscriptionsCreated:  z.number().int(),
+  permitChargesCount:    z.number().int(),
+});
+
+const FunnelTotalsSchema = z.object({
+  lpDemoRuns:           z.number().int(),
+  lpUniqueVisitors:     z.number().int(),
+  providersRegistered:  z.number().int(),
+  subscriptionsCreated: z.number().int(),
+  permitChargesCount:   z.number().int(),
+  permitChargesUsdc:    z.string(),
+});
+
+const FunnelResponseSchema = z.object({
+  windowDays:  z.number(),
+  generatedAt: z.string(),
+  totals:      FunnelTotalsSchema,
+  byPlan: z.array(z.object({
+    plan:  z.string(),
+    count: z.number().int(),
+  })),
+  daily: z.array(FunnelDailySchema),
+  rates: z.object({
+    visitorToProvider:    z.number(),  // providersRegistered / lpUniqueVisitors
+    providerToSubscriber: z.number(),  // subscriptionsCreated / providersRegistered
+    providerToCharger:    z.number(),  // distinct charge senders / providersRegistered
+  }),
+});
+
+const funnelRoute = createRoute({
+  method:  "get",
+  path:    "/funnel",
+  tags:    ["Telemetry"],
+  summary: "Conversion funnel from DB ground truth (admin only)",
+  description:
+    "LP demo runs → Providers registered → Subscriptions upgraded → PermitCharges, 日次集計と全期間合計、conversion rates を返す。",
+  request: {
+    query: z.object({
+      days: z.coerce.number().int().min(1).max(365).default(30),
+    }),
+  },
+  responses: {
+    200: { description: "OK",           content: { "application/json": { schema: FunnelResponseSchema } } },
+    401: { description: "Unauthorized", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+telemetryRouter.openapi(funnelRoute, async (c) => {
+  const auth = c.req.header("Authorization");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!auth?.startsWith("Bearer "))             return c.json({ error: "Unauthorized" }, 401) as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(await verifyAdminToken(auth.slice(7)))) return c.json({ error: "Invalid token" }, 401) as any;
+
+  const { days } = c.req.valid("query");
+  const since = new Date(Date.now() - days * 86400_000);
+
+  const [playLogs, providers, subscriptions, charges] = await Promise.all([
+    prisma.playgroundLog.findMany({
+      where:  { createdAt: { gte: since } },
+      select: { createdAt: true, ipHash: true },
+    }),
+    prisma.providerV2.findMany({
+      where:  { createdAt: { gte: since } },
+      select: { createdAt: true },
+    }),
+    prisma.subscription.findMany({
+      where:  { createdAt: { gte: since }, plan: { not: "FREE" } },
+      select: { createdAt: true, plan: true },
+    }),
+    prisma.permitCharge.findMany({
+      where:  { createdAt: { gte: since }, status: "COMPLETED" },
+      select: { createdAt: true, amountUsdc: true, ownerAddress: true },
+    }),
+  ]);
+
+  // ── daily buckets ──
+  const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+  const daily = new Map<string, {
+    lpDemoRuns:           number;
+    lpVisitors:           Set<string>;
+    providersRegistered:  number;
+    subscriptionsCreated: number;
+    permitChargesCount:   number;
+  }>();
+  const bucket = (k: string) => {
+    let b = daily.get(k);
+    if (!b) {
+      b = { lpDemoRuns: 0, lpVisitors: new Set(), providersRegistered: 0, subscriptionsCreated: 0, permitChargesCount: 0 };
+      daily.set(k, b);
+    }
+    return b;
+  };
+
+  for (const l of playLogs) {
+    const b = bucket(dayKey(l.createdAt));
+    b.lpDemoRuns += 1;
+    if (l.ipHash) b.lpVisitors.add(l.ipHash);
+  }
+  for (const p of providers)     bucket(dayKey(p.createdAt)).providersRegistered  += 1;
+  for (const s of subscriptions) bucket(dayKey(s.createdAt)).subscriptionsCreated += 1;
+  for (const c of charges)       bucket(dayKey(c.createdAt)).permitChargesCount   += 1;
+
+  const dailyArr = Array.from(daily.entries())
+    .map(([date, v]) => ({
+      date,
+      lpDemoRuns:           v.lpDemoRuns,
+      lpUniqueVisitors:     v.lpVisitors.size,
+      providersRegistered:  v.providersRegistered,
+      subscriptionsCreated: v.subscriptionsCreated,
+      permitChargesCount:   v.permitChargesCount,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // ── totals ──
+  const allVisitors = new Set(playLogs.map(l => l.ipHash).filter(Boolean) as string[]);
+  const usdcSum = charges
+    .reduce((s, c) => s + Number(c.amountUsdc), 0)
+    .toFixed(6);
+  const distinctChargers = new Set(charges.map(c => c.ownerAddress.toLowerCase())).size;
+
+  const totals = {
+    lpDemoRuns:           playLogs.length,
+    lpUniqueVisitors:     allVisitors.size,
+    providersRegistered:  providers.length,
+    subscriptionsCreated: subscriptions.length,
+    permitChargesCount:   charges.length,
+    permitChargesUsdc:    usdcSum,
+  };
+
+  // ── byPlan ──
+  const planMap = new Map<string, number>();
+  for (const s of subscriptions) planMap.set(s.plan, (planMap.get(s.plan) ?? 0) + 1);
+  const byPlan = Array.from(planMap.entries())
+    .map(([plan, count]) => ({ plan, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // ── rates (NaN → 0) ──
+  const safeRate = (num: number, den: number) => den > 0 ? Math.round((num / den) * 10000) / 10000 : 0;
+  const rates = {
+    visitorToProvider:    safeRate(providers.length, allVisitors.size),
+    providerToSubscriber: safeRate(subscriptions.length, providers.length),
+    providerToCharger:    safeRate(distinctChargers, providers.length),
+  };
+
+  return c.json({
+    windowDays:  days,
+    generatedAt: new Date().toISOString(),
+    totals,
+    byPlan,
+    daily: dailyArr,
+    rates,
+  });
+});
