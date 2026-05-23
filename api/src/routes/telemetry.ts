@@ -666,3 +666,118 @@ telemetryRouter.openapi(funnelRoute, async (c) => {
     rates,
   });
 });
+
+// ─── GET /api/telemetry/glance ─────────────────────────────────
+// 「ぱっと見」用に集計を1つにまとめる。/admin/telemetry のヒーロー
+// セクション専用。Self-IP（管理者の IP hash）を渡すと、self / external
+// を分離して返す。
+
+const GlanceQuerySchema = z.object({
+  selfIp: z.string().optional().describe("除外したい IP の hash（管理者自身）"),
+});
+
+const GlanceResponseSchema = z.object({
+  signal: z.enum(["NO_TRAFFIC", "SELF_ONLY", "EXTERNAL_SEEN", "EXTERNAL_ACTIVE"]),
+  weeklyCalls: z.number(),
+  weeklyExternalCalls: z.number(),
+  weeklySelfCalls: z.number(),
+  weeklyExternalIps: z.number(),
+  weeklyVsLastWeek: z.number().describe("week-over-week ratio (1.0 = same)"),
+  topPaths: z.array(z.object({ path: z.string(), count: z.number() })),
+  yourIpHash: z.string().nullable().describe("呼び出し元 IP の hash（このまま selfIp に保存）"),
+  message: z.string(),
+});
+
+telemetryRouter.openapi(
+  createRoute({
+    method:  "get",
+    path:    "/glance",
+    tags:    ["Telemetry"],
+    summary: "1 つの API で全グランス KPI を返す（admin dashboard 用）",
+    request: { query: GlanceQuerySchema },
+    responses: {
+      200: { content: { "application/json": { schema: GlanceResponseSchema } }, description: "Glance" },
+      401: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Unauthorized" },
+    },
+  }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (c: any) => {
+    const auth = c.req.header("Authorization");
+    if (!auth?.startsWith("Bearer ")) return c.json({ error: "Unauthorized" }, 401);
+    if (!(await verifyAdminToken(auth.slice(7)))) return c.json({ error: "Invalid token" }, 401);
+
+    const { selfIp } = c.req.valid("query");
+    const now = new Date();
+    const weekAgo  = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeks = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // 呼び出し元 IP（管理者が自分の IP hash を確認できるように）
+    const xff = c.req.header("x-forwarded-for");
+    const clientIp = xff ? xff.split(",")[0]!.trim()
+      : (c.req.header("x-real-ip") ?? c.req.header("cf-connecting-ip") ?? null);
+    const crypto = await import("node:crypto");
+    const yourIpHash = clientIp
+      ? crypto.createHash("sha256").update(clientIp).digest("hex").slice(0, 16)
+      : null;
+
+    // 過去 7 日 + 過去 14 日 のログを 1 回でフェッチ
+    const logs = await prisma.mcpAccessLog.findMany({
+      where: { createdAt: { gte: twoWeeks } },
+      select: { ipHash: true, path: true, createdAt: true },
+    });
+
+    const thisWeek = logs.filter((l) => l.createdAt >= weekAgo);
+    const lastWeek = logs.filter((l) => l.createdAt <  weekAgo);
+
+    const isSelf = (h: string | null) => selfIp ? h === selfIp : false;
+
+    const weeklyCalls = thisWeek.length;
+    const weeklySelfCalls = thisWeek.filter((l) => isSelf(l.ipHash)).length;
+    const weeklyExternalCalls = weeklyCalls - weeklySelfCalls;
+    const weeklyExternalIps = new Set(
+      thisWeek.filter((l) => l.ipHash && !isSelf(l.ipHash)).map((l) => l.ipHash),
+    ).size;
+
+    const lastWeekCount = lastWeek.length || 0.001;
+    const weeklyVsLastWeek = Math.round((weeklyCalls / lastWeekCount) * 100) / 100;
+
+    // 直近 7 日の top paths
+    const pathCounts = new Map<string, number>();
+    for (const l of thisWeek) {
+      pathCounts.set(l.path, (pathCounts.get(l.path) ?? 0) + 1);
+    }
+    const topPaths = [...pathCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([path, count]) => ({ path, count }));
+
+    let signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE";
+    let message: string;
+    if (weeklyCalls === 0) {
+      signal = "NO_TRAFFIC";
+      message = "🔴 今週まだ API call なし。Glama / npm DL があってもサーバー呼び出しまで到達してない。";
+    } else if (weeklyExternalCalls === 0) {
+      signal = "SELF_ONLY";
+      message = "🟡 今週の call は全部あなたの IP から。実ユーザーはまだ。";
+    } else if (weeklyExternalCalls < 10) {
+      signal = "EXTERNAL_SEEN";
+      message = `🟢 外部 IP から ${weeklyExternalCalls} call 検知。実利用が始まりつつある。`;
+    } else {
+      signal = "EXTERNAL_ACTIVE";
+      message = `🚀 外部 IP × ${weeklyExternalIps} から週 ${weeklyExternalCalls} call。実利用継続中。`;
+    }
+
+    return c.json({
+      signal,
+      weeklyCalls,
+      weeklyExternalCalls,
+      weeklySelfCalls,
+      weeklyExternalIps,
+      weeklyVsLastWeek,
+      topPaths,
+      yourIpHash,
+      message,
+    });
+  },
+);
+

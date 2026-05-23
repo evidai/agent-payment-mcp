@@ -77,16 +77,37 @@ interface PlaygroundResponse {
   }>;
 }
 
+interface GlanceResponse {
+  signal: "NO_TRAFFIC" | "SELF_ONLY" | "EXTERNAL_SEEN" | "EXTERNAL_ACTIVE";
+  weeklyCalls: number;
+  weeklyExternalCalls: number;
+  weeklySelfCalls: number;
+  weeklyExternalIps: number;
+  weeklyVsLastWeek: number;
+  topPaths: Array<{ path: string; count: number }>;
+  yourIpHash: string | null;
+  message: string;
+}
+
 export default function TelemetryPage() {
   const router = useRouter();
   const [data,        setData]        = useState<UsageResponse | null>(null);
   const [mcpData,     setMcpData]     = useState<McpAccessResponse | null>(null);
   const [playData,    setPlayData]    = useState<PlaygroundResponse | null>(null);
+  const [glance,      setGlance]      = useState<GlanceResponse | null>(null);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState<string>("");
   const [days,        setDays]        = useState(30);
+  // 「自分の IP」を localStorage に保存して、その IP からの call は外部から除外
+  const [selfIp,      setSelfIp]      = useState<string>("");
 
-  const load = useCallback(async (d: number) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSelfIp(localStorage.getItem("admin_self_ip_hash") ?? "");
+    }
+  }, []);
+
+  const load = useCallback(async (d: number, selfIpHash: string) => {
     setLoading(true); setError("");
     const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
     if (!token) {
@@ -95,12 +116,14 @@ export default function TelemetryPage() {
     }
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [usageRes, mcpRes, playRes] = await Promise.all([
+      const glanceUrl = `${API_URL}/api/telemetry/glance${selfIpHash ? `?selfIp=${encodeURIComponent(selfIpHash)}` : ""}`;
+      const [usageRes, mcpRes, playRes, glanceRes] = await Promise.all([
         fetch(`${API_URL}/api/telemetry/client-usage?days=${d}`,                  { headers }),
         fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`,      { headers }),
         fetch(`${API_URL}/api/telemetry/playground?days=${d}`,                    { headers }),
+        fetch(glanceUrl,                                                          { headers }),
       ]);
-      if (usageRes.status === 401 || mcpRes.status === 401 || playRes.status === 401) {
+      if (usageRes.status === 401 || mcpRes.status === 401 || playRes.status === 401 || glanceRes.status === 401) {
         localStorage.removeItem("admin_token");
         router.push("/admin/login");
         return;
@@ -109,8 +132,9 @@ export default function TelemetryPage() {
       if (!usageRes.ok) throw new Error(usageJson.error ?? "failed (usage)");
       setData(usageJson);
 
-      if (mcpRes.ok)  setMcpData(await mcpRes.json());   else setMcpData(null);
-      if (playRes.ok) setPlayData(await playRes.json()); else setPlayData(null);
+      if (mcpRes.ok)    setMcpData(await mcpRes.json());     else setMcpData(null);
+      if (playRes.ok)   setPlayData(await playRes.json());   else setPlayData(null);
+      if (glanceRes.ok) setGlance(await glanceRes.json());   else setGlance(null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "取得失敗");
     } finally {
@@ -118,7 +142,17 @@ export default function TelemetryPage() {
     }
   }, [router]);
 
-  useEffect(() => { load(days); }, [load, days]);
+  useEffect(() => { load(days, selfIp); }, [load, days, selfIp]);
+
+  function markSelfIp() {
+    if (!glance?.yourIpHash) return;
+    localStorage.setItem("admin_self_ip_hash", glance.yourIpHash);
+    setSelfIp(glance.yourIpHash);
+  }
+  function clearSelfIp() {
+    localStorage.removeItem("admin_self_ip_hash");
+    setSelfIp("");
+  }
 
   const familyTotals = (() => {
     if (!data) return [];
@@ -158,7 +192,7 @@ export default function TelemetryPage() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">Client Telemetry</h1>
             <p className="text-sm text-gray-500 mt-1">
-              SDK / プラグイン経由の Pay Token 発行を、User-Agent 単位で集計
+              実ユーザーいるかは <strong>1 番上のヒーローカード</strong> で判定。詳細指標は下に。
             </p>
             <p className="text-xs text-amber-700 mt-1">
               → conversion funnel は <a href="/admin/funnel" className="underline font-semibold">/admin/funnel</a>
@@ -176,13 +210,82 @@ export default function TelemetryPage() {
               <option value={365}>直近1年</option>
             </select>
             <button
-              onClick={() => load(days)}
+              onClick={() => load(days, selfIp)}
               className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               再読込
             </button>
           </div>
         </div>
+
+        {/* ─── Glance Hero (ぱっと見) ───────────────────────────────
+            「実ユーザーいる？」を 1 秒で読み取れるよう、ヒーロー位置に
+            信号機 + 主要数字 4 つだけを並べる。詳細は下のセクションへ。 */}
+        {glance && (
+          <div className="mb-6 rounded-2xl border-2 bg-white p-5 shadow-sm" style={{
+            borderColor:
+              glance.signal === "NO_TRAFFIC"      ? "#ef4444" :
+              glance.signal === "SELF_ONLY"       ? "#f59e0b" :
+              glance.signal === "EXTERNAL_SEEN"   ? "#10b981" :
+                                                    "#3b82f6",
+          }}>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">外部ユーザーいる？</p>
+                <p className="mt-1 text-xl font-bold text-gray-900">{glance.message}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {selfIp ? (
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                    <span>自分の IP 除外中 ({selfIp.slice(0, 6)}…)</span>
+                    <button onClick={clearSelfIp} className="text-amber-700 underline hover:text-amber-900">解除</button>
+                  </div>
+                ) : (
+                  glance.yourIpHash && (
+                    <button
+                      onClick={markSelfIp}
+                      className="text-xs rounded-full bg-amber-500 text-white px-3 py-1.5 font-bold hover:bg-amber-600"
+                    >
+                      自分の IP を除外する ({glance.yourIpHash.slice(0, 6)}…)
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                {
+                  label:  "外部 IP 数（今週）",
+                  value:  glance.weeklyExternalIps,
+                  sub:    selfIp ? "自分を除外" : "「自分の IP 除外」を押すと正確に",
+                },
+                {
+                  label:  "外部からの call（今週）",
+                  value:  glance.weeklyExternalCalls,
+                  sub:    `自分: ${glance.weeklySelfCalls}`,
+                },
+                {
+                  label:  "週次の総 call",
+                  value:  glance.weeklyCalls,
+                  sub:    glance.weeklyVsLastWeek === 0 ? "先週 0 件" : `先週比 ×${glance.weeklyVsLastWeek}`,
+                },
+                {
+                  label:  "TOP API",
+                  value:  glance.topPaths[0]?.path.replace(/^\/api\//, "") ?? "—",
+                  sub:    glance.topPaths[0] ? `${glance.topPaths[0].count} 件` : "なし",
+                  small:  true,
+                },
+              ].map((kpi) => (
+                <div key={kpi.label} className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">{kpi.label}</p>
+                  <p className={`mt-0.5 font-bold text-gray-900 ${kpi.small ? "text-sm font-mono break-all leading-tight" : "text-2xl tabular-nums"}`}>{kpi.value}</p>
+                  {kpi.sub && <p className="text-[10px] text-gray-400 mt-0.5">{kpi.sub}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* v2 migration tracking — custody vs non-custodial split */}
         <div className="mb-6 bg-gradient-to-br from-amber-50 via-white to-emerald-50 border border-amber-200 rounded-xl px-4 py-3">

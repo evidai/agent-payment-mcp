@@ -20,7 +20,21 @@
  */
 
 import type { MiddlewareHandler } from "hono";
+import { createHash } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
+
+// SHA-256 prefix 16 文字。生 IP は決して保存しない。
+function hashIp(ip: string): string {
+  return createHash("sha256").update(ip).digest("hex").slice(0, 16);
+}
+
+function extractIp(c: { req: { header: (k: string) => string | undefined } }): string | null {
+  const xff = c.req.header("x-forwarded-for");
+  if (xff) return xff.split(",")[0]!.trim();
+  return c.req.header("x-real-ip")
+      ?? c.req.header("cf-connecting-ip")
+      ?? null;
+}
 
 const SDK_FAMILY_REGEX = /^([a-z][a-z0-9-]+)\/([\d.]+)/i;
 const KNOWN_FAMILIES = new Set([
@@ -60,6 +74,9 @@ export const mcpAccessLog: MiddlewareHandler = async (c, next) => {
     const method = c.req.method;
     const status = c.res.status;
 
+    const ip = extractIp(c);
+    const ipHash = ip ? hashIp(ip) : null;
+
     // fire-and-forget: 失敗してもリクエスト本流に影響しない
     prisma.mcpAccessLog
       .create({
@@ -70,6 +87,7 @@ export const mcpAccessLog: MiddlewareHandler = async (c, next) => {
           version:   parsed.version,
           status,
           userAgent: ua?.slice(0, 500) ?? null,
+          ipHash,
         },
       })
       .catch((err: unknown) => {

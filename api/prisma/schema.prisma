@@ -700,11 +700,17 @@ model McpAccessLog {
   status    Int // HTTP status code
   userAgent String? @db.Text // raw UA（デバッグ用）
 
+  // IP hash (sha256 prefix 16 chars) — 「自分以外」を判定するキー。
+  // 生 IP は保存しない（プライバシー）。Founder の IP hash は
+  // dashboard 側で除外設定する。
+  ipHash    String?
+
   createdAt DateTime @default(now())
 
   @@index([family, version, createdAt])
   @@index([path, createdAt])
   @@index([createdAt])
+  @@index([ipHash, createdAt])
   @@map("mcp_access_logs")
 }
 
