@@ -338,6 +338,19 @@ export default function StartV2Page() {
       });
       setPermit(signed);
       setEncodedPermit(encodePermit(signed));
+      // /me ダッシュボードで permit メタを表示するために localStorage に保存
+      // (on-chain には deadline/cap が見えないので、UI 側で補完するため)
+      try {
+        localStorage.setItem(
+          `lemon_permit_meta_${owner.toLowerCase()}`,
+          JSON.stringify({
+            signedAt:  Date.now(),
+            deadline:  Number(signed.deadline),
+            valueUsdc: String(value),
+            currency,
+          }),
+        );
+      } catch { /* localStorage full / disabled — UI fallback で対応 */ }
       trackEvent("v2_permit_signed", {
         chain_id:      chainId,
         currency,
@@ -908,6 +921,29 @@ export default function StartV2Page() {
   }
 }`}
                 </pre>
+                <ConfigFilePaths />
+              </div>
+
+              {/* 次にやること — Buyer dashboard / docs / Provider 登録 */}
+              <div className="mt-8">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">次にやること</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <a href="/me" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
+                    <div className="text-2xl mb-1">📊</div>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">残高 / 課金履歴を見る</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">/me — Buyer ダッシュボード</p>
+                  </a>
+                  <a href="/docs/quickstart" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
+                    <div className="text-2xl mb-1">🛠</div>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">MCP 設定の貼り方</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">Claude / Cursor / Cline の手順</p>
+                  </a>
+                  <a href="/sellers" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
+                    <div className="text-2xl mb-1">🏪</div>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">あなたの API も売る</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">/sellers で 1 分登録</p>
+                  </a>
+                </div>
               </div>
             </>
           )}
@@ -922,5 +958,53 @@ export default function StartV2Page() {
         </p>
       </div>
     </main>
+  );
+}
+
+/**
+ * OS を判定して MCP 設定ファイルの絶対パスを表示する。
+ * macOS / Windows / Linux で違うため、初心者でも paste 先で迷わないように。
+ */
+function ConfigFilePaths() {
+  const [os, setOs] = useState<"mac" | "win" | "linux" | "unknown">("unknown");
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    const p = navigator.platform.toLowerCase();
+    if (p.includes("mac"))   setOs("mac");
+    else if (p.includes("win")) setOs("win");
+    else if (p.includes("linux")) setOs("linux");
+  }, []);
+
+  const paths: Record<typeof os, { claude: string; cursor: string }> = {
+    mac: {
+      claude: "~/Library/Application Support/Claude/claude_desktop_config.json",
+      cursor: "~/.cursor/mcp.json",
+    },
+    win: {
+      claude: "%APPDATA%\\Claude\\claude_desktop_config.json",
+      cursor: "%USERPROFILE%\\.cursor\\mcp.json",
+    },
+    linux: {
+      claude: "~/.config/Claude/claude_desktop_config.json",
+      cursor: "~/.cursor/mcp.json",
+    },
+    unknown: {
+      claude: "Claude Desktop の設定 → MCP → 設定ファイルを編集",
+      cursor: "Cursor 設定 → MCP → 設定ファイルを編集",
+    },
+  };
+  const p = paths[os];
+
+  return (
+    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+      <div className="rounded bg-white border border-gray-200 px-2 py-1.5">
+        <p className="font-bold text-gray-500 uppercase tracking-wider mb-0.5">Claude Desktop</p>
+        <code className="font-mono text-gray-700 break-all">{p.claude}</code>
+      </div>
+      <div className="rounded bg-white border border-gray-200 px-2 py-1.5">
+        <p className="font-bold text-gray-500 uppercase tracking-wider mb-0.5">Cursor</p>
+        <code className="font-mono text-gray-700 break-all">{p.cursor}</code>
+      </div>
+    </div>
   );
 }

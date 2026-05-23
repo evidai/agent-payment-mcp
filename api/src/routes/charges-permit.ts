@@ -291,3 +291,95 @@ chargesPermitRouter.openapi(
     });
   },
 );
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/charges/permit/by-owner — buyer ダッシュボード用の
+// 自分の課金履歴取得。auth は wallet 所有のシグネチャ要件にする予定だが
+// 当面 wallet アドレスだけで照会可能（PermitCharge は元々 on-chain で
+// 公開情報なので、Basescan で見えるのと同等の情報レベル）。
+// ─────────────────────────────────────────────────────────────
+const ChargeRowSchema = z.object({
+  id:           z.string(),
+  serviceId:    z.string(),
+  serviceName:  z.string().nullable(),
+  amountUsdc:   z.string(),
+  status:       z.enum(["PENDING", "COMPLETED", "FAILED"]),
+  txHash:       z.string().nullable(),
+  createdAt:    z.string(),
+  completedAt:  z.string().nullable(),
+});
+
+chargesPermitRouter.openapi(
+  createRoute({
+    method:  "get",
+    path:    "/by-owner",
+    tags:    ["Charges"],
+    summary: "Buyer ダッシュボード用：自分の課金履歴",
+    description:
+      "指定 ownerAddress（permit owner）に紐づく PermitCharge を新しい順に返す。" +
+      "Buyer dashboard (/me) から呼ばれる。providerV2.name も埋めて返す。",
+    request: {
+      query: z.object({
+        ownerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+        limit:        z.coerce.number().int().min(1).max(200).default(50),
+      }),
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              ownerAddress: z.string(),
+              totalCount:   z.number().int(),
+              totalUsdc:    z.string(),
+              charges:      z.array(ChargeRowSchema),
+            }),
+          },
+        },
+        description: "課金履歴",
+      },
+    },
+  }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (c: any) => {
+    const { ownerAddress, limit } = c.req.valid("query");
+    const owner = ownerAddress.toLowerCase();
+
+    const rows = await prisma.permitCharge.findMany({
+      where:   { ownerAddress: { equals: owner, mode: "insensitive" } },
+      orderBy: { createdAt: "desc" },
+      take:    limit,
+    });
+
+    // providerV2.name を 1 回の findMany で埋める
+    const serviceIds = [...new Set(rows.map(r => r.serviceId))];
+    const providers = serviceIds.length === 0 ? [] : await prisma.providerV2.findMany({
+      where:  { id: { in: serviceIds } },
+      select: { id: true, name: true },
+    });
+    const nameById = new Map(providers.map(p => [p.id, p.name]));
+
+    // 累計（status COMPLETED のみ）
+    const completedTotal = await prisma.permitCharge.aggregate({
+      where:   { ownerAddress: { equals: owner, mode: "insensitive" }, status: "COMPLETED" },
+      _sum:    { amountUsdc: true },
+      _count:  true,
+    });
+
+    return c.json({
+      ownerAddress: owner,
+      totalCount:   completedTotal._count,
+      totalUsdc:    (completedTotal._sum.amountUsdc ?? 0).toString(),
+      charges: rows.map(r => ({
+        id:          r.id,
+        serviceId:   r.serviceId,
+        serviceName: nameById.get(r.serviceId) ?? null,
+        amountUsdc:  r.amountUsdc.toString(),
+        status:      r.status,
+        txHash:      r.txHash,
+        createdAt:   r.createdAt.toISOString(),
+        completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+      })),
+    });
+  },
+);
