@@ -21,9 +21,8 @@
  *  LEMON_CAKE_API_URL    : APIベース URL（省略可）
  *  LEMONCAKE_CALL_TIMEOUT_MS : 上流呼び出しの timeout（ms, 1000–600000、default 30000）
  *
- * 後方互換（非ドキュメント、deprecated）:
- *  LEMON_CAKE_PAY_TOKEN / LEMON_CAKE_BUYER_JWT — v1 custody モード。
- *    既存ユーザーが壊れないよう内部的にだけ残してある。新規セットアップでは設定しない。
+ * 互換性: v0.7 以前のレガシー env vars は v0.9.1 で完全削除。古い設定の
+ * ままだと自動的に Demo Mode に落ちる（壊れない）。
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -37,16 +36,15 @@ import {
 
 // ── 設定 ──────────────────────────────────────────────────────────────────────
 
-const API_URL   = (process.env.LEMON_CAKE_API_URL  ?? "https://api.lemoncake.xyz").replace(/\/$/, "");
-const PAY_TOKEN = process.env.LEMON_CAKE_PAY_TOKEN ?? "";
-const BUYER_JWT = process.env.LEMON_CAKE_BUYER_JWT ?? "";
+const API_URL = (process.env.LEMON_CAKE_API_URL ?? "https://api.lemoncake.xyz").replace(/\/$/, "");
 
-// Non-custodial path (post-FSA-Q11 architecture). If a permit blob is
-// supplied, the MCP server runs in NON-CUSTODIAL mode: LemonCake never
-// holds the buyer's USDC, the agent's calls settle directly against the
-// buyer's wallet via ERC-2612 permit. The legacy Pay Token JWT path
-// remains supported in parallel until the migration finishes.
-// See dashboard/app/lib/permit.ts and lemoncake-mcp-sdk/src/permit.ts.
+// v2 (post-FSA-Q11): the only buyer credential is an ERC-2612 permit blob.
+// LemonCake never holds the buyer's USDC — calls settle directly against
+// the buyer's wallet via the permit signature. If empty, runs in Demo Mode
+// (8 free real-API services, no signup).
+//
+// v0.7 legacy env vars are no longer read — drop-in users with those still
+// set fall into Demo Mode and see a clear migration prompt via the setup tool.
 const PERMIT_TOKEN = process.env.LEMON_CAKE_PERMIT ?? "";
 const NON_CUSTODIAL_MODE = PERMIT_TOKEN.length > 0;
 
@@ -58,11 +56,10 @@ const requireFromHere = createRequire(import.meta.url);
 const MCP_VERSION: string = (requireFromHere("../package.json") as { version: string }).version;
 const USER_AGENT  = `pay-per-call-mcp/${MCP_VERSION} (node/${process.versions.node}; ${process.platform} ${process.arch})`;
 
-// ── デモモード（認証情報なしで Glama Inspector / 新規ユーザーが試せるように） ──
-// LEMON_CAKE_PERMIT があれば non-custodial 本番モード（FSA Q11 準拠 / v2 既定）。
-// レガシー PAY_TOKEN/BUYER_JWT も検出するが、新規セットアップでは設定しない。
-// いずれも未設定なら Demo Mode（Glama Inspector で即試せる）。
-const DEMO_MODE = !PAY_TOKEN && !BUYER_JWT && !NON_CUSTODIAL_MODE;
+// ── デモモード（認証情報なしで Glama Inspector / 新規ユーザーが試せる） ──
+// LEMON_CAKE_PERMIT があれば non-custodial 本番モード（FSA Q11 準拠）。
+// 未設定なら Demo Mode（8 種類の無料 real-API サービスを即試せる）。
+const DEMO_MODE = !NON_CUSTODIAL_MODE;
 
 type DemoHandler = (path: string, body: Record<string, unknown> | undefined) => Promise<unknown> | unknown;
 
@@ -332,21 +329,14 @@ const DOCS_URL       = `https://lemoncake.xyz/about?${UTM}`;
 
 // ── 起動時: 認証状態を stderr に出力（MCP クライアントのログに残る）───────────
 
-const hasPayToken = PAY_TOKEN.length > 0;
-const hasBuyerJwt = BUYER_JWT.length > 0;
-const hasPermit   = NON_CUSTODIAL_MODE;
-const hasLegacy   = hasPayToken || hasBuyerJwt;
+const hasPermit = NON_CUSTODIAL_MODE;
 
 console.error("[LemonCake MCP] Starting...");
 console.error(`[LemonCake MCP]   API URL : ${API_URL}`);
 console.error(`[LemonCake MCP]   PERMIT  : ${hasPermit ? "✓ set (non-custodial, FSA Q11 compliant)" : "✗ not set"}`);
-if (hasLegacy) {
-  console.error(`[LemonCake MCP]   LEGACY  : ⚠ Pay Token / Buyer JWT detected — deprecated since v0.8, please migrate to LEMON_CAKE_PERMIT`);
-}
-const modeLabel =
-  hasPermit ? "🍋 NON-CUSTODIAL (recommended; LemonCake never touches your USDC)" :
-  DEMO_MODE ? "🎮 DEMO (no signup; demo_* services + mock balance)"               :
-              "LEGACY (custody — please migrate to LEMON_CAKE_PERMIT)";
+const modeLabel = hasPermit
+  ? "🍋 NON-CUSTODIAL (LemonCake never touches your USDC)"
+  : "🎮 DEMO (no signup; 8 demo services + mock balance)";
 console.error(`[LemonCake MCP]   MODE    : ${modeLabel}`);
 
 if (DEMO_MODE) {
@@ -468,23 +458,14 @@ const SERVER_INSTRUCTIONS = DEMO_MODE
       "sign ONE ERC-2612 permit at https://lemoncake.xyz/start/v2 and set LEMON_CAKE_PERMIT.",
       "USDC stays in your wallet — LemonCake never holds it.",
     ].join("\n")
-  : NON_CUSTODIAL_MODE
-    ? [
-        "🍋 LemonCake MCP — Non-custodial pay-per-call USDC payments (v2).",
-        "",
-        "Permit is set: AI agent can spend up to $25/day from your wallet for 90 days.",
-        "USDC settles directly from your wallet to the API provider — LemonCake never touches it.",
-        "",
-        "Use `list_services` to browse, `call_service` to invoke, `check_balance` for quota.",
-      ].join("\n")
-    : [
-        "LemonCake MCP — Pay-per-call USDC payments for any HTTP API.",
-        "",
-        "⚠ Legacy custody mode detected (PAY_TOKEN/BUYER_JWT). Please migrate to",
-        "  LEMON_CAKE_PERMIT — get one at https://lemoncake.xyz/start/v2 (one signature, 90 days).",
-        "",
-        "Use `list_services` to browse the marketplace, then `call_service` to invoke.",
-      ].join("\n");
+  : [
+      "🍋 LemonCake MCP — Non-custodial pay-per-call USDC payments (v2).",
+      "",
+      "Permit is set: AI agent can spend up to $25/day from your wallet for 90 days.",
+      "USDC settles directly from your wallet to the API provider — LemonCake never touches it.",
+      "",
+      "Use `list_services` to browse, `call_service` to invoke, `check_balance` for quota.",
+    ].join("\n");
 
 const server = new Server(
   { name: "lemon-cake-mcp", version: MCP_VERSION },
@@ -900,9 +881,6 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const status: Record<string, string> = {
           permit: hasPermit ? "✓ 設定済み" : "✗ 未設定（call_service が demo_* 以外で使えません）",
         };
-        if (hasLegacy) {
-          status.legacy = "⚠ Pay Token / Buyer JWT を検出（v0.8 で deprecated、permit に移行してください）";
-        }
 
         const steps: string[] = [];
 
@@ -1045,23 +1023,17 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           });
         }
 
-        // v0.8+: prefer PERMIT. PAY_TOKEN is silent fallback for legacy users.
-        if (!hasPermit && !PAY_TOKEN) return credentialError("LEMON_CAKE_PERMIT", "call_service");
+        // v2: PERMIT 必須。未設定なら一律 PERMIT_MISSING を返す（demo_* は前段で早期 return 済み）。
+        if (!hasPermit) return credentialError("LEMON_CAKE_PERMIT", "call_service");
         const url = `${API_URL}/api/proxy/${serviceId}${normalizedPath}`;
 
         // PERMIT は X-LemonCake-Permit ヘッダで送る（バックエンド側で透過対応）。
-        // PAY_TOKEN しかなければ従来通り Authorization Bearer。両方あれば permit 優先。
         const headers: Record<string, string> = {
-          "Content-Type":       "application/json",
-          "User-Agent":         USER_AGENT,
-          "X-LemonCake-Client": USER_AGENT,
+          "Content-Type":          "application/json",
+          "User-Agent":            USER_AGENT,
+          "X-LemonCake-Client":    USER_AGENT,
+          "X-LemonCake-Permit":    PERMIT_TOKEN,
         };
-        if (hasPermit) {
-          headers["X-LemonCake-Permit"] = PERMIT_TOKEN;
-        }
-        if (PAY_TOKEN) {
-          headers["Authorization"] = `Bearer ${PAY_TOKEN}`;
-        }
         if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
         // SECURITY / RESILIENCE: previously there was no fetch timeout — a
@@ -1197,18 +1169,6 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           }
         }
 
-        // legacy fallback
-        if (BUYER_JWT) {
-          const me = await apiGet("/api/auth/me", BUYER_JWT) as any;
-          return json({
-            balanceUsdc: me.buyer?.balanceUsdc ?? me.balanceUsdc,
-            kycTier:     me.buyer?.kycTier     ?? me.kycTier,
-            email:       me.email,
-            name:        me.name,
-            mode:        "legacy",
-            note:        "Legacy custody mode. Please migrate to LEMON_CAKE_PERMIT.",
-          });
-        }
         return credentialError("LEMON_CAKE_PERMIT", "check_balance");
       }
 
