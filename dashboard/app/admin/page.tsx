@@ -673,14 +673,14 @@ function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>voi
           <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
           <div>
             <p className="text-gray-900 text-[13px] font-bold leading-tight">LemonCake</p>
-            <p className="text-gray-400 text-[10px]">Admin Console</p>
+            <p className="text-gray-400 text-[10px]">管理コンソール</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto min-h-0">
-        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Console</p>
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">コンソール</p>
         <div className="space-y-1">
           {NAV.map(item => {
             const active = nav === item.id;
@@ -710,14 +710,14 @@ function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>voi
           <a href="/admin/funnel" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
             <span className="text-base leading-none flex-shrink-0">📉</span>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium leading-tight">Funnel</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate">DB 直結 conversion 漏斗</p>
+              <p className="text-[12px] font-medium leading-tight">ファネル</p>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate">DB 直結のコンバージョン漏斗</p>
             </div>
           </a>
           <a href="/founder" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
             <span className="text-base leading-none flex-shrink-0">📝</span>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium leading-tight">Founder Notes</p>
+              <p className="text-[12px] font-medium leading-tight">創業者メモ</p>
               <p className="text-[10px] text-gray-400 mt-0.5 truncate">個人運営メモ + リンク集</p>
             </div>
           </a>

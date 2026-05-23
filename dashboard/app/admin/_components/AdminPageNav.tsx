@@ -32,12 +32,12 @@ interface NavItem {
 }
 
 const ITEMS: NavItem[] = [
-  { href: "/admin",           label: "Admin Console", desc: "v2 全体ダッシュボード",       icon: "🛠️", group: "core" },
-  { href: "/admin/funnel",    label: "Funnel",        desc: "DB 直結 conversion 漏斗",     icon: "📉", group: "core" },
-  { href: "/admin/telemetry", label: "Telemetry",     desc: "SDK / MCP family 集計",       icon: "📊", group: "core" },
-  { href: "/founder",         label: "Founder Notes", desc: "個人運営メモ + リンク集",     icon: "📝", group: "core" },
-  { href: "/",                label: "ユーザー側",     desc: "Buyer / Provider ダッシュ",   icon: "🏠", group: "external" },
-  { href: "https://analytics.google.com", label: "GA4",  desc: "Google Analytics",          icon: "📈", group: "external", external: true },
+  { href: "/admin",           label: "管理コンソール", desc: "v2 全体ダッシュボード",         icon: "🛠️", group: "core" },
+  { href: "/admin/funnel",    label: "ファネル",       desc: "DB 直結のコンバージョン漏斗",   icon: "📉", group: "core" },
+  { href: "/admin/telemetry", label: "テレメトリ",     desc: "SDK / MCP family 利用集計",     icon: "📊", group: "core" },
+  { href: "/founder",         label: "創業者メモ",     desc: "個人運営メモ + リンク集",       icon: "📝", group: "core" },
+  { href: "/",                label: "ユーザー側",     desc: "Buyer / Provider ダッシュ",     icon: "🏠", group: "external" },
+  { href: "https://analytics.google.com", label: "GA4",  desc: "Google Analytics",            icon: "📈", group: "external", external: true },
   { href: "https://vercel.com/contact-2985s-projects/dashboard/analytics", label: "Vercel Analytics", desc: "Web Analytics", icon: "▲", group: "external", external: true },
 ];
 
@@ -84,13 +84,13 @@ export function AdminShell({ title, subtitle, children }: AdminShellProps) {
           <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
           <div>
             <p className="text-gray-900 text-[13px] font-bold leading-tight">LemonCake</p>
-            <p className="text-gray-400 text-[10px]">Internal</p>
+            <p className="text-gray-400 text-[10px]">社内ツール</p>
           </div>
         </div>
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto min-h-0">
-        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Admin pages</p>
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">管理ページ</p>
         <div className="space-y-1">
           {ITEMS.filter(i => i.group === "core").map(item => {
             const active = isActive(item.href);
@@ -117,7 +117,7 @@ export function AdminShell({ title, subtitle, children }: AdminShellProps) {
           })}
         </div>
 
-        <p className="px-3 mt-6 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">External</p>
+        <p className="px-3 mt-6 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">外部ツール</p>
         <div className="space-y-1">
           {ITEMS.filter(i => i.group === "external").map(item => (
             <a
