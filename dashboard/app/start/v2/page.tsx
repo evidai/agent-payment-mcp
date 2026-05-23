@@ -163,12 +163,28 @@ function chainLabel(currency: Currency): string {
   return currency === "JPYC" ? `JPYC (Polygon ${chainId})` : `USDC (Base ${chainId})`;
 }
 
-const STEPS = [
-  { id: 1, label: "サインイン",      detail: "Google で 1 クリック / wallet 自動作成" },
-  { id: 2, label: "USDC（任意）",    detail: "後で入金 OK / 今入れたければ Apple Pay / 銀行振込" },
-  { id: 3, label: "1 回だけ署名",     detail: "ERC-2612 permit — 90日間有効" },
-  { id: 4, label: "完了",            detail: "permit blob をコピー / 以降ノーサイン" },
-] as const;
+/**
+ * Step labels are derived from the active currency so the progress bar
+ * stays in sync with the toggle. Until 2026-05-23 the labels were
+ * hardcoded to "USDC（任意）" / "Apple Pay / 銀行振込" and they kept
+ * leaking USDC into the JPYC flow — bad demo signal for JPYC社.
+ */
+function stepsFor(currency: Currency): ReadonlyArray<{
+  id: 1 | 2 | 3 | 4;
+  label: string;
+  detail: string;
+}> {
+  const fundingDetail =
+    currency === "JPYC"
+      ? "後で入金 OK / 今入れたければ JPYC EX で銀行振込 / カード"
+      : "後で入金 OK / 今入れたければ Apple Pay / 銀行振込";
+  return [
+    { id: 1, label: "サインイン",       detail: "Google で 1 クリック / wallet 自動作成" },
+    { id: 2, label: `${currency}（任意）`, detail: fundingDetail },
+    { id: 3, label: "1 回だけ署名",      detail: "ERC-2612 permit — 90日間有効" },
+    { id: 4, label: "完了",             detail: "permit blob をコピー / 以降ノーサイン" },
+  ];
+}
 
 // First 6 + last 4 — keeps full address out of the rendered DOM while
 // still letting the user visually verify it matches their wallet.
@@ -379,6 +395,12 @@ export default function StartV2Page() {
             const detail   = isJpyc
               ? "為替リスクなし・JPYC EX で銀行振込/カード"
               : "Apple Pay・Google Pay・カード対応";
+            // Official token logos shipped from /public. Using <img> over
+            // next/image here because the logos are tiny (under 10kB
+            // each) and we want zero LCP regression vs the previous
+            // emoji — Next's optimizer adds a wrapper that's net loss
+            // at this size.
+            const logoSrc  = isJpyc ? "/jpyc.png" : "/usdc.png";
             return (
               <button
                 key={c}
@@ -392,7 +414,15 @@ export default function StartV2Page() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{isJpyc ? "💴" : "💵"}</span>
+                  <img
+                    src={logoSrc}
+                    alt={`${c} logo`}
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 rounded-full"
+                    loading="eager"
+                    decoding="async"
+                  />
                   <span className="text-base font-bold text-gray-900">{c}</span>
                   {active && (
                     <span className="ml-auto rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -423,9 +453,10 @@ export default function StartV2Page() {
           </div>
         )}
 
-        {/* Step progress */}
+        {/* Step progress — derived from currency so the labels track
+            the toggle (e.g. "USDC（任意）" → "JPYC（任意）"). */}
         <ol className="mt-10 grid grid-cols-4 gap-2">
-          {STEPS.map((s) => (
+          {stepsFor(currency).map((s) => (
             <li
               key={s.id}
               className={`rounded-xl border p-3 text-center text-xs ${
@@ -882,9 +913,10 @@ export default function StartV2Page() {
           )}
         </section>
 
-        {/* Disclaimer / FSA stance */}
+        {/* Disclaimer / FSA stance — currency-aware so the JPYC mode
+            doesn't say "USDC は常にあなたのウォレットに残り". */}
         <p className="mt-6 text-xs text-gray-500">
-          ※ USDC は常にあなたのウォレットに残り、LemonCake は ERC-2612 permit 署名のみを受け取ります。
+          ※ {currency} は常にあなたのウォレットに残り、LemonCake は ERC-2612 permit 署名のみを受け取ります。
           金融庁 Fintech サポートデスクへの照会 (Q1-Q11) を完了済み。
           詳細：<a href="/security" className="underline hover:text-amber-700">/security</a>
         </p>
