@@ -615,16 +615,36 @@ telemetryRouter.openapi(funnelRoute, async (c) => {
   for (const s of subscriptions) bucket(dayKey(s.createdAt)).subscriptionsCreated += 1;
   for (const c of charges)       bucket(dayKey(c.createdAt)).permitChargesCount   += 1;
 
-  const dailyArr = Array.from(daily.entries())
-    .map(([date, v]) => ({
-      date,
-      lpDemoRuns:           v.lpDemoRuns,
-      lpUniqueVisitors:     v.lpVisitors.size,
-      providersRegistered:  v.providersRegistered,
-      subscriptionsCreated: v.subscriptionsCreated,
-      permitChargesCount:   v.permitChargesCount,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // 全日付を since → 今日まで連続で埋める（穴があると chart の x 軸が
+  // 飛んで「動きがあったように見える」誤読を生むため）。データのない日は
+  // 0 として明示する。
+  const dailyArr: Array<{
+    date:                 string;
+    lpDemoRuns:           number;
+    lpUniqueVisitors:     number;
+    providersRegistered:  number;
+    subscriptionsCreated: number;
+    permitChargesCount:   number;
+  }> = [];
+  const today  = new Date();
+  const cursor = new Date(since);
+  // 時分秒を 00:00 に正規化（UTC 基準で日次比較）
+  cursor.setUTCHours(0, 0, 0, 0);
+  const endKey = dayKey(today);
+  while (true) {
+    const k = dayKey(cursor);
+    const v = daily.get(k);
+    dailyArr.push({
+      date:                 k,
+      lpDemoRuns:           v?.lpDemoRuns ?? 0,
+      lpUniqueVisitors:     v?.lpVisitors.size ?? 0,
+      providersRegistered:  v?.providersRegistered ?? 0,
+      subscriptionsCreated: v?.subscriptionsCreated ?? 0,
+      permitChargesCount:   v?.permitChargesCount ?? 0,
+    });
+    if (k === endKey) break;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
 
   // ── totals ──
   const allVisitors = new Set(playLogs.map(l => l.ipHash).filter(Boolean) as string[]);
