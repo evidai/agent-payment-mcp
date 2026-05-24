@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { PageviewPing } from "./components/PageviewPing";
+import { UtmWelcomeBanner } from "./components/UtmWelcomeBanner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Providers } from "./Providers";
@@ -200,6 +201,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        {/* UTM 由来 welcome banner (Suspense 必須) */}
+        <Suspense fallback={null}>
+          <UtmWelcomeBanner />
+        </Suspense>
         <Providers>
           {children}
         </Providers>
