@@ -386,6 +386,74 @@ telemetryRouter.openapi(playgroundLogRoute, async (c) => {
   return c.body(null, 204) as any;
 });
 
+// ─── POST /api/telemetry/pageview ──────────────────────────
+// PlaygroundLog より広く、素通り訪問者も拾うための pageview ingest。
+// LP / docs / dashboard など全 public ページから fire-and-forget で叩く。
+// 認証なし（LP 公開）。bot は User-Agent ヒューリスティックで弾く。
+const BOT_UA_RX = /bot|crawl|spider|preview|lighthouse|headless|chrome-lighthouse|monitor|pingdom|uptime|gptbot|claudebot|perplexity|googleother/i;
+const KEEP_BOTS_FOR_AUDIT = true; // bot は isBot=true で保存（除外集計用、ただし計測しない）
+
+const pageviewLogRoute = createRoute({
+  method: "post",
+  path:   "/pageview",
+  tags:   ["Telemetry"],
+  summary: "Record one LP pageview (public, no auth)",
+  description:
+    "全 public ページから fire-and-forget で送られる pageview ログ。" +
+    "referrer / UTM / 国コード / bot 判定を収集し、/admin/funnel で集計表示。" +
+    "PII は記録しない（ipHash + 国コードのみ）。",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            path:        z.string().min(1).max(200),
+            referrer:    z.string().max(500).optional(),
+            utmSource:   z.string().max(80).optional(),
+            utmMedium:   z.string().max(80).optional(),
+            utmCampaign: z.string().max(120).optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: "Logged (no body)" },
+    400: { description: "Bad request", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+telemetryRouter.openapi(pageviewLogRoute, async (c) => {
+  const body  = c.req.valid("json");
+  const ipRaw = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "";
+  const ua    = c.req.header("user-agent") ?? "";
+  const country = c.req.header("x-vercel-ip-country") ?? null;
+  const ipHash = ipRaw ? await sha256Prefix(`${ipRaw}|${ua}`, 16) : null;
+  const isBot = BOT_UA_RX.test(ua);
+
+  if (isBot && !KEEP_BOTS_FOR_AUDIT) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return c.body(null, 204) as any;
+  }
+
+  await prisma.pageView.create({
+    data: {
+      path:        body.path,
+      referrer:    body.referrer?.slice(0, 500) ?? null,
+      utmSource:   body.utmSource    ?? null,
+      utmMedium:   body.utmMedium    ?? null,
+      utmCampaign: body.utmCampaign  ?? null,
+      ipHash,
+      country,
+      userAgent:   ua.slice(0, 500) || null,
+      isBot,
+    },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return c.body(null, 204) as any;
+});
+
 // ─── GET /api/telemetry/playground ─────────────────────────
 // admin/telemetry ダッシュボード用の集計エンドポイント。
 const PlaygroundAggSchema = z.object({
@@ -684,6 +752,160 @@ telemetryRouter.openapi(funnelRoute, async (c) => {
     byPlan,
     daily: dailyArr,
     rates,
+  });
+});
+
+// ─── GET /api/telemetry/traffic-sources ────────────────────────
+// PageView ベースの流入源集計。referrer / UTM / 国 / path 別の内訳。
+// bot は除外。/admin/funnel の「流入源」セクションが叩く。
+const TrafficSourcesResponseSchema = z.object({
+  windowDays:  z.number(),
+  generatedAt: z.string(),
+  totals: z.object({
+    humanViews:   z.number().int(),
+    botViews:     z.number().int(),
+    uniqueIps:    z.number().int(),
+    botRatio:     z.number(),  // bot / (human + bot)
+  }),
+  byPath: z.array(z.object({
+    path:       z.string(),
+    views:      z.number().int(),
+    uniqueIps:  z.number().int(),
+  })),
+  byReferrer: z.array(z.object({
+    referrer:   z.string(),  // 正規化済ドメイン or "(direct)"
+    views:      z.number().int(),
+  })),
+  byUtm: z.array(z.object({
+    source:     z.string(),
+    medium:     z.string().nullable(),
+    campaign:   z.string().nullable(),
+    views:      z.number().int(),
+  })),
+  byCountry: z.array(z.object({
+    country:    z.string(),  // 2 桁国コード or "(unknown)"
+    views:      z.number().int(),
+    uniqueIps:  z.number().int(),
+  })),
+});
+
+const trafficSourcesRoute = createRoute({
+  method:  "get",
+  path:    "/traffic-sources",
+  tags:    ["Telemetry"],
+  summary: "流入源集計 (referrer / UTM / 国 / path)",
+  description:
+    "PageView テーブルから集計。bot は除外（isBot=true は totals.botViews でのみカウント）。",
+  request: {
+    query: z.object({
+      days: z.coerce.number().int().min(1).max(365).default(30),
+    }),
+  },
+  responses: {
+    200: { description: "OK",           content: { "application/json": { schema: TrafficSourcesResponseSchema } } },
+    401: { description: "Unauthorized", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+// Referer URL → 表示用ドメインに正規化（同一サイトからの内部遷移は (internal) に纏める）
+function normalizeReferrer(raw: string | null, ownHost: string): string {
+  if (!raw) return "(direct)";
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === ownHost.replace(/^www\./, "")) return "(internal)";
+    return host;
+  } catch {
+    return "(invalid)";
+  }
+}
+
+telemetryRouter.openapi(trafficSourcesRoute, async (c) => {
+  const auth = c.req.header("Authorization");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!auth?.startsWith("Bearer "))             return c.json({ error: "Unauthorized" }, 401) as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(await verifyAdminToken(auth.slice(7)))) return c.json({ error: "Invalid token" }, 401) as any;
+
+  const { days } = c.req.valid("query");
+  const since = new Date(Date.now() - days * 86400_000);
+
+  const rows = await prisma.pageView.findMany({
+    where:  { createdAt: { gte: since } },
+    select: { path: true, referrer: true, utmSource: true, utmMedium: true, utmCampaign: true,
+              country: true, ipHash: true, isBot: true },
+  });
+
+  const humans = rows.filter(r => !r.isBot);
+  const bots   = rows.filter(r =>  r.isBot);
+  const uniqueIps = new Set(humans.map(r => r.ipHash).filter(Boolean)).size;
+  const total = humans.length + bots.length;
+  const botRatio = total > 0 ? Math.round((bots.length / total) * 10000) / 10000 : 0;
+
+  // by path
+  const pathMap = new Map<string, { views: number; ips: Set<string> }>();
+  for (const r of humans) {
+    const e = pathMap.get(r.path) ?? { views: 0, ips: new Set() };
+    e.views += 1;
+    if (r.ipHash) e.ips.add(r.ipHash);
+    pathMap.set(r.path, e);
+  }
+  const byPath = Array.from(pathMap.entries())
+    .map(([path, v]) => ({ path, views: v.views, uniqueIps: v.ips.size }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 30);
+
+  // by referrer
+  const refMap = new Map<string, number>();
+  for (const r of humans) {
+    const k = normalizeReferrer(r.referrer, "lemoncake.xyz");
+    refMap.set(k, (refMap.get(k) ?? 0) + 1);
+  }
+  const byReferrer = Array.from(refMap.entries())
+    .map(([referrer, views]) => ({ referrer, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 20);
+
+  // by UTM
+  const utmMap = new Map<string, { source: string; medium: string|null; campaign: string|null; views: number }>();
+  for (const r of humans) {
+    if (!r.utmSource) continue;
+    const key = `${r.utmSource}|${r.utmMedium ?? ""}|${r.utmCampaign ?? ""}`;
+    const e = utmMap.get(key) ?? {
+      source: r.utmSource, medium: r.utmMedium ?? null, campaign: r.utmCampaign ?? null, views: 0,
+    };
+    e.views += 1;
+    utmMap.set(key, e);
+  }
+  const byUtm = Array.from(utmMap.values()).sort((a, b) => b.views - a.views).slice(0, 30);
+
+  // by country
+  const countryMap = new Map<string, { views: number; ips: Set<string> }>();
+  for (const r of humans) {
+    const k = r.country ?? "(unknown)";
+    const e = countryMap.get(k) ?? { views: 0, ips: new Set() };
+    e.views += 1;
+    if (r.ipHash) e.ips.add(r.ipHash);
+    countryMap.set(k, e);
+  }
+  const byCountry = Array.from(countryMap.entries())
+    .map(([country, v]) => ({ country, views: v.views, uniqueIps: v.ips.size }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 30);
+
+  return c.json({
+    windowDays:  days,
+    generatedAt: new Date().toISOString(),
+    totals: {
+      humanViews: humans.length,
+      botViews:   bots.length,
+      uniqueIps,
+      botRatio,
+    },
+    byPath,
+    byReferrer,
+    byUtm,
+    byCountry,
   });
 });
 

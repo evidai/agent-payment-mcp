@@ -1035,3 +1035,45 @@ model PlaygroundLog {
   @@index([createdAt])
   @@map("playground_logs")
 }
+
+// ─────────────────────────────────────────────────────────────
+// PageView — LP 訪問計測（PlaygroundLog より広く、素通り訪問も拾う）
+//
+// PlaygroundLog は「Demo Run を押した人」しか捕捉できないので、
+// /about /start /sellers /me /start/v2 等の素通り訪問者が見えなかった。
+// このテーブルが「LP に来た全員」を referrer/UTM/国 付きで記録する。
+//
+// ingestion: POST /api/telemetry/pageview （bot は User-Agent でフィルタ）
+// 表示:      /admin/funnel が source 内訳・UTM・地域・per-page conversion を出す
+//
+// PII フリー: 生 IP は保存せず、ipHash (sha256 16 桁) のみ。
+// ─────────────────────────────────────────────────────────────
+model PageView {
+  id String @id @default(cuid())
+
+  // 訪問先パス（例: "/about", "/start", "/start/v2"）。
+  // クエリ文字列は別 column で取るので path は pure path のみ。
+  path String
+
+  // どこから来たか
+  referrer    String? @db.Text  // Referer header（document.referrer の場合あり）
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  // 訪問者属性（PII 最小）
+  ipHash    String?  // 同一訪問者の重複カウント回避 bucket key
+  country   String?  // x-vercel-ip-country (2 桁国コード or null)
+  userAgent String? @db.Text
+
+  // bot 判定（true なら集計から除外）
+  isBot Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([path, createdAt])
+  @@index([createdAt])
+  @@index([utmSource, createdAt])
+  @@index([country, createdAt])
+  @@map("page_views")
+}

@@ -46,6 +46,21 @@ interface FunnelResponse {
   };
 }
 
+interface TrafficSourcesResponse {
+  windowDays:  number;
+  generatedAt: string;
+  totals: {
+    humanViews: number;
+    botViews:   number;
+    uniqueIps:  number;
+    botRatio:   number;
+  };
+  byPath:     Array<{ path: string;     views: number; uniqueIps: number }>;
+  byReferrer: Array<{ referrer: string; views: number }>;
+  byUtm:      Array<{ source: string; medium: string|null; campaign: string|null; views: number }>;
+  byCountry:  Array<{ country: string;  views: number; uniqueIps: number }>;
+}
+
 const PLAN_COLOR: Record<string, string> = {
   FREE:       "#9ca3af",
   PRO:        "#f59e0b",
@@ -57,6 +72,7 @@ const PLAN_COLOR: Record<string, string> = {
 export default function FunnelPage() {
   const router = useRouter();
   const [data,    setData]    = useState<FunnelResponse | null>(null);
+  const [traffic, setTraffic] = useState<TrafficSourcesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string>("");
   const [days,    setDays]    = useState(30);
@@ -66,17 +82,21 @@ export default function FunnelPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
     if (!token) { router.push("/admin/login"); return; }
     try {
-      const res = await fetch(`${API_URL}/api/telemetry/funnel?days=${d}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401) {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [funnelRes, trafficRes] = await Promise.all([
+        fetch(`${API_URL}/api/telemetry/funnel?days=${d}`,           { headers }),
+        fetch(`${API_URL}/api/telemetry/traffic-sources?days=${d}`,  { headers }),
+      ]);
+      if (funnelRes.status === 401 || trafficRes.status === 401) {
         localStorage.removeItem("admin_token");
         router.push("/admin/login");
         return;
       }
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      setData(json);
+      const funnelJson = await funnelRes.json();
+      if (!funnelRes.ok) throw new Error(funnelJson.error ?? `HTTP ${funnelRes.status}`);
+      setData(funnelJson);
+      if (trafficRes.ok) setTraffic(await trafficRes.json());
+      else               setTraffic(null);  // 新 endpoint まだ deploy 前なら null
     } catch (e) {
       setError(e instanceof Error ? e.message : "取得失敗");
     } finally {
@@ -276,6 +296,20 @@ export default function FunnelPage() {
               </div>
             </div>
 
+            {/* 流入源セクション — PageView ベース */}
+            {traffic ? (
+              <TrafficSourcesSection traffic={traffic}/>
+            ) : (
+              <div className="mb-6 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-4 text-xs text-gray-500 leading-relaxed">
+                <p className="font-bold text-gray-700">流入源データ未収集</p>
+                <p className="mt-1">
+                  <code className="bg-white px-1 rounded">/api/telemetry/traffic-sources</code> エンドポイントがまだデプロイされていないか、
+                  PageView テーブルが空です。layout に <code className="bg-white px-1 rounded">&lt;PageviewPing/&gt;</code> を入れて
+                  数時間〜数日待つと表示されます。
+                </p>
+              </div>
+            )}
+
             {/* Raw daily table (last 14) */}
             <div className="rounded-xl border border-gray-200 bg-white overflow-x-auto">
               <table className="w-full min-w-[640px] text-xs">
@@ -368,6 +402,111 @@ function RateBar({ label, rate, color }: { label: string; rate: number; color: s
       </div>
       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
         <div className={`h-full ${color}`} style={{ width: `${pct}%` }}/>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── 流入源セクション ────────────────────────────────────────
+
+function TrafficSourcesSection({ traffic }: { traffic: TrafficSourcesResponse }) {
+  const t = traffic.totals;
+  const botPct = (t.botRatio * 100).toFixed(1);
+
+  return (
+    <div className="mb-6 space-y-4">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <h2 className="text-base font-bold text-gray-900">流入源</h2>
+          <p className="text-[10px] text-gray-400">
+            PageView ベース集計（bot 除外） · {traffic.windowDays} 日窓
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-1">
+          <Mini label="人間 PV"        value={t.humanViews.toLocaleString()} sub="bot 除外" />
+          <Mini label="ユニーク IP"   value={t.uniqueIps.toLocaleString()}  sub="人間のみ" />
+          <Mini label="bot PV"        value={t.botViews.toLocaleString()}   sub={`bot 比率 ${botPct}%`} />
+          <Mini label="計測カバー"    value={traffic.byPath.length.toString()} sub="ユニーク path 数" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <BreakdownTable
+          title="ページ別アクセス"
+          cols={["パス", "PV", "ユニーク"]}
+          rows={traffic.byPath.slice(0, 12).map(p => [p.path, p.views, p.uniqueIps])}
+          emptyMsg="ページビュー記録なし"
+        />
+        <BreakdownTable
+          title="参照元（referrer）"
+          cols={["元", "PV"]}
+          rows={traffic.byReferrer.slice(0, 12).map(r => [r.referrer, r.views])}
+          emptyMsg="referrer 情報なし"
+        />
+        <BreakdownTable
+          title="UTM キャンペーン"
+          cols={["source / medium / campaign", "PV"]}
+          rows={traffic.byUtm.slice(0, 12).map(u => [
+            `${u.source}${u.medium ? ` / ${u.medium}` : ""}${u.campaign ? ` / ${u.campaign}` : ""}`,
+            u.views,
+          ])}
+          emptyMsg="UTM 付き流入なし（外部リンクに utm_source 付けて配布すると埋まる）"
+        />
+        <BreakdownTable
+          title="国別アクセス"
+          cols={["国", "PV", "ユニーク"]}
+          rows={traffic.byCountry.slice(0, 12).map(c => [c.country, c.views, c.uniqueIps])}
+          emptyMsg="国コード未取得"
+        />
+      </div>
+    </div>
+  );
+}
+
+function Mini({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3">
+      <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">{label}</p>
+      <p className="mt-1 text-xl font-bold text-gray-900 tabular-nums">{value}</p>
+      <p className="mt-0.5 text-[10px] text-gray-400">{sub}</p>
+    </div>
+  );
+}
+
+function BreakdownTable({ title, cols, rows, emptyMsg }: {
+  title: string; cols: string[]; rows: (string|number)[][]; emptyMsg: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100">
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider text-[10px]">
+            <tr>
+              {cols.map((c, i) => (
+                <th key={i} className={`px-3 py-2 font-bold ${i === 0 ? "text-left" : "text-right"}`}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="text-gray-700">
+            {rows.length === 0 ? (
+              <tr><td colSpan={cols.length} className="px-3 py-6 text-center text-gray-400 text-[11px] leading-relaxed">
+                {emptyMsg}
+              </td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={i} className="border-t border-gray-100">
+                {r.map((cell, ci) => (
+                  <td key={ci} className={`px-3 py-2 ${ci === 0 ? "font-mono text-[11px] break-all" : "text-right tabular-nums font-mono"}`}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

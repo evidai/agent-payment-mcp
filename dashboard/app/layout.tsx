@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/next";
+import { PageviewPing } from "./components/PageviewPing";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Providers } from "./Providers";
@@ -201,6 +203,10 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        {/* Self-hosted pageview ingest (Suspense 必須: useSearchParams を使う) */}
+        <Suspense fallback={null}>
+          <PageviewPing />
+        </Suspense>
         <Analytics />
         <SpeedInsights />
       </body>
