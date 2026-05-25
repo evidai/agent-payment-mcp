@@ -27,9 +27,10 @@ custody base の説明で時代遅れ → このファイルが現役。
 
 **Title:** I built a way to monetize your MCP server in 3 lines (USDC, non-custodial)
 
-**Body:**
+**Body（↓ ここから ↓ までを Reddit body にコピペ。fancy editor / "Markdown mode" ON で）：**
 
-```markdown
+```
+───── COPY FROM HERE ─────
 Been seeing more people build MCP servers but nobody talks about monetization.
 If you've made one and want users to pay for it, your options today are:
 
@@ -37,96 +38,92 @@ If you've made one and want users to pay for it, your options today are:
 2. API key + webhook gymnastics — fragile, manual
 3. Throw it on a free tier and hope
 
-I built [agent-payment-mcp](https://github.com/evidai/agent-payment-mcp) +
-[@lemon-cake/x402-server](https://www.npmjs.com/package/@lemon-cake/x402-server)
-to give a 4th option: per-call USDC on Base, non-custodial.
+I built [agent-payment-mcp](https://github.com/evidai/agent-payment-mcp) + [@lemon-cake/x402-server](https://www.npmjs.com/package/@lemon-cake/x402-server) to give a 4th option: per-call USDC on Base, non-custodial.
 
 **For the MCP/API provider:**
 
-```ts
-import { x402Middleware } from "@lemon-cake/x402-server";
+    import { x402Middleware } from "@lemon-cake/x402-server";
 
-app.use("/api/search", x402Middleware({
-  serviceId:       "your-id",   // from /sellers signup
-  pricePerCallUsd: 0.005,
-  facilitator:     "both",       // get on Coinbase Bazaar + LemonCake metering
-}));
-```
+    app.use("/api/search", x402Middleware({
+      serviceId:       "your-id",   // from /sellers signup
+      pricePerCallUsd: 0.005,
+      facilitator:     "both",       // catalog in Coinbase Bazaar + LemonCake metering
+    }));
 
-Buyer signs one ERC-2612 permit (90 days, $25/day on-chain hard cap).
-USDC goes Buyer → Provider direct on Base. LemonCake never holds funds
-(FSA Q1-Q11 confirmed in Japan).
+Buyer signs one ERC-2612 permit (90 days, $25/day on-chain hard cap). USDC goes Buyer → Provider direct on Base. LemonCake never holds funds (FSA Q1-Q11 confirmed in Japan).
 
-I take 0% per-call fee. Monetize via SaaS tier for Japan-specific stuff
-(freee accounting integration, qualified invoices, JPY off-ramp).
+I take 0% per-call fee. Monetize via SaaS tier for Japan-specific features (freee accounting integration, qualified invoices, JPY off-ramp).
 
-Demo mode (no signup, no wallet):
+**Demo mode (no signup, no wallet):**
 
-```json
-{
-  "mcpServers": {
-    "lemon": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"]
+    {
+      "mcpServers": {
+        "lemon": {
+          "command": "npx",
+          "args": ["-y", "agent-payment-mcp"]
+        }
+      }
     }
-  }
-}
-```
 
-Hits real Wikipedia / Open-Meteo / exchangerate.host — see what an MCP-paid
-API call looks like before signing anything.
+Drop into Claude Desktop config, then ask Claude `lemon, list services` → hits real Wikipedia / Open-Meteo / exchangerate.host. See what an MCP-paid API call looks like before signing anything.
 
 Provider signup: https://lemoncake.xyz/sellers?utm_source=reddit&utm_medium=post&utm_campaign=claudeai_launch
 Buyer onboarding: https://lemoncake.xyz/start/v2?utm_source=reddit&utm_medium=post&utm_campaign=claudeai_launch
 
-Happy to answer architecture questions. Source is MIT, npm packages are
-@lemon-cake/x402-server + @lemon-cake/mcp-sdk + agent-payment-mcp.
+Happy to answer architecture questions. MIT-licensed, npm packages: `@lemon-cake/x402-server` + `@lemon-cake/mcp-sdk` + `agent-payment-mcp`.
+───── COPY UP TO HERE ─────
 ```
 
-**注意：**
-- アカウントの karma 必要、新規アカは「Show me」と思われがち
+**📝 重要：**
+- 上の "COPY FROM HERE" と "COPY UP TO HERE" マーカーは **含めずに** body 貼付
+- 4 space インデントの code block は **old Reddit でも new Reddit でも render される**（fenced ``` は old Reddit で壊れる）→ 上記は 4-space スタイル統一
+- アカウントの karma 必要、新規アカは「Show me」と疑われやすい
 - 投稿後 1-2 時間で質問返信つけて engagement 維持
 - "I built" は OK、"check out my SaaS" は ban されやすい
+- Tuesday-Thursday US 朝（JST 翌 0-2 AM）が一番伸びる
 
 ---
 
 ## 2. Anthropic Discord — #show-and-tell
 
-**URL:** https://discord.com/invite/anthropic (Claude Discord)
-**Channel:** #show-and-tell or #mcp
+**URL:** https://discord.gg/anthropic (Anthropic 公式、要 join。MCP 専用なら https://discord.gg/modelcontextprotocol)
+**Channel:** #show-and-tell or #mcp-server-development
 
-**Message:**
+**Message（コピペ用、Discord で正しく描画される形）：**
 
-```markdown
-**Pay-per-call USDC for MCP servers (non-custodial)**
-
-Built `@lemon-cake/x402-server` — 3 lines drops into any MCP/HTTP server,
-buyers pay in USDC per call, money goes direct to your wallet.
-
-Demo (no signup, no wallet):
 ```
+**Pay-per-call USDC for MCP servers (non-custodial, 3 lines)**
+
+Built `@lemon-cake/x402-server` — drop into any MCP/HTTP server, buyers pay USDC per call, money lands in your wallet direct. No fund custody.
+
+Demo with zero signup, 30 seconds:
+` ` ` json
 {
   "mcpServers": {
     "lemon": {"command": "npx", "args": ["-y", "agent-payment-mcp"]}
   }
 }
-```
-Try `lemon: list available services` in Claude — hits real Wikipedia/FX/weather.
+` ` `
+Add to Claude Desktop config, then ask: `lemon, list services` → hits real Wikipedia / Open-Meteo / exchangerate.host.
 
-For builders: https://lemoncake.xyz/sellers?utm_source=discord&utm_medium=msg&utm_campaign=anthropic
-For users:    https://lemoncake.xyz/start/v2?utm_source=discord&utm_medium=msg&utm_campaign=anthropic
+Providers: <https://lemoncake.xyz/sellers?utm_source=discord&utm_medium=msg&utm_campaign=anthropic>
+Buyers:    <https://lemoncake.xyz/start/v2?utm_source=discord&utm_medium=msg&utm_campaign=anthropic>
 
-Architecture: ERC-2612 permit (90 days / $25/day hard cap on the USDC contract
-itself, so the agent literally can't overspend). x402 compatible — also indexes
-into Coinbase Bazaar / AWS AgentCore via `facilitator: "both"`.
+Architecture: ERC-2612 permit on Base, $25/day on-chain hard cap (USDC contract enforces). x402 spec compatible — catalogs in Coinbase Bazaar with `facilitator: "both"`.
 
-Questions welcome 🍋
+🍋
 ```
 
-**注意：**
+⚠️ **コピペ時の注意**：
+- 上の `` ` ` ` json `` と `` ` ` ` `` は backtick 3 つ（半角スペースは見やすさ用、貼る時は詰める）
+- URL を `<>` で wrap してるのは Discord の auto-preview を抑制するため（message が clean に見える）
+- ネストフェンス禁止：本文を ```markdown でくるまない（Discord は markdown フェンスを nest できず render 崩れる）
+
+**📝 メモ：**
 - Discord は短く。長い説明は GitHub link で。
 - Demo mode を強調（barrier ゼロで試せる）
-- emoji は最後の 1 個だけ、それ以上は noise
+- emoji は最後の 🍋 1 個だけ
+- 投稿後、誰か reply したら 1-2 時間以内に返信して engagement 維持
 
 ---
 
