@@ -120,7 +120,14 @@ export default function MePage() {
   const [error, setError]             = useState<string | null>(null);
   const [permitMeta, setPermitMeta]   = useState<PermitMeta | null>(null);
   const [revoking, setRevoking]       = useState(false);
-  const [toast, setToast]             = useState<string>("");
+  const [toast, setToast]             = useState<{msg: string; type: "info"|"error"} | null>(null);
+  // helper: 旧 setToast(string) interface との後方互換のため、エラー判定の
+  // ヒューリスティクスを内蔵。`not enabled` / `failed` / `エラー` 等を含めば error 扱い
+  function pushToast(msg: string, type?: "info"|"error") {
+    const t = type ?? (/not enabled|failed|error|エラー|失敗/i.test(msg) ? "error" : "info");
+    setToast({ msg, type: t });
+    setTimeout(() => setToast(null), 5000);
+  }
 
   // on-chain + history 読み込み
   const refresh = useCallback(async () => {
@@ -176,17 +183,17 @@ export default function MePage() {
       const txHash = await walletClient.sendTransaction({
         to: USDC_BASE, data, account: address, chain: base,
       });
-      setToast(`取消 tx 送信: ${txHash.slice(0, 10)}…`);
+      pushToast(`取消 tx 送信: ${txHash.slice(0, 10)}…`, "info");
       // localStorage からも消す
       try { localStorage.removeItem(`lemon_permit_meta_${address.toLowerCase()}`); } catch {}
       setPermitMeta(null);
       // 1 秒後に再 fetch
       setTimeout(refresh, 3000);
     } catch (e) {
-      setToast(e instanceof Error ? e.message : "取消失敗");
+      pushToast(e instanceof Error ? e.message : "取消失敗", "error");
     } finally {
       setRevoking(false);
-      setTimeout(() => setToast(""), 4000);
+      // toast の auto-dismiss は pushToast 内で行う
     }
   }
 
@@ -270,7 +277,11 @@ export default function MePage() {
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
         {toast && (
-          <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{toast}</div>
+          <div className={`mb-5 rounded-xl border px-4 py-3 text-sm ${
+            toast.type === "error"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}>{toast.msg}</div>
         )}
 
         {/* Top KPI: balance + allowance + 累計 */}
@@ -294,8 +305,13 @@ export default function MePage() {
                     card: { preferredProvider: "moonpay" },  // JP/EU 強い
                   });
                 } catch (e) {
-                  setToast(e instanceof Error ? e.message : "入金フロー起動に失敗");
-                  setTimeout(() => setToast(""), 4000);
+                  const msg = e instanceof Error ? e.message : "入金フロー起動に失敗";
+                  // Privy dashboard 未設定の典型エラーを user 向けに翻訳
+                  if (/not enabled|funding is not/i.test(msg)) {
+                    pushToast("USDC 入金は準備中です。直接送金（Coinbase 取引所 → Base ネットワーク）で入金できます。", "info");
+                  } else {
+                    pushToast(msg, "error");
+                  }
                 }
               }}
               className="mt-3 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50"
