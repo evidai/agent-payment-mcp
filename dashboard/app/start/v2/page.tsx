@@ -906,23 +906,8 @@ export default function StartV2Page() {
                 </button>
               </div>
 
-              <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs">
-                <p className="font-bold text-gray-700">claude_desktop_config.json への追加例</p>
-                <pre className="mt-2 overflow-x-auto rounded bg-white p-3 font-mono leading-relaxed text-gray-800">
-{`{
-  "mcpServers": {
-    "lemon": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"],
-      "env": {
-        "LEMON_CAKE_PERMIT": "<上のトークン>"
-      }
-    }
-  }
-}`}
-                </pre>
-                <ConfigFilePaths />
-              </div>
+              <McpConfigBlock encodedPermit={encodedPermit} />
+              <ConfigFilePaths />
 
               {/* 次にやること — Buyer dashboard / docs / Provider 登録 */}
               <div className="mt-8">
@@ -965,6 +950,51 @@ export default function StartV2Page() {
  * OS を判定して MCP 設定ファイルの絶対パスを表示する。
  * macOS / Windows / Linux で違うため、初心者でも paste 先で迷わないように。
  */
+/**
+ * McpConfigBlock — permit を実値で埋めた MCP 設定 JSON を 1 クリックでコピー。
+ * 旧 UI は `<上のトークン>` プレースホルダ JSON を表示して、user に手で
+ * 差し替えさせていた（離脱ポイント）。これを「コピー → 設定ファイルに貼付」
+ * の 2 step にする。
+ */
+function McpConfigBlock({ encodedPermit }: { encodedPermit: string }) {
+  const [copied, setCopied] = useState(false);
+  const config = `{
+  "mcpServers": {
+    "lemon": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"],
+      "env": {
+        "LEMON_CAKE_PERMIT": "${encodedPermit}"
+      }
+    }
+  }
+}`;
+  return (
+    <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs">
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-bold text-gray-700">MCP 設定（permit 埋め込み済 / 丸ごと貼付 OK）</p>
+        <button
+          onClick={async () => {
+            await navigator.clipboard.writeText(config);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 text-white px-3 py-1 text-[10px] font-bold hover:bg-gray-700"
+        >
+          {copied ? "✓ コピー済" : "全部コピー"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto rounded bg-white p-3 font-mono leading-relaxed text-gray-800">
+        {config}
+      </pre>
+      <p className="mt-2 text-[10px] text-gray-500 leading-relaxed">
+        既存設定があれば <code className="bg-white px-1 rounded">mcpServers</code> ブロック内に
+        <code className="bg-white px-1 rounded">"lemon"</code> エントリだけ追加してください。
+      </p>
+    </div>
+  );
+}
+
 function ConfigFilePaths() {
   const [os, setOs] = useState<"mac" | "win" | "linux" | "unknown">("unknown");
   useEffect(() => {

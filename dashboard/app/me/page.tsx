@@ -23,7 +23,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets, useFundWallet } from "@privy-io/react-auth";
 import {
   createPublicClient,
   createWalletClient,
@@ -102,6 +102,17 @@ export default function MePage() {
   const wallet = wallets[0];
   const address = wallet?.address as Address | undefined;
 
+  // 再 fetch tick (useFundWallet の onUserExited から触りたいので state で)
+  const [refetchTick, setRefetchTick] = useState(0);
+  // Privy 2.x funding hook: Coinbase Pay / MoonPay を国判定で自動選択
+  // ※ Privy ダッシュボードで funding providers ON にしないとモーダル出ない
+  const { fundWallet } = useFundWallet({
+    onUserExited: () => {
+      // モーダル閉じた直後（着金完了してたら）残高 refresh
+      setTimeout(() => setRefetchTick(t => t + 1), 2000);
+    },
+  });
+
   const [usdcBalance, setUsdcBalance] = useState<bigint | null>(null);
   const [allowance, setAllowance]     = useState<bigint | null>(null);
   const [charges, setCharges]         = useState<ChargesResponse | null>(null);
@@ -136,7 +147,7 @@ export default function MePage() {
     }
   }, [address]);
 
-  useEffect(() => { if (address) refresh(); }, [address, refresh]);
+  useEffect(() => { if (address) refresh(); }, [address, refresh, refetchTick]);
 
   // localStorage の permit メタを拾う
   useEffect(() => {
@@ -264,12 +275,40 @@ export default function MePage() {
 
         {/* Top KPI: balance + allowance + 累計 */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <KpiCard
-            label="USDC 残高"
-            value={balanceUsdc != null ? `$${balanceUsdc.toFixed(2)}` : "—"}
-            sub="Base チェーン上"
-            color="emerald"
-          />
+          {/* USDC 残高 + チャージボタン同居 */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 text-emerald-900 p-4 flex flex-col">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-gray-600">USDC 残高</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">
+              {balanceUsdc != null ? `$${balanceUsdc.toFixed(2)}` : "—"}
+            </p>
+            <p className="mt-1 text-[10px] text-gray-500">Base チェーン上</p>
+            <button
+              onClick={async () => {
+                if (!address) return;
+                try {
+                  await fundWallet(address, {
+                    chain: { id: 8453 },   // Base
+                    amount: "20",
+                    asset: "USDC",
+                    defaultFundingMethod: "card",
+                    card: { preferredProvider: "moonpay" },  // JP/EU 強い
+                  });
+                } catch (e) {
+                  setToast(e instanceof Error ? e.message : "入金フロー起動に失敗");
+                  setTimeout(() => setToast(""), 4000);
+                }
+              }}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50"
+              disabled={!address}
+            >
+              + USDC を入金
+            </button>
+            {balanceUsdc != null && balanceUsdc < 5 && (
+              <p className="mt-2 text-[10px] text-amber-700 leading-tight">
+                ⚠️ 残高少なめ。$5+ あると数日分の API call まかなえる
+              </p>
+            )}
+          </div>
           <KpiCard
             label="支払い権限 残量"
             value={allowanceUsdc != null ? `$${allowanceUsdc.toFixed(2)}` : "—"}
@@ -389,8 +428,18 @@ export default function MePage() {
               <tbody className="text-gray-700">
                 {!charges || charges.charges.length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                    まだ課金履歴がありません。<br/>
-                    <Link href="/docs/quickstart" className="text-amber-700 underline mt-1 inline-block">セットアップ手順を見る →</Link>
+                    <div className="space-y-2">
+                      <p className="text-gray-500">まだ課金履歴がありません。</p>
+                      <p className="text-[11px] leading-relaxed">
+                        次にやること：
+                      </p>
+                      <ol className="text-[11px] text-left max-w-xs mx-auto list-decimal pl-5 space-y-0.5 text-gray-500">
+                        <li>USDC を入金（上の「+ USDC を入金」ボタン）</li>
+                        <li>permit を発行（<Link href="/start/v2" className="text-amber-700 underline">/start/v2</Link>）</li>
+                        <li>MCP 設定を Claude / Cursor に貼付（<Link href="/docs/quickstart" className="text-amber-700 underline">手順</Link>）</li>
+                        <li>AI に「lemon を使って〜」と話しかける</li>
+                      </ol>
+                    </div>
                   </td></tr>
                 ) : (
                   charges.charges.map(c => (
