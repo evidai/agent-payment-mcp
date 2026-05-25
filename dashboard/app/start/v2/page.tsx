@@ -176,13 +176,13 @@ function stepsFor(currency: Currency): ReadonlyArray<{
 }> {
   const fundingDetail =
     currency === "JPYC"
-      ? "後で入金 OK / 今入れたければ JPYC EX で銀行振込 / カード"
-      : "後で入金 OK / 今入れたければ Apple Pay / 銀行振込";
+      ? "Fund later or via JPYC EX (bank / card)"
+      : "Fund later, or via Apple Pay / card now";
   return [
-    { id: 1, label: "サインイン",       detail: "Google で 1 クリック / 専用ウォレットが自動生成" },
-    { id: 2, label: `${currency}（任意）`, detail: fundingDetail },
-    { id: 3, label: "1 回だけ署名",      detail: "支払い権限の委譲（90 日有効・$25/日 上限）" },
-    { id: 4, label: "完了",             detail: "トークンをコピー → 以降は AI が自動課金" },
+    { id: 1, label: "Sign in",                detail: "1 click with Google · wallet auto-created" },
+    { id: 2, label: `${currency} (optional)`, detail: fundingDetail },
+    { id: 3, label: "Sign once",              detail: "Authorize spend (90 days, $25/day cap)" },
+    { id: 4, label: "Done",                   detail: "Copy token → AI pays autonomously" },
   ];
 }
 
@@ -274,7 +274,7 @@ export default function StartV2Page() {
       // render-derived `isAuthenticated` for the Step 2 gate.
     } catch (e) {
       trackEvent("v2_signin_failed", { error: e instanceof Error ? e.message : "unknown" });
-      setError(e instanceof Error ? e.message : "サインインに失敗しました");
+      setError(e instanceof Error ? e.message : "Sign-in failed");
       return;
     }
     setStep(2);
@@ -294,7 +294,7 @@ export default function StartV2Page() {
   async function handleSignPermit() {
     setError(null);
     if (!userWallet) {
-      setError("ウォレットが見つかりません。サインインからやり直してください。");
+      setError("Wallet not found. Please sign in again.");
       return;
     }
     setSigning(true);
@@ -363,7 +363,7 @@ export default function StartV2Page() {
         currency,
         error: e instanceof Error ? e.message : "unknown",
       });
-      setError(e instanceof Error ? e.message : "署名に失敗しました");
+      setError(e instanceof Error ? e.message : "Signing failed");
     } finally {
       setSigning(false);
     }
@@ -382,13 +382,13 @@ export default function StartV2Page() {
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
           <p className="font-bold">
-            🍋 LemonCake は {currency} を一切預かりません。AI エージェントが直接 API 提供者に支払います。
+            🍋 LemonCake never holds your {currency}. AI agents pay API providers directly.
           </p>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900">2 分で始める</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Get started in 2 minutes</h1>
         <p className="mt-2 text-gray-600">
-          サインは 90 日に 1 回。以降は完全ノーサインで AI が API を呼びます。
+          Sign once for 90 days. After that, your AI calls APIs with no further prompts.
         </p>
 
         {/* Currency toggle — wins over the rest of the flow. Lives above
@@ -403,11 +403,11 @@ export default function StartV2Page() {
             const active   = c === currency;
             const isJpyc   = c === "JPYC";
             const sub      = isJpyc
-              ? "日本円ステーブルコイン / Polygon"
-              : "US Dollar / Base — グローバル";
+              ? "Yen stablecoin / Polygon"
+              : "US Dollar / Base — Global";
             const detail   = isJpyc
-              ? "為替リスクなし・JPYC EX で銀行振込/カード"
-              : "Apple Pay・Google Pay・カード対応";
+              ? "No FX risk · Bank transfer / card via JPYC EX"
+              : "Apple Pay · Google Pay · Card";
             // Official token logos shipped from /public. Using <img> over
             // next/image here because the logos are tiny (under 10kB
             // each) and we want zero LCP regression vs the previous
@@ -450,18 +450,18 @@ export default function StartV2Page() {
           })}
         </div>
         <p className="mt-2 text-[11px] text-gray-500">
-          選択した通貨で permit を発行します。あとからダッシュボードでもう一方を追加できます。
+          Permit issued for your selected currency. You can add the other one later in your dashboard.
           {currency === "JPYC" && (
-            <> 日本ユーザー向けデフォルト（要件: 東京都ステーブルコイン社会実装促進事業 / JPYC 株式会社規制版）。</>
+            <> Default for Japan users (Tokyo Metro Stablecoin Program / JPYC Corp regulated token).</>
           )}
         </p>
         {currency === "JPYC" && (
           <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-900">
-            <p className="font-bold">🚧 JPYC 統合は実験的機能</p>
+            <p className="font-bold">🚧 JPYC integration is experimental</p>
             <p className="mt-1 leading-relaxed">
-              現在 JPYC 株式会社へ EIP-712 ドメイン詳細 + JPYC EX 法人 API アクセスを申請中。
-              UI / トグル / 通貨ルーティングは本番動作しますが、Polygon 上の実 permit 署名は
-              JPYC社からの version 文字列確定待ちです。デモ用途は問題なくご利用いただけます。
+              Awaiting EIP-712 domain details + JPYC EX corporate API from JPYC Corp.
+              UI and currency routing work in production, but live permit signing on Polygon is
+              pending JPYC Corp version string confirmation. Demo mode works fine.
             </p>
           </div>
         )}
@@ -489,10 +489,10 @@ export default function StartV2Page() {
         <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           {step === 1 && (
             <>
-              <h2 className="text-xl font-bold">Step 1 · サインイン</h2>
+              <h2 className="text-xl font-bold">Step 1 · Sign in</h2>
               <p className="mt-2 text-sm text-gray-600">
-                Google で 1 クリック。Privy が裏でウォレットを自動生成します。秘密鍵は
-                あなたのデバイスにのみ存在し、LemonCake は触りません。
+                One click with Google. Privy creates an embedded wallet automatically — private keys
+                stay on your device only. LemonCake never touches them.
               </p>
               <button
                 onClick={handleSignIn}
@@ -500,10 +500,10 @@ export default function StartV2Page() {
                 className="mt-6 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {!isPrivyReady
-                  ? "読み込み中…"
+                  ? "Loading…"
                   : isAuthenticated
-                    ? "サインイン済み — 次へ"
-                    : "Google でサインイン"}
+                    ? "Signed in — continue"
+                    : "Sign in with Google"}
               </button>
               {error && (
                 <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
@@ -515,14 +515,14 @@ export default function StartV2Page() {
 
           {step === 2 && (
             <>
-              <h2 className="text-xl font-bold">Step 2 · {currency}（任意）</h2>
+              <h2 className="text-xl font-bold">Step 2 · {currency} (optional)</h2>
               <p className="mt-2 text-sm text-gray-600">
-                permit 署名は {currency} 残高がなくても発行できます。<strong>まず署名だけ取って試したい場合はスキップ可</strong>。
-                {currency} は後で入金しても、無料デモサービスはすぐ使えます。
+                You can sign the permit with zero {currency} balance. <strong>Skip funding if you just want to try first.</strong>{" "}
+                Free demo services work immediately — fund {currency} later to unlock paid services.
               </p>
               {userWallet?.address && (
                 <p className="mt-4 text-xs text-gray-500">
-                  ウォレット:{" "}
+                  Wallet:{" "}
                   <span className="font-mono text-gray-700" title={userWallet.address}>
                     {shortAddr(userWallet.address)}
                   </span>{" "}
@@ -539,16 +539,16 @@ export default function StartV2Page() {
                   <span className="text-3xl">🎁</span>
                   <div className="flex-1">
                     <p className="text-base font-bold text-gray-900">
-                      とりあえず permit だけ欲しい人はこちら
+                      Just want the permit first?
                     </p>
                     <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                      {currency} 入金をスキップして直接署名へ。発行された permit で：
+                      Skip funding and go straight to signing. With the permit you get:
                       <br />
-                      ✓ 無料デモサービス（Wikipedia / FX / httpbin）が使える
+                      ✓ Free demo services (Wikipedia / FX / httpbin) work immediately
                       <br />
-                      ✓ list_services / check_tax など無料機能も全部試せる
+                      ✓ All free features like list_services / check_tax work too
                       <br />
-                      ✓ paid サービスを使いたくなった時に戻って {currency} 入金すれば即解禁
+                      ✓ When you want paid services, fund {currency} later and unlock instantly
                     </p>
                     <button
                       onClick={() => {
@@ -557,7 +557,7 @@ export default function StartV2Page() {
                       }}
                       className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800"
                     >
-                      {currency} スキップ → 署名へ進む →
+                      Skip {currency} → Go to signing →
                     </button>
                   </div>
                 </div>
@@ -567,7 +567,7 @@ export default function StartV2Page() {
               <div className="mt-8 mb-4 flex items-center gap-3">
                 <span className="flex-1 h-px bg-gray-200" />
                 <span className="text-xs text-gray-400 font-medium">
-                  または 今すぐ {currency} を取得
+                  or get {currency} now
                 </span>
                 <span className="flex-1 h-px bg-gray-200" />
               </div>
@@ -581,16 +581,16 @@ export default function StartV2Page() {
               {currency === "JPYC" && (
                 <div className="mt-6 rounded-2xl border-2 border-rose-400 bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-gray-900">
-                    🏦 JPYC EX で 円建て購入（銀行振込 / カード）
+                    🏦 Buy JPYC via JPYC EX (bank transfer / card)
                   </p>
                   <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                    JPYC 株式会社（資金移動業ライセンス取得済）が運営する公式オンランプ。
-                    銀行振込・クレジットカードで JPYC を即時購入し、あなたの Polygon ウォレットに直接届きます。
-                    手数料無料、為替リスクなしの円建てステーブルコイン。LemonCake は決済経路に一切介在しません。
+                    Official onramp operated by JPYC Corp (licensed money transfer business).
+                    Buy JPYC via bank transfer or credit card, delivered directly to your Polygon wallet.
+                    No fees, no FX risk. LemonCake is not in the payment path.
                   </p>
                   {userWallet?.address && (
                     <p className="mt-3 text-[11px] text-gray-500">
-                      受取先ウォレット:{" "}
+                      Recipient wallet:{" "}
                       <span className="font-mono text-gray-700">{shortAddr(userWallet.address)}</span>{" "}
                       <span className="text-gray-400">(Polygon 137)</span>
                     </p>
@@ -605,17 +605,17 @@ export default function StartV2Page() {
                         onClick={() => trackEvent("v2_jpyc_ex_clicked", { amount_jpy: amt })}
                         className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600"
                       >
-                        ¥{amt.toLocaleString()} 分購入
+                        Buy ¥{amt.toLocaleString()}
                       </a>
                     ))}
                   </div>
                   <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-                    所要時間: 銀行振込 数分・カード 即時。初回のみ JPYC EX 本人確認あり。
-                    購入完了後、下の「JPYC 入金完了 → 署名へ進む」をクリック。
+                    Bank transfer: a few minutes. Card: instant. KYC required on first purchase.
+                    After buying, click &ldquo;JPYC funded → Sign now&rdquo; below.
                   </p>
                   <p className="mt-2 text-[11px] text-amber-700">
-                    🚧 JPYC EX 法人 API 統合は申請中（補助金事業 Phase 1）。
-                    本実装後はこのモーダル内で完結します。
+                    🚧 JPYC EX corporate API integration pending (grant Phase 1).
+                    After launch, this will complete inline.
                   </p>
                 </div>
               )}
@@ -628,11 +628,11 @@ export default function StartV2Page() {
               {currency === "USDC" && COINBASE_ENABLED && userWallet?.address && (
                 <div className="mt-6 rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-gray-900">
-                    💳 カードでいますぐ USDC を取得
+                    💳 Buy USDC with card now
                   </p>
                   <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                    Apple Pay / Google Pay / クレジットカードで USDC を購入し、あなたのウォレットに直接届きます。
-                    Coinbase 経由（FSA 暗号資産交換業 #00029）、LemonCake は決済経路に一切介在しません。
+                    Buy USDC via Apple Pay / Google Pay / credit card, delivered directly to your wallet.
+                    Via Coinbase (FSA licensed #00029). LemonCake is not in the payment path.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {/* Sandbox cap is $5/tx until we get full Onramp
@@ -653,7 +653,7 @@ export default function StartV2Page() {
                             "popup,width=480,height=720",
                           );
                           if (!w) {
-                            setError("ポップアップがブロックされました。ブラウザ設定で許可してください。");
+                            setError("Popup was blocked. Please allow popups in your browser settings.");
                             return;
                           }
                           try {
@@ -666,20 +666,20 @@ export default function StartV2Page() {
                             w.close();
                             setError(
                               e instanceof Error
-                                ? `Coinbase 接続に失敗しました: ${e.message}`
-                                : "Coinbase 接続に失敗しました",
+                                ? `Coinbase connection failed: ${e.message}`
+                                : "Coinbase connection failed",
                             );
                           }
                         }}
                         className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
                       >
-                        ${amt} を購入
+                        Buy ${amt}
                       </button>
                     ))}
                   </div>
                   <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-                    所要時間 30 秒〜3 分（初回のみ本人確認あり）。
-                    購入完了後、下の「USDC は準備済み → 次へ」をクリック。
+                    Takes 30 sec–3 min (KYC on first purchase).
+                    After buying, click &ldquo;USDC funded → Sign now&rdquo; below.
                   </p>
                 </div>
               )}
@@ -692,11 +692,11 @@ export default function StartV2Page() {
               {currency === "USDC" && TRANSAK_API_KEY && userWallet?.address && (
                 <div className="mt-4 rounded-2xl border-2 border-indigo-500 bg-white p-5 shadow-sm">
                   <p className="text-sm font-bold text-gray-900">
-                    🏦 銀行振込 / コンビニ払いで USDC 購入（JPY 対応）
+                    🏦 Buy USDC via bank transfer / convenience store (JPY)
                   </p>
                   <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                    日本円で USDC を直接購入。銀行振込・コンビニ支払いに対応。
-                    Transak 経由、LemonCake は決済経路に一切介在しません。
+                    Buy USDC directly with Japanese yen. Bank transfer or convenience store supported.
+                    Via Transak. LemonCake is not in the payment path.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {[1000, 3000, 5000].map((amt) => (
@@ -709,12 +709,12 @@ export default function StartV2Page() {
                         }}
                         className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700"
                       >
-                        ¥{amt.toLocaleString()} 分購入
+                        Buy ¥{amt.toLocaleString()}
                       </button>
                     ))}
                   </div>
                   <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-                    初回のみ本人確認あり（3〜5 分）。購入完了後、下の「USDC は準備済み → 次へ」をクリック。
+                    KYC on first purchase (3–5 min). After buying, click &ldquo;USDC funded → Sign now&rdquo; below.
                   </p>
                 </div>
               )}
@@ -724,23 +724,23 @@ export default function StartV2Page() {
                   onClick={handleHasUsdc}
                   className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600"
                 >
-                  {currency} 入金完了 → 署名へ進む
+                  {currency} funded → Sign now
                 </button>
                 {currency === "USDC" && (
                   <button
                     onClick={() => setShowExchanges((v) => !v)}
                     className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 hover:border-gray-400"
                   >
-                    他の入手方法を見る
+                    More ways to get USDC
                   </button>
                 )}
               </div>
 
               {showExchanges && (
                 <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm">
-                  <p className="font-bold text-gray-800">USDC を Base で手に入れる方法</p>
+                  <p className="font-bold text-gray-800">Ways to get USDC on Base</p>
                   <p className="mt-1 text-xs text-gray-600">
-                    LemonCake は決済の経路に入らないので、お好きな方法で OK。
+                    LemonCake is not in the payment path — use whichever method you prefer.
                   </p>
                   <ul className="mt-4 space-y-2 text-xs">
                     <li className="flex items-start gap-2">
@@ -753,9 +753,9 @@ export default function StartV2Page() {
                           onClick={() => handleExchangeClick("coincheck")}
                           className="font-bold text-amber-700 hover:underline"
                         >
-                          Coincheck で JPY → USDC
+                          Coincheck (JPY → USDC)
                         </a>{" "}
-                        購入後、Base に bridge（
+                        then bridge to Base (
                         <a
                           href="https://www.usdc.com/bridge"
                           target="_blank"
@@ -780,7 +780,7 @@ export default function StartV2Page() {
                         >
                           bitFlyer
                         </a>{" "}
-                        で取得後、Base へ送金
+                        — then transfer to Base
                       </div>
                     </li>
                     <li className="flex items-start gap-2">
@@ -793,21 +793,20 @@ export default function StartV2Page() {
                           onClick={() => handleExchangeClick("coinbase")}
                           className="font-bold text-amber-700 hover:underline"
                         >
-                          Coinbase（海外）
+                          Coinbase (international)
                         </a>
-                        — Base ネイティブ対応
+                        — Base native
                       </div>
                     </li>
                   </ul>
                   <p className="mt-4 text-xs text-gray-500">
-                    Pro tip: $5〜$25 程度の少額でテストするのが安全。permit には残高は不要なので、
-                    署名は今済ませて USDC 入金は後でも OK です。
+                    Pro tip: Start with $5–$25. No balance needed for the permit — sign now and fund USDC later.
                   </p>
                   <button
                     onClick={handleHasUsdc}
                     className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-xs font-bold text-white hover:bg-gray-800"
                   >
-                    準備できた → 次へ
+                    Ready → Continue
                   </button>
                 </div>
               )}
@@ -816,14 +815,13 @@ export default function StartV2Page() {
 
           {step === 3 && (
             <>
-              <h2 className="text-xl font-bold">Step 3 · AI に支払い権限を渡す</h2>
+              <h2 className="text-xl font-bold">Step 3 · Authorize your AI agent</h2>
               <p className="mt-2 text-sm text-gray-600">
-                「90 日間、最大 {formatCap(currency)} まで LemonCake マーケットに使ってよい」と
-                <strong>1 度だけ署名</strong>します（送金ではなく承認メッセージ）。
-                ガス代ゼロ、{currency} は今ウォレットから動きません。
+                You <strong>sign once</strong>: &ldquo;spend up to {formatCap(currency)} over 90 days via LemonCake marketplace&rdquo;.
+                This is an approval message — not a transfer. Zero gas, no {currency} moves now.
                 <span className="block mt-2 text-[11px] text-gray-500">
-                  ※ 技術名: ERC-2612 permit（{currency} スマートコントラクトに直接焼かれる承認、LemonCake の介在不要）。
-                  実際に {currency} が動くのは AI が paid API を呼んだ瞬間だけ。
+                  Tech: ERC-2612 permit (baked directly into the {currency} smart contract — no LemonCake intermediary).
+                  {currency} only moves when your AI calls a paid API.
                 </span>
               </p>
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs font-mono leading-relaxed text-gray-700">
@@ -847,28 +845,28 @@ export default function StartV2Page() {
                 disabled={signing || !userWallet}
                 className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-3 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {signing ? "ウォレットで承認中…" : "署名する（1 回のみ）"}
+                {signing ? "Approving in wallet…" : "Sign permit (once)"}
               </button>
             </>
           )}
 
           {step === 4 && permit && (
             <>
-              <h2 className="text-xl font-bold">Step 4 · 完了 🎉</h2>
+              <h2 className="text-xl font-bold">Step 4 · Done 🎉</h2>
               <p className="mt-2 text-sm text-gray-600">
-                以下のトークンを MCP クライアントの設定にコピペして使ってください。
-                <strong>90 日後の期限切れ 7 日前にメール + ブラウザ通知</strong>が届き、
-                ワンクリックで延長できます。それまで完全ノーサインで AI が API を呼びます。
+                Copy the token below into your MCP client config.
+                <strong>7 days before expiry you&rsquo;ll get an email + browser notification</strong> to renew in one click.
+                Until then, your AI calls APIs with no further prompts.
               </p>
 
               {/* What this permit does */}
               <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-700">
-                <p className="font-bold text-gray-800">この permit が動かしているもの</p>
+                <p className="font-bold text-gray-800">What this permit does</p>
                 <ul className="mt-2 space-y-1 list-disc list-inside">
-                  <li>AI が API を呼ぶ瞬間、permit 署名が {permit.currency} コントラクトに渡される</li>
-                  <li>{permit.currency} はあなたのウォレット → API 提供者へ <strong>直接転送</strong></li>
-                  <li>LemonCake のアドレスは経路に登場しない（FSA Q11 準拠）</li>
-                  <li>{formatCap(permit.currency)} の上限はあなただけが調整可能</li>
+                  <li>When your AI calls an API, the permit signature is passed to the {permit.currency} contract</li>
+                  <li>{permit.currency} transfers <strong>directly</strong> from your wallet → API provider</li>
+                  <li>LemonCake&rsquo;s address is not in the transfer path (FSA Q11 compliant)</li>
+                  <li>Only you can adjust the {formatCap(permit.currency)} cap</li>
                 </ul>
               </div>
 
@@ -876,9 +874,9 @@ export default function StartV2Page() {
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <span className="text-xl leading-none">🔔</span>
                 <div className="text-sm">
-                  <p className="font-bold text-emerald-900">自動更新通知 ON</p>
+                  <p className="font-bold text-emerald-900">Auto-renewal notifications ON</p>
                   <p className="mt-0.5 text-emerald-800">
-                    期限切れ 7 日前 / 3 日前 / 当日にメール通知。ブラウザ通知も許可するとさらに見逃しゼロに。
+                    Email alerts at 7 days, 3 days, and on expiry. Allow browser notifications to never miss it.
                   </p>
                   <button
                     className="mt-2 text-xs font-bold text-emerald-700 hover:underline"
@@ -888,7 +886,7 @@ export default function StartV2Page() {
                       }
                     }}
                   >
-                    ブラウザ通知を許可する →
+                    Allow browser notifications →
                   </button>
                 </div>
               </div>
@@ -902,7 +900,7 @@ export default function StartV2Page() {
                   onClick={copyToken}
                   className="mt-3 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-gray-800"
                 >
-                  {copied ? "コピーしました ✓" : "クリップボードにコピー"}
+                  {copied ? "Copied ✓" : "Copy to clipboard"}
                 </button>
               </div>
 
@@ -911,22 +909,22 @@ export default function StartV2Page() {
 
               {/* 次にやること — Buyer dashboard / docs / Provider 登録 */}
               <div className="mt-8">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">次にやること</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Next steps</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <a href="/me" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
                     <div className="text-2xl mb-1">📊</div>
-                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">残高 / 課金履歴を見る</p>
-                    <p className="mt-0.5 text-[10px] text-gray-500">/me — Buyer ダッシュボード</p>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">View balance & charge history</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">/me — Buyer dashboard</p>
                   </a>
                   <a href="/docs/quickstart" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
                     <div className="text-2xl mb-1">🛠</div>
-                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">MCP 設定の貼り方</p>
-                    <p className="mt-0.5 text-[10px] text-gray-500">Claude / Cursor / Cline の手順</p>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">How to paste MCP config</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">Steps for Claude / Cursor / Cline</p>
                   </a>
                   <a href="/sellers" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
                     <div className="text-2xl mb-1">🏪</div>
-                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">あなたの API も売る</p>
-                    <p className="mt-0.5 text-[10px] text-gray-500">/sellers で 1 分登録</p>
+                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">Sell your API here</p>
+                    <p className="mt-0.5 text-[10px] text-gray-500">1-min registration at /sellers</p>
                   </a>
                 </div>
               </div>
@@ -937,9 +935,9 @@ export default function StartV2Page() {
         {/* Disclaimer / FSA stance — currency-aware so the JPYC mode
             doesn't say "USDC は常にあなたのウォレットに残り". */}
         <p className="mt-6 text-xs text-gray-500">
-          ※ {currency} は常にあなたのウォレットに残り、LemonCake は ERC-2612 permit 署名のみを受け取ります。
-          金融庁 Fintech サポートデスクへの照会 (Q1-Q11) を完了済み。
-          詳細：<a href="/security" className="underline hover:text-amber-700">/security</a>
+          ※ Your {currency} stays in your wallet at all times. LemonCake only receives the ERC-2612 permit signature.
+          FSA Fintech Support Desk inquiry (Q1–Q11) completed.
+          Details: <a href="/security" className="underline hover:text-amber-700">/security</a>
         </p>
       </div>
     </main>

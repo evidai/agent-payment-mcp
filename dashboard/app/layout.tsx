@@ -28,10 +28,10 @@ const DESC_EN   = "LemonCake is the non-custodial USDC micropayment infrastructu
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "LemonCake — AI エージェント向け M2M 決済・会計インフラ",
+    default: "LemonCake — Agentic Payment Infrastructure for AI Agents",
     template: "%s | LemonCake",
   },
-  description: DESC_JA,
+  description: DESC_EN,
   applicationName: SITE_NAME,
   authors: [{ name: "evidai", url: "https://aievid.com" }],
   creator: "evidai",
