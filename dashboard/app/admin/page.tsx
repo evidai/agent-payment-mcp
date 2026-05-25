@@ -560,6 +560,208 @@ function KillSwitchBanner() {
   );
 }
 
+// ── BazaarBootstrapCard ──────────────────────────────────────────
+// $1 USDC + 少額 ETH を spender に送ったあと、ボタン 1 つで /api/x402-demo を
+// 叩き Coinbase Bazaar 自動カタログを誘発する。一度成功すると Bazaar 永続
+// 登録なので、success 後は最小表示にする。
+interface BootstrapStatus {
+  spenderAddress: string;
+  usdcBalance:    string;
+  usdcBalanceRaw: string;
+  ethBalance:     string;
+  ethBalanceWei:  string;
+  ready:          boolean;
+  needs:          string[];
+  resourceUrl:    string;
+  lastResult:     null | {
+    ranAt:       string;
+    status:      "success" | "failed";
+    txHash?:     string;
+    facilitator?:string;
+    httpStatus?: number;
+    reason?:     string;
+  };
+}
+
+function BazaarBootstrapCard() {
+  const [status, setStatus] = useState<BootstrapStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [toast, setToast] = useState<{msg:string; type:"success"|"error"|"info"}|null>(null);
+
+  const authHeaders = (): HeadersInit => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/admin/bootstrap/status`, { headers: authHeaders() });
+      if (!r.ok) { setStatus(null); return; }
+      setStatus(await r.json());
+    } catch { setStatus(null); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const trigger = async () => {
+    if (running) return;
+    if (!confirm("Coinbase Bazaar bootstrap を実行します。\nspender が自分自身に 0.001 USDC を送って CDP settle を 1 回完了させ、CDP に /api/x402-demo URL を Bazaar カタログさせます。\n\n実行しますか？")) return;
+    setRunning(true);
+    try {
+      const r = await fetch(`${API_URL}/api/admin/bootstrap/bazaar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+      });
+      const data = await r.json() as { ok?: boolean; txHash?: string; reason?: string; httpStatus?: number };
+      if (data.ok) {
+        setToast({ msg: `Bazaar bootstrap 成功${data.txHash ? ` (${data.txHash.slice(0,10)}…)` : ""}`, type: "success" });
+      } else {
+        setToast({ msg: `失敗: ${data.reason ?? `HTTP ${data.httpStatus ?? "?"}`}`, type: "error" });
+      }
+      await load();
+    } catch (e) {
+      setToast({ msg: `ネットワークエラー: ${e instanceof Error ? e.message : "unknown"}`, type: "error" });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-400">Bazaar bootstrap 状態を取得中…</div>;
+  }
+  if (!status) {
+    return <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-400">Bazaar bootstrap API 未到達（/api/admin/bootstrap/status）</div>;
+  }
+
+  const succeeded = status.lastResult?.status === "success";
+
+  // 成功後は最小表示（折りたたみ可能）
+  if (succeeded && collapsed) {
+    return (
+      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-emerald-600">✅</span>
+          <span className="font-bold text-emerald-800">Coinbase Bazaar bootstrap 完了</span>
+          <span className="text-emerald-700/70 font-mono hidden sm:inline">
+            {status.lastResult?.txHash?.slice(0,10)}…
+          </span>
+        </div>
+        <button onClick={() => setCollapsed(false)} className="text-[11px] font-semibold text-emerald-700 hover:underline">詳細</button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className={`rounded-2xl border p-4 ${succeeded ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-base">{succeeded ? "✅" : "🚀"}</span>
+              <h3 className="text-sm font-bold text-gray-900">Coinbase Bazaar bootstrap</h3>
+              {succeeded && <Pill label="完了" variant="green"/>}
+            </div>
+            <p className="text-[11px] text-gray-600 mt-1">
+              spender → spender に 0.001 USDC を送って CDP settle 1 回を成立させ、<code className="font-mono text-[10px] bg-white/60 px-1 rounded">/api/x402-demo</code> を Bazaar カタログに乗せます。<br/>
+              <span className="text-gray-500">自払いなので USDC ネット移動はゼロ、コスト ≈ ガス代のみ（数十円）。</span>
+            </p>
+          </div>
+          {succeeded && (
+            <button onClick={() => setCollapsed(true)} className="text-[11px] font-semibold text-emerald-700 hover:underline flex-shrink-0">畳む</button>
+          )}
+        </div>
+
+        {/* spender wallet info */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">送金先 (spender)</p>
+            <p className="text-[11px] font-mono text-gray-900 mt-0.5 break-all">{status.spenderAddress}</p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(status.spenderAddress); setToast({msg:"アドレスをコピー", type:"info"}); }}
+              className="text-[10px] font-bold text-amber-700 hover:underline mt-0.5"
+            >コピー</button>
+          </div>
+          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">USDC 残高 (Base)</p>
+            <p className="text-sm font-mono text-gray-900 mt-0.5">${status.usdcBalance}</p>
+            <p className="text-[10px] text-gray-500">必要: ≥ $0.01</p>
+          </div>
+          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">ETH 残高 (gas)</p>
+            <p className="text-sm font-mono text-gray-900 mt-0.5">{status.ethBalance}</p>
+            <p className="text-[10px] text-gray-500">必要: ≥ 0.0002</p>
+          </div>
+        </div>
+
+        {/* needs list */}
+        {!status.ready && status.needs.length > 0 && (
+          <div className="bg-white border border-amber-200 rounded-lg px-3 py-2 mb-3">
+            <p className="text-[11px] font-bold text-amber-800 mb-1">未充足条件:</p>
+            <ul className="space-y-0.5">
+              {status.needs.map((n, i) => (
+                <li key={i} className="text-[11px] text-amber-900 flex items-start gap-1.5">
+                  <span className="text-amber-500 flex-shrink-0">•</span>
+                  <span>{n}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* trigger button */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={trigger}
+            disabled={!status.ready || running}
+            className="px-4 py-2 rounded-lg text-xs font-bold transition bg-amber-500 text-white hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {running ? "実行中…" : succeeded ? "🔁 もう一度実行" : "🚀 Bazaar に登録 (1-click)"}
+          </button>
+          <button onClick={load} className="text-[11px] font-bold text-gray-600 hover:underline">残高を再取得</button>
+          <span className="text-[10px] text-gray-500 font-mono truncate flex-1">
+            resource: {status.resourceUrl}
+          </span>
+        </div>
+
+        {/* last result */}
+        {status.lastResult && (
+          <div className="mt-3 pt-3 border-t border-amber-200/50">
+            <p className="text-[11px] font-bold text-gray-700 mb-1">前回結果（{status.lastResult.ranAt.slice(0,19).replace("T"," ")} UTC）:</p>
+            <div className="bg-white rounded-lg border border-gray-200 px-3 py-2 text-[11px] space-y-1">
+              <p>状態: {status.lastResult.status === "success"
+                ? <span className="text-emerald-700 font-bold">成功</span>
+                : <span className="text-red-700 font-bold">失敗</span>}
+                <span className="text-gray-400 ml-2">HTTP {status.lastResult.httpStatus ?? "?"}</span>
+              </p>
+              {status.lastResult.txHash && (
+                <p>
+                  tx: <a href={`https://basescan.org/tx/${status.lastResult.txHash}`} target="_blank" rel="noopener" className="text-blue-600 font-mono hover:underline">{status.lastResult.txHash}</a>
+                </p>
+              )}
+              {status.lastResult.facilitator && (
+                <p>facilitator: <span className="font-mono text-gray-600">{status.lastResult.facilitator}</span></p>
+              )}
+              {status.lastResult.reason && (
+                <p className="text-red-700">reason: <span className="font-mono">{status.lastResult.reason}</span></p>
+              )}
+              {status.lastResult.status === "success" && (
+                <p className="text-emerald-700 mt-1">
+                  ✓ CDP 検索 URL: <a href="https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?q=lemoncake" target="_blank" rel="noopener" className="font-mono text-blue-600 hover:underline">discovery/search?q=lemoncake</a>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
+    </>
+  );
+}
+
 function V2OverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
   const { stats, loading } = useV2Stats();
 
@@ -573,6 +775,9 @@ function V2OverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
     <div className="space-y-6">
       {/* killswitch banner — 緊急時のみ操作。普段は閉じてる */}
       <KillSwitchBanner />
+
+      {/* Coinbase Bazaar bootstrap (1-click) — 成功すると最小表示に折りたたむ */}
+      <BazaarBootstrapCard />
 
       {/* hero KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
