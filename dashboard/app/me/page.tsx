@@ -40,22 +40,28 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-pr
 const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY ?? "";
 
 /**
- * Transak buy widget URL (JPY → USDC on Base)。Privy Funds の MoonPay Rails
- * は JP 未対応 ("Coming soon to your region") のため、JP 訪問者は Transak に
- * 直接フォールバックする。Transak は JPY native + Apple Pay + コンビニ/銀行
- * 振込で JP 対応。
+ * Transak buy widget URL → USDC on Base。
+ *
+ * Privy Funds の MoonPay Rails が JP 未対応 ("Coming soon to your region")
+ * のため、JP 訪問者はこちらにフォールバックする。
+ *
+ * 重要な学び (2026-05-25): JPY → USDC on Base の組み合わせは Transak で
+ * "fiat currency not supported" になる。`fiatCurrency` を強制せず、
+ * Transak の geo 自動判定に任せる（JP IP なら JPY、それ以外なら USD/EUR）。
  */
-function buildTransakBuyUrl(address: string, fiatAmountJpy: number): string {
+function buildTransakBuyUrl(address: string): string {
   const url = new URL("https://global.transak.com/");
   url.searchParams.set("apiKey",                   TRANSAK_API_KEY);
   url.searchParams.set("defaultCryptoCurrency",    "USDC");
-  url.searchParams.set("networks",                 "base");
+  url.searchParams.set("network",                  "base");        // 'network' (単数) が現行 API
   url.searchParams.set("walletAddress",            address);
   url.searchParams.set("disableWalletAddressForm", "true");
-  url.searchParams.set("fiatCurrency",             "JPY");
-  url.searchParams.set("defaultFiatAmount",        String(fiatAmountJpy));
   url.searchParams.set("themeColor",               "F5C518");
   url.searchParams.set("productsAvailed",          "buy");
+  url.searchParams.set("hideMenu",                 "true");
+  // fiatCurrency / defaultFiatAmount は意図的に外す:
+  //   - JP IP → Transak が自動で JPY を選択
+  //   - 他    → USD / EUR 等が自動選択
   return url.toString();
 }
 
@@ -340,7 +346,7 @@ export default function MePage() {
                     pushToast("入金経路の設定が未完了。Coinbase 取引所等から直接 Base ネットワークに USDC 送金してください。", "info");
                     return;
                   }
-                  const url = buildTransakBuyUrl(address, 3000); // ¥3,000 default
+                  const url = buildTransakBuyUrl(address);
                   window.open(url, "_blank", "noopener,noreferrer");
                   // 戻った頃に残高 refresh
                   setTimeout(() => setRefetchTick(t => t + 1), 30000);
