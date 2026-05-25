@@ -341,11 +341,37 @@ export default function MePage() {
             <button
               onClick={async () => {
                 if (!address) return;
-                // JP user: Apple Pay / クレカで USDC on Base を即時購入する経路は
-                // 2026-05 時点で構造的に存在しない（Privy/MoonPay Rails も Transak
-                // も geo or 通貨組合せで未対応）。Coinbase Japan 経由案内に切替。
+                // JP user: Alchemy Pay 経由 (JP × USDC × Base × Apple/Google Pay 対応の唯一の現実解)
+                //   - server-side で HMAC-SHA256 signature 生成 → URL 受領
+                //   - Alchemy Pay 未設定なら 404 → 手動ガイド (JpFundingGuide) に fallback
                 if (isJapanUser()) {
-                  setShowJpGuide(true);
+                  try {
+                    const res = await fetch(`${API_URL}/api/onramp/alchemy-pay/url`, {
+                      method:  "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        walletAddress: address,
+                        fiat:          "JPY",
+                        fiatAmount:    "3000",
+                        crypto:        "USDC",
+                        network:       "BASE",
+                      }),
+                    });
+                    if (res.status === 404) {
+                      // Alchemy Pay credentials 未設定 → 手動ガイドに fallback
+                      setShowJpGuide(true);
+                      return;
+                    }
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json() as { url: string };
+                    window.open(data.url, "_blank", "noopener,noreferrer");
+                    // user が戻った頃に残高 refresh
+                    setTimeout(() => setRefetchTick(t => t + 1), 30000);
+                  } catch (e) {
+                    // network エラー等は手動ガイドに fallback (安全側)
+                    console.warn("[onramp] alchemy-pay fetch failed, falling back to manual guide", e);
+                    setShowJpGuide(true);
+                  }
                   return;
                 }
                 // 海外 user は Privy Funds (Coinbase Pay / MoonPay Rails) 経由

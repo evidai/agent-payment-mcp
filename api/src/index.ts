@@ -48,6 +48,7 @@ import { subscriptionsRouter, subscriptionsWebhookRouter } from "./routes/subscr
 import { offrampRouter }            from "./routes/offramp.js";
 import { x402Router }               from "./routes/x402.js";
 import { x402DemoRouter }           from "./routes/x402-demo.js";
+import { onrampRouter }             from "./routes/onramp.js";
 import { adminV2Router }            from "./routes/admin-v2.js";
 import { adminBootstrapRouter }     from "./routes/admin-bootstrap.js";
 import { sdkRouter }                from "./routes/sdk.js";
@@ -104,6 +105,7 @@ app.route("/api/subscriptions",         subscriptionsRouter);
 app.route("/api/offramp",               offrampRouter);
 app.route("/api/x402",                  x402Router);
 app.route("/api/x402-demo",             x402DemoRouter);
+app.route("/api/onramp",                onrampRouter);
 app.route("/api/providers", providersRouter);
 app.route("/api/jpyc",      jpycRouter);
 app.route("/api/tax",       taxRouter);
