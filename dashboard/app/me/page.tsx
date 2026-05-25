@@ -165,6 +165,7 @@ export default function MePage() {
   const [permitMeta, setPermitMeta]   = useState<PermitMeta | null>(null);
   const [revoking, setRevoking]       = useState(false);
   const [toast, setToast]             = useState<{msg: string; type: "info"|"error"} | null>(null);
+  const [showJpGuide, setShowJpGuide] = useState(false);
   // helper: 旧 setToast(string) interface との後方互換のため、エラー判定の
   // ヒューリスティクスを内蔵。`not enabled` / `failed` / `エラー` 等を含めば error 扱い
   function pushToast(msg: string, type?: "info"|"error") {
@@ -340,16 +341,11 @@ export default function MePage() {
             <button
               onClick={async () => {
                 if (!address) return;
-                // JP user は Transak 直 (Privy Funds の MoonPay Rails は JP 未対応のため)
+                // JP user: Apple Pay / クレカで USDC on Base を即時購入する経路は
+                // 2026-05 時点で構造的に存在しない（Privy/MoonPay Rails も Transak
+                // も geo or 通貨組合せで未対応）。Coinbase Japan 経由案内に切替。
                 if (isJapanUser()) {
-                  if (!TRANSAK_API_KEY) {
-                    pushToast("入金経路の設定が未完了。Coinbase 取引所等から直接 Base ネットワークに USDC 送金してください。", "info");
-                    return;
-                  }
-                  const url = buildTransakBuyUrl(address);
-                  window.open(url, "_blank", "noopener,noreferrer");
-                  // 戻った頃に残高 refresh
-                  setTimeout(() => setRefetchTick(t => t + 1), 30000);
+                  setShowJpGuide(true);
                   return;
                 }
                 // 海外 user は Privy Funds (Coinbase Pay / MoonPay Rails) 経由
@@ -561,6 +557,11 @@ export default function MePage() {
           全ての送金は <Link href="/security" className="underline">USDC スマートコントラクト</Link>が直接実行します。
         </p>
       </div>
+
+      {/* JP user 向け入金ガイドモーダル */}
+      {showJpGuide && address && (
+        <JpFundingGuide address={address} onClose={() => setShowJpGuide(false)} />
+      )}
     </main>
   );
 }
@@ -615,5 +616,106 @@ function QuickLink({ href, label, desc, icon }: { href: string; label: string; d
       <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">{label}</p>
       <p className="mt-0.5 text-[10px] text-gray-500">{desc}</p>
     </Link>
+  );
+}
+
+/**
+ * JpFundingGuide — JP user 向け USDC 入金ガイドモーダル
+ *
+ * 2026-05 時点で JP × USDC on Base × Apple Pay/クレカ の即時 onramp は構造的に
+ * 存在しない（Privy Funds / MoonPay Rails / Transak いずれも未対応）。
+ * Coinbase Japan 取引所経由が現実解なので、それを明確に案内する。
+ */
+function JpFundingGuide({ address, onClose }: { address: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"/>
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] overflow-y-auto p-6"
+           onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} aria-label="閉じる"
+                className="absolute top-4 right-4 w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/>
+          </svg>
+        </button>
+
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+          🇯🇵 JP user 向け
+        </span>
+        <h2 className="mt-3 text-lg font-bold text-gray-900">日本からの USDC 入金</h2>
+        <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+          残念ながら 2026 年 5 月時点で <strong>JP × USDC on Base × クレカ即時購入</strong>は
+          どの onramp も提供していません（規制とプロバイダの組合せ制約）。
+          現実解は<strong> Coinbase 取引所経由 </strong>（合計 30-60 分）：
+        </p>
+
+        {/* Wallet address copy */}
+        <div className="mt-4 rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              あなたの受取アドレス（Base）
+            </p>
+            <button onClick={copy}
+                    className="text-[10px] font-bold text-amber-700 hover:text-amber-900">
+              {copied ? "✓ コピー済" : "コピー"}
+            </button>
+          </div>
+          <code className="block break-all font-mono text-[11px] text-gray-800 select-all">{address}</code>
+        </div>
+
+        {/* 3 step */}
+        <ol className="mt-5 space-y-3 text-sm">
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">1</span>
+            <div>
+              <p className="font-bold text-gray-900">Coinbase Japan で口座開設（初回のみ、KYC 含み 15-30 分）</p>
+              <a href="https://www.coinbase.com/ja-jp" target="_blank" rel="noopener noreferrer"
+                 className="text-xs text-amber-700 hover:underline">
+                coinbase.com/ja-jp →
+              </a>
+              <p className="text-[11px] text-gray-500 mt-0.5">既に口座あれば skip</p>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">2</span>
+            <div>
+              <p className="font-bold text-gray-900">JPY 入金 → USDC を購入</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                銀行振込 / コンビニ等。¥3,000 程度（≈$20）で API call 数日分。
+              </p>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+            <div>
+              <p className="font-bold text-gray-900">「送付」→ Base ネットワーク選択 → 上のアドレスを貼付</p>
+              <p className="text-[11px] text-red-700 mt-0.5 leading-relaxed">
+                ⚠️ <strong>必ず Base を選択</strong>。Ethereum を選ぶと送金手数料 $20 取られて到着しない。
+                Coinbase は USDC のネットワーク選択肢で「Base」を 2024 年から提供しています。
+              </p>
+            </div>
+          </li>
+        </ol>
+
+        {/* Alternative for crypto-experienced users */}
+        <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[11px] text-gray-600 leading-relaxed">
+          <p className="font-bold text-gray-700">既に USDC を持っている方</p>
+          <p className="mt-1">
+            MetaMask / Rabby / 他取引所から、<strong>Base ネットワーク</strong>で上のアドレス宛に送金してください。即着金（数分）。
+          </p>
+        </div>
+
+        <button onClick={onClose}
+                className="mt-5 w-full py-2 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-lg">
+          閉じる
+        </button>
+      </div>
+    </div>
   );
 }
