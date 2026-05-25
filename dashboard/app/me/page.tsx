@@ -37,6 +37,44 @@ import { base } from "viem/chains";
 import { PRIVY_ENABLED } from "@/Providers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
+const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY ?? "";
+
+/**
+ * Transak buy widget URL (JPY → USDC on Base)。Privy Funds の MoonPay Rails
+ * は JP 未対応 ("Coming soon to your region") のため、JP 訪問者は Transak に
+ * 直接フォールバックする。Transak は JPY native + Apple Pay + コンビニ/銀行
+ * 振込で JP 対応。
+ */
+function buildTransakBuyUrl(address: string, fiatAmountJpy: number): string {
+  const url = new URL("https://global.transak.com/");
+  url.searchParams.set("apiKey",                   TRANSAK_API_KEY);
+  url.searchParams.set("defaultCryptoCurrency",    "USDC");
+  url.searchParams.set("networks",                 "base");
+  url.searchParams.set("walletAddress",            address);
+  url.searchParams.set("disableWalletAddressForm", "true");
+  url.searchParams.set("fiatCurrency",             "JPY");
+  url.searchParams.set("defaultFiatAmount",        String(fiatAmountJpy));
+  url.searchParams.set("themeColor",               "F5C518");
+  url.searchParams.set("productsAvailed",          "buy");
+  return url.toString();
+}
+
+/**
+ * JP user 判定。優先順:
+ *   1. lemon_locale cookie (LangSwitcher で明示設定)
+ *   2. navigator.language が "ja-*" で始まる
+ *   3. それ以外 = JP ではない扱い
+ *
+ * IP geo は Vercel edge でしか取れないので、最も信頼性高いのは cookie。
+ * navigator.language は OS 言語設定なので、JP 在住 US 設定 user は漏れるが、
+ * その場合 Privy Funds が（理論上）動くはずなので大きな問題ではない。
+ */
+function isJapanUser(): boolean {
+  if (typeof window === "undefined") return false;
+  if (typeof document !== "undefined" && /lemon_locale=ja/.test(document.cookie)) return true;
+  if (typeof navigator !== "undefined" && /^ja\b/.test(navigator.language ?? "")) return true;
+  return false;
+}
 
 // Base USDC contract (FiatTokenV2_2)
 const USDC_BASE: Address = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -296,17 +334,29 @@ export default function MePage() {
             <button
               onClick={async () => {
                 if (!address) return;
+                // JP user は Transak 直 (Privy Funds の MoonPay Rails は JP 未対応のため)
+                if (isJapanUser()) {
+                  if (!TRANSAK_API_KEY) {
+                    pushToast("入金経路の設定が未完了。Coinbase 取引所等から直接 Base ネットワークに USDC 送金してください。", "info");
+                    return;
+                  }
+                  const url = buildTransakBuyUrl(address, 3000); // ¥3,000 default
+                  window.open(url, "_blank", "noopener,noreferrer");
+                  // 戻った頃に残高 refresh
+                  setTimeout(() => setRefetchTick(t => t + 1), 30000);
+                  return;
+                }
+                // 海外 user は Privy Funds (Coinbase Pay / MoonPay Rails) 経由
                 try {
                   await fundWallet(address, {
                     chain: { id: 8453 },   // Base
                     amount: "20",
                     asset: "USDC",
                     defaultFundingMethod: "card",
-                    card: { preferredProvider: "moonpay" },  // JP/EU 強い
+                    card: { preferredProvider: "moonpay" },
                   });
                 } catch (e) {
                   const msg = e instanceof Error ? e.message : "入金フロー起動に失敗";
-                  // Privy dashboard 未設定の典型エラーを user 向けに翻訳
                   if (/not enabled|funding is not/i.test(msg)) {
                     pushToast("USDC 入金は準備中です。直接送金（Coinbase 取引所 → Base ネットワーク）で入金できます。", "info");
                   } else {
