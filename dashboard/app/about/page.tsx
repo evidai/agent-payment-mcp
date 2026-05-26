@@ -312,13 +312,25 @@ export default function AboutPage() {
             <div className="inline-block px-3 py-1 mb-5 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
               AI billing OS · オープンコア · 月 1,000 tx 無料
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-              AI ツールに課金を、<br />
+            {/*
+             * Hero hierarchy (revised 2026-05-27):
+             *   1. Emotional anchor (H1)     — "AI が払える、API が稼げる"
+             *   2. Concrete promise (H2)     — "3 行のコードで"
+             *   3. Mechanism description (p) — usage-based / no API key / global
+             * Order matters: emotional first, practical second. Matches the
+             * Stripe / Vercel-style hero pattern where the headline is the
+             * vision and the subheadline is the implementation hook.
+             */}
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-3 leading-[1.08]">
+              AI エージェントが、そのまま払える。<br />
               <span className="text-black">
-                3 行のコードで。
+                API が、そのまま稼げる。
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
+            <p className="text-xl md:text-2xl font-bold text-[#1a0f00]/85 mb-5 leading-tight">
+              AI ツールに課金を、3 行のコードで。
+            </p>
+            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
               AI ネイティブな usage-based billing。call / token / agent 単位で課金、
               <strong>API キー管理不要</strong>、<strong>subscription 設定不要</strong>、Stripe Connect 非対応国でも動く。
             </p>
@@ -479,6 +491,29 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
+        </div>
+      </section>
+
+      {/* ── Margin dashboard teaser (Q3 2026) ── */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="rounded-3xl bg-gradient-to-br from-amber-500/10 to-amber-500/[0.02] border border-amber-500/25 p-8 md:p-10">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest mb-3">Q3 2026 公開予定 · Early access</p>
+              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3">
+                マージン ダッシュボード。
+              </h2>
+              <p className="text-[14px] text-white/55 leading-relaxed max-w-xl">
+                agent / endpoint / token 単位で AI 原価 vs 売上を可視化。マージン漏れが複利で効く前に潰す。Stripe / Orb / Metronome が native で見せないのは、彼らの顧客が $0.05 の売上の裏に $0.50 の OpenAI コストを背負ってないから。あなたのは違う。
+              </p>
+            </div>
+            <a
+              href="mailto:contact@aievid.com?subject=%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%B3%20%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5%E3%83%9C%E3%83%BC%E3%83%89%20early%20access&body=Hiroto%20%E6%A7%98%0A%0A%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%B3%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5%E3%83%9C%E3%83%BC%E3%83%89%E5%85%AC%E9%96%8B%E3%81%AE%E9%9A%9B%E3%81%AB%E9%80%9A%E7%9F%A5%E3%82%92%E5%B8%8C%E6%9C%9B%E3%81%97%E3%81%BE%E3%81%99%E3%80%82%0A%0Astack%20%2F%20%E7%94%A8%E9%80%94%3A%20%5B1-2%20%E8%A1%8C%5D%0A%0A%E3%82%88%E3%82%8D%E3%81%97%E3%81%8F%E3%81%8A%E9%A1%98%E3%81%84%E3%81%97%E3%81%BE%E3%81%99%E3%80%82%0A%5B%E5%90%8D%E5%89%8D%5D"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-400 text-amber-950 font-bold rounded-xl hover:bg-amber-300 transition-colors text-[13px] whitespace-nowrap"
+            >
+              Early access に参加 →
+            </a>
+          </div>
         </div>
       </section>
 

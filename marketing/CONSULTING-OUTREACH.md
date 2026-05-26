@@ -1,50 +1,68 @@
-# Consulting cold outreach — 2026-05-26
+# Cold outreach — 2026-05-26 (revised 2026-05-27 to "design partner" frame)
 
-**Goal:** book 2-3 paid x402 / agent payment integration gigs in next 14 days.
+**Goal:** book 5 design partners for `@lemon-cake/mcp-sdk` v1.0 (Q3 2026).
+Each gets 6 months Pro tier free + direct feedback loop + 12-month locked-in pricing afterward.
+Consulting (paid integration) stays available for partners who specifically ask, but it's no longer the lead offer.
+
+**Why this frame works better:**
+- "Pay us $5k" sounds like vendor cold-call. "Be one of 5 design partners shaping the product" sounds like a privilege.
+- Lowers reply friction (no budget approval needed).
+- The 6-month Pro tier value (~$300) signals real skin in the game from us, not just a free trial.
+- Once they're a partner, paid consulting / NRE engagement becomes a warm conversation, not a cold pitch.
+
 **Withdraw line:** if 0 replies after 20 sends + 1 follow-up bump = stop, refocus on grant + product.
 
 ---
 
-## Cold email template (3-sentence, English) — MPP-aware
+## Cold email template (design-partner frame, English)
 
-After Stripe Sessions 2026 shipped Machine Payments Protocol (MPP), the pitch
-is **NOT** "use us instead of Stripe" — it's "use us **alongside** Stripe / Tempo,
-on Base/USDC, with the geo and KYA bundle Stripe can't ship."
+3 short paragraphs, ~80 words. Lead with the design-partner offer, not consulting.
+Consulting / NRE can come up in the reply thread if they bite.
 
 ```
-Subject: x402 + MPP integration for {{company}}?
+Subject: Design partner slot — @lemon-cake/mcp-sdk v0.3?
 
 Hi {{first_name}},
 
-I'm Hiroto — built lemoncake.xyz (FSA non-custodial cleared, 5 production MCPs on npm,
-x402 facilitator live on Base, now MPP-compatible).
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT licensed.
 
-{{specific_observation_about_their_product}} — we ship a Stripe MPP-compatible Base/USDC
-facilitator into your API in 2 weeks, $5k flat. ERC-2612 permit so your agents sign once
-and get a 90-day spending cap; KYA bundle included; works alongside (not against) Stripe MPP.
+I'm picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free (1,000 tx/mo gas-sponsored + unlimited Pro features), direct line for feature requests, locked-in pricing for 12 months after the design-partner period. {{partner_angle}}
 
-15-min intro this week? Or just reply with "tell me more" — I'll send a 1-page scope.
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+15-min this week to see if it's a fit?
 
 — Hiroto
-contact@aievid.com · @aievid · github.com/evidai
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
-**Variant for Japanese targets** (shorter, more casual):
+**Per-target `{{partner_angle}}` (one sentence each):**
+- Modal: *"Modal's serverless function URLs would be a fascinating reference integration for lc.protect()."*
+- Pipedream: *"Pipedream workflow URLs are the cleanest atomic billable unit I've seen — ideal home for lc.protect()."*
+- LangChain: *"LangChain tools, especially in LangGraph flows, could become the reference integration."*
+- LlamaIndex: *"LlamaCloud retrieval endpoints would benchmark lc.protect() against real RAG workloads."*
+- Replicate: *"Replicate predictions would show how lc.protect() handles long-running compute."*
+
+**Variant for Japanese targets** (Tier C):
 
 ```
-件名: {{company}} の API、x402 + MPP 統合のご相談
+件名: {{company}} 様、design partner 枠のご相談 — @lemon-cake/mcp-sdk v0.3
 
 {{first_name}} 様
 
-evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済 / npm に 5 つ MCP / x402 facilitator 本番稼働 / Stripe MPP 互換) を運営してます。
+evidai の Hiroto です。先日 @lemon-cake/mcp-sdk v0.3.0 をリリースしました — AI ネイティブな usage billing を 1 行 (lc.protect("/api", { cost: 0.02 })) で組み込める SDK、open core / MIT です。
 
-{{specific_observation}} — Stripe MPP 互換の Base/USDC facilitator を 2 週間 / $5k 固定で組み込めます。Stripe MPP と並走可、ERC-2612 permit で 90 日 spending cap、KYA bundle 同梱。**日本国内の USDC onramp を持つのは現状当社のみ** (Stripe Crypto Onramp は JP 非対応)。
+Q3 の v1.0 設計に向けて、design partner 5 社を選定しています:
+・**6 ヶ月 Pro tier 無料** (月 1,000 tx 込み、gas 当社負担)
+・要望直接ヒアリング
+・Design partner 期間終了後 12 ヶ月、価格 lock-in
 
-15 分の intro お時間いただけますか。詳細: https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+{{partner_angle_ja}}
+
+15 分の intro お時間いただけますか?
 
 — Hiroto
 contact@aievid.com
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
 ---
@@ -152,123 +170,94 @@ Day 4 launch (X / Reddit / Discord) 5 本 はそのまま走らせる but **CTA 
 それぞれ既存 R2-R3 で touch 済みの thread に **reply** する形 (新規メールではなく)。
 件名はそのまま継続でも OK、もし返事なかった thread が古ければ件名を「Re: ... + MPP migration?」に変えると最近性が出る。
 
-### 1. Modal Labs — Modal Sandbox MCP の決済 hook
+### 1. Modal Labs
 
 ```
-Subject: Re: Modal + agent payment — now MPP-aware
+Subject: Re: Modal + agent payments — design partner slot?
 
-Hi Erik / Akshat,
+Hi Erik,
 
-Quick follow-up on my earlier note about Modal × agent payments. Stripe Sessions
-2026 shipped MPP last week, which changes the conversation: instead of "should
-we add an agent billing layer," it's now "which facilitator do we route MPP-signed
-calls through."
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT licensed.
 
-Modal's serverless function URLs are already HTTPS endpoints — the cleanest place
-in the entire agent stack to bolt x402 + MPP. Two-week sprint, $5k flat, drop-in
-middleware that accepts MPP-signed payments and settles them on Base/USDC.
-Includes a /pricing + /docs page draft so your users see it the moment it lands.
+I'm picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free, direct line for feature requests, locked-in pricing for 12 months after. Modal's serverless function URLs would be a fascinating reference integration for lc.protect() — clean HTTPS surface, sub-second container spin-up, exactly the latency profile pre-flight billing needs to match.
 
-Open to a 15-min intro this week? Happy to send the 1-page scope first.
+15-min this week to see if it's a fit?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
-### 2. Pipedream — workflow URL の monetization
+### 2. Pipedream
 
 ```
-Subject: Re: Pipedream + per-trigger agent payment
+Subject: Re: Pipedream + per-trigger billing — design partner slot?
 
-Hi Tod / Dylan,
+Hi Tod,
 
-Following up on the partnership note from a couple weeks back — wanted to flag
-that the calculus changed after Stripe Sessions 2026 (MPP shipped, Tempo mainnet).
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT.
 
-Pipedream workflow URLs are basically already the "atomic billable unit" for agent
-commerce — a public HTTPS endpoint, one canonical action per trigger. The 2-week
-$5k integration we're offering now ships MPP-compatible x402 alongside your
-existing Stripe Connect, so paid workflow URLs can be invoked by MPP-signed
-agents *or* card-paying humans, no fork.
+Picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free, direct line for feature requests, locked-in pricing for 12 months after. Pipedream workflow URLs are the cleanest atomic billable unit I've seen in the agent stack — one canonical action per trigger, public HTTPS, ideal home for lc.protect(). Could ship alongside your existing Stripe Connect (card buyers stay on Stripe, agent buyers go through us).
 
-Worth a 15-min call? I can pre-share the integration diagram.
+15-min this week to see if it's a fit?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
-### 3. LangChain — LangGraph tool monetization
+### 3. LangChain
 
 ```
-Subject: Re: LangChain — tool author monetization for LangGraph
+Subject: Re: LangChain — design partner slot for AI billing SDK?
 
-Hi Harrison / team,
+Hi Ankush,
 
-Earlier note from me was about LangSmith × agent commerce. The interesting
-update: MPP just landed, which finally gives tool authors a portable signing
-spec — but no one in the LangGraph ecosystem can settle MPP payments today.
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT.
 
-We could ship a LangChain-native `lc.tools.paid()` decorator that wraps any
-tool with an MPP-compatible x402 facilitator. Tool author defines a price,
-agent's wallet auto-charges per call, settled on Base/USDC with hard cap from
-ERC-2612 permit. Two-week build, $5k flat — could be a LangChain-shipped
-integration if there's interest.
+Picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free, direct line for feature requests, locked-in pricing for 12 months after. LangChain tools (especially in LangGraph flows) could become the reference integration — a `paid_tool()` decorator that just works, no API-key passing between agents, sub-cent per call. Happy to share a working PoC video first if easier than a call.
 
-Worth a 15-min? Happy to lead with a working PoC video first if that's easier.
+15-min this week?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
-### 4. LlamaIndex — LlamaCloud retrieval pricing
+### 4. LlamaIndex
 
 ```
-Subject: Re: LlamaCloud × agent-paid retrieval
+Subject: Re: LlamaCloud + design partner slot — agent-paid retrieval?
 
-Hi Jerry / team,
+Hi Jerry,
 
-Quick MPP-driven follow-up. LlamaCloud retrieval is priced per-request today,
-billed to a LlamaCloud org account. Post-MPP, an interesting unlock: each
-retrieval call can be paid directly by the agent's wallet, no org account
-required, no API-key handoff.
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT.
 
-2-week, $5k flat integration: MPP-compatible x402 facilitator on top of your
-existing retrieval endpoints. Agents top up via USDC on Base, ERC-2612 permit
-caps daily spend, LlamaCloud takes a take rate without invoicing seats.
-Includes the docs page.
+Picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free, direct line for feature requests, locked-in pricing for 12 months after. LlamaCloud retrieval endpoints would benchmark lc.protect() against real RAG workloads — sub-cent per chunk, agent-as-buyer skips the org-account onboarding, no API-key handoff. Happy to share the architecture sketch first.
 
-15-min to walk through? I can share the architecture sketch beforehand.
+15-min this week?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
-### 5. Replicate — per-prediction agent billing
+### 5. Replicate
 
 ```
-Subject: Re: Replicate × agent-paid predictions
+Subject: Re: Replicate + design partner slot — agent-paid predictions?
 
-Hi Ben / team,
+Hi Zeke,
 
-Earlier note was about R3 partnership exploration. The MPP launch reshapes
-the question — Replicate predictions are already per-second billed, the
-missing piece is letting an agent pay for predictions without inheriting
-its operator's API key.
+Quick follow-up. Just shipped @lemon-cake/mcp-sdk v0.3.0 — AI-native usage billing in one line of code (lc.protect("/api", { cost: 0.02 })), open core, MIT.
 
-2-week $5k flat: MPP-compatible x402 wrapper that lets an agent's wallet pay
-per prediction directly. ERC-2612 permit handles daily caps, Base/USDC for
-settlement. Net effect: a new buyer class (autonomous agents) using Replicate
-without onboarding into org accounts. Includes the integration PR.
+Picking 5 design partners for Q3 to shape v1.0: 6 months Pro tier free, direct line for feature requests, locked-in pricing for 12 months after. Replicate predictions would be a perfect case to show how lc.protect() handles long-running compute — pre-flight checks budget before the GPU spins up, the result of a 90-second image-gen never lands as an uncollectable invoice. Net effect: agents become a new buyer class on Replicate without org-account friction.
 
-Open to a quick 15-min call?
+15-min this week?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
+https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=design-partner-2026-05
 ```
 
 ---

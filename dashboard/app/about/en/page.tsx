@@ -349,6 +349,37 @@ export default function AboutPageEn() {
         </div>
       </section>
 
+      {/* ── Margin dashboard teaser ── */}
+      {/*
+       * Q3 2026 roadmap signal — Amberflo holds the margin-visibility
+       * angle in this market, and the research doc explicitly flagged it
+       * as one of the differentiated values to claim. This teaser exists
+       * so Pro-tier evaluators know it's coming without committing us to
+       * a specific ship date or feature set. The CTA is a mailto that
+       * drops into Hiroto's inbox as an "early access" signup.
+       */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="rounded-3xl bg-gradient-to-br from-amber-500/10 to-amber-500/[0.02] border border-amber-500/25 p-8 md:p-10">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest mb-3">Coming Q3 2026 · Early access</p>
+              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3">
+                Margin dashboard.
+              </h2>
+              <p className="text-[14px] text-white/55 leading-relaxed max-w-xl">
+                AI cost vs. revenue per agent, per endpoint, per token. Catch margin leaks before they compound. The metric Stripe / Orb / Metronome don&apos;t natively show — because their buyers don&apos;t have $0.50 of OpenAI cost behind every $0.05 of revenue. Yours do.
+              </p>
+            </div>
+            <a
+              href="mailto:contact@aievid.com?subject=Margin%20dashboard%20early%20access&body=Hi%20Hiroto%2C%0A%0AI%27d%20like%20to%20be%20notified%20when%20the%20margin%20dashboard%20ships.%0A%0AStack%20%2F%20use%20case%3A%20%5B1-2%20lines%5D%0A%0AThanks%2C%0A%5Bname%5D"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-400 text-amber-950 font-bold rounded-xl hover:bg-amber-300 transition-colors text-[13px] whitespace-nowrap"
+            >
+              Join early access →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Open core ── */}
       {/*
        * Open-core is the explicit corporate stance now (2026-05-27).
