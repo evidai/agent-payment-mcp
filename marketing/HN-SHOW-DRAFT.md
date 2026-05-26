@@ -52,43 +52,44 @@ Show HN: I shipped 5 MCP servers in 6 weeks. Here's what didn't work.
 
 ---
 
-## Body (primary, ~470 words)
+## Body (primary, ~470 words, dev-billing-first framing)
 
 ```
-I've been building LemonCake — a non-custodial USDC payment facilitator for AI agents (x402 + MPP-compatible) — for the last 6 weeks. 5 MCP servers shipped to npm. 1,271 downloads on the main package over the last 7 days.
+I've been building LemonCake — a usage-billing layer for MCP servers and AI APIs — for the last 6 weeks. The pitch is "Stripe for AI tools": charge per tool call with a single line of middleware, no API-key management, no subscription setup, works in countries Stripe Connect doesn't.
+
+5 MCP servers shipped to npm. 1,271 downloads on the main package over the last 7 days.
 
 Then I checked the funnel.
 
 LP unique visitors / 7 days: 3 (one of them is me)
 Demo runs / 7 days: 5
-Subscriptions: 0
-Permit charges: 0
+Paying customers: 0
 Revenue: $0
 
-The crucial number is 0.9% — that's the conversion from npm install to lemoncake.xyz visit. The expected baseline for an MCP server with a clear CTA in its boot output is 5-15%. We're 1-2 orders of magnitude low.
+The crucial number is 0.9% — that's the conversion from npm install to lemoncake.xyz visit. Expected baseline for an MCP server with a clear CTA in its boot output is 5-15%. We're 1-2 orders of magnitude low.
 
 The reason: most of those "downloads" are crawler/indexer traffic, not humans. npm registry mirrors, Glama and Smithery and mcp.so scrapers, CI cache rebuilds. The "1,271 downloads" badge is real but the human signal underneath is single-digit.
 
 A few things I've changed in the last 48 hours after seeing this:
 
-1. Added stderr boot CTAs to all 5 MCP servers pointing to /pricing and a free tier. Most MCP servers I see don't do this — they boot silently, no URL. Conversion target: 5%.
+1. Added stderr boot CTAs to all 5 MCP servers pointing to /pricing and a free tier. Most MCP servers I've installed don't do this — they boot silently, no URL. Conversion target: 5%.
 
-2. Pivoted positioning. Stripe shipped MPP at Sessions 2026 last week. I rewrote the LP to "MPP-compatible facilitator on Base/USDC with native JP onramp" instead of "Stripe for MCP". You can't beat Stripe at being Stripe; you can be the geo + chain layer Stripe can't ship (Stripe Crypto Onramp doesn't serve Japan).
+2. Repositioned the LP. The old hero led with the implementation ("non-custodial USDC on Base, ERC-2612 permits"). It scared away the actual ICP — MCP devs who want monetization but don't want to learn a crypto stack to install. New hero: "Monetize your MCP server in 5 minutes." The crypto is still under the hood; it's just not the headline.
 
-3. Pivoted revenue. Pure product can't survive on 0 buyers — I added a /consulting page with fixed-price 2-week sprints ($2k audit, $5k integration, $8k custom MCP). Cold-email outreach to 20 targets starts tomorrow.
+3. Added consulting. Pure product can't survive on 0 buyers — I put up a /consulting page with fixed-price 2-week sprints ($2k audit, $5k integration, $8k custom MCP build). Cold-email outreach to 20 targets starts tomorrow.
 
 4. Plugin Directory submission. Anthropic launched Claude Code Plugins Directory on May 22 — payments category is empty. Submitted yesterday.
 
 What I'd love feedback on:
 
-- If you've shipped an MCP server (or any npm dev tool), what was your conversion from install to product page? I want to know whether 0.9% is normal or anomalous.
-- For the agent-payment crowd (Skyfire, Crossmint, Catena Labs folks): is the "run alongside Stripe MPP" framing defensible long-term, or is Stripe going to absorb the whole layer?
+- If you've shipped an MCP server or any npm dev tool: what was your conversion from install to product page? I want to know whether 0.9% is normal or anomalous.
+- For folks who've built billing layers (Lago, Orb, m3ter, Paid.ai): is sub-cent per-call genuinely a new market or just a niche?
 - For solo founders: when did you call it on a product that wasn't converting? Any heuristic that worked?
 
 Links:
-- Free tier (1k tx/mo, gas sponsored): https://lemoncake.xyz/pricing?utm_source=hn&utm_medium=social&utm_campaign=show-hn-2026-05-27
+- Free tier (1,000 tx / month, no card): https://lemoncake.xyz/pricing?utm_source=hn&utm_medium=social&utm_campaign=show-hn-2026-05-27
 - GitHub: https://github.com/evidai/agent-payment-mcp
-- The migration guides + transparent comparison vs Coinbase x402, Crossmint, Stripe MPP are live too.
+- The docs page is built around code snippets, not crypto primitives — if you're allergic to web3-feel landing pages, this one tries hard not to be that.
 ```
 
 ---
@@ -99,11 +100,11 @@ Reply fast (< 30 min) → more upvotes → front page lift. Have these ready in 
 
 ### Q: "Aren't you just rebuilding Stripe? Why would anyone use this?"
 
-> Honest answer: at the protocol level, Stripe MPP > LemonCake on most axes. The two places I'm not redundant: (1) Stripe Crypto Onramp doesn't serve Japan, and I do — JPY → USDC → Base entirely on-chain. (2) MPP-signed payments need a settlement facilitator on each network; we're an alternative on Base/USDC. Our positioning is explicitly "run alongside Stripe MPP," not "instead of."
+> Honest answer: we're not trying to replace Stripe. Three places Stripe is the wrong primitive for our buyers: (1) sub-cent per-call (Stripe's effective floor is ~$0.30 after fees), (2) the buyer is an AI agent that doesn't have a credit card and shouldn't share its operator's API key, (3) the seller is in a country Stripe Connect doesn't serve (Japan, Indonesia, Argentina, etc). When all three of those apply, we're a better fit. When none apply, Stripe wins and we don't pretend otherwise.
 
-### Q: "Why ERC-2612 permits instead of just a session key / passkey?"
+### Q: "Why use crypto under the hood at all? What's wrong with a normal merchant account?"
 
-> Permits give an explicit, on-chain hard cap that the agent literally cannot exceed — the spender contract is the only `transferFrom` caller, USDC's permit math enforces it. Session keys / passkeys are app-layer; if the agent infra has a bug, you're trusting the app to enforce the limit. We needed FSA non-custodial classification, and on-chain hard caps were the cleanest path there.
+> Honest answer: nothing's wrong with merchant accounts. For card-paying humans you should use Stripe. We use USDC under the hood because (1) it lets us issue an on-chain spend cap that an agent literally cannot bypass — that's the only mechanism we trust for agents that run unattended, (2) settlement is global by default (no Stripe Connect onboarding per country), and (3) sub-cent per-call works without rounding errors. From the developer's POV: they call `lc.charge({ price: 0.02 })` and never think about USDC. That's the point.
 
 ### Q: "What's stopping me from forking this in a weekend?"
 

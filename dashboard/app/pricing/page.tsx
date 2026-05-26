@@ -201,15 +201,16 @@ export default function PricingPage() {
       {/* ── Hero ── */}
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-block px-3 py-1 mb-6 bg-[#fffd43]/10 border border-[#fffd43]/25 rounded-full text-[11px] font-mono text-[#fffd43]/80">
-          MPP-compatible · 1k tx/mo free · Non-custodial
+          Usage billing for AI tools · 1k tx/mo free · No card
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-6 leading-[1.05]">
-          Transparent pricing.<br />
-          <span className="text-[#fffd43]">Free up to 1k tx / month.</span>
+          Pay only for what<br />
+          <span className="text-[#fffd43]">your tools use.</span>
         </h1>
         <p className="text-lg text-white/55 max-w-2xl mx-auto mb-10 leading-relaxed">
-          MPP-compatible facilitator on Base/USDC. Stripe MPP and Tempo interoperable.
-          Native JP onramp built in. $0.005 / tx after free tier — 90% cheaper than Crossmint, plus a geo Stripe can't serve.
+          Usage-based billing for MCP servers, AI APIs, and autonomous agents.
+          Free up to 1,000 transactions per month — $0.005 per transaction after.
+          No subscriptions, no setup fees, no payment-infrastructure headaches.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link

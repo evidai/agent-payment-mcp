@@ -24,25 +24,24 @@ export default function SellersPage() {
         {/* Hero */}
         <div className="text-center mb-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 uppercase tracking-wider">
-            <span>🍋</span><span>For API Providers · MPP-compatible</span>
+            <span>🍋</span><span>For MCP / API Builders</span>
           </span>
           <h1 className="mt-4 text-3xl sm:text-5xl font-bold text-gray-900 leading-tight tracking-tight">
-            あなたの API を<br />
-            <span className="text-amber-600">AI エージェントの収入源</span>に
+            あなたの MCP / API に<br />
+            <span className="text-amber-600">3 行で課金</span>を追加
           </h1>
           <p className="mt-5 text-base sm:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto">
-            USDC で直接受け取り。Stripe MPP / Tempo と並走可。
-            <strong className="text-gray-900">月 1,000 tx まで無料</strong>（gas 当社負担）。
-            買い手は <a href="/pricing" className="text-amber-700 underline-offset-2 hover:underline font-semibold">$0.005/tx</a> から、<strong className="text-gray-900">1 分で登録完了</strong>。
+            <code className="bg-gray-900 text-amber-300 px-1.5 py-0.5 rounded text-sm">lc.charge({"{ price: 0.02 }"})</code> でツール呼び出しごとに課金。
+            <strong className="text-gray-900">月 1,000 tx まで無料</strong>、Stripe より <strong className="text-gray-900">60x 安い手数料</strong>、Stripe Connect 不要、グローバル対応。
           </p>
         </div>
 
         {/* 3 column value props */}
         <div className="mb-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: "💰", title: "USDC 直接着金", desc: "クレジットカード会社を経由せず、あなたのウォレットに即時。chargeback 不可。" },
-            { icon: "⚡", title: "MPP 互換 + 低額", desc: "Stripe MPP / Tempo signed payment を Base/USDC で settle。$0.005/tx から、Stripe の 60x 安い。" },
-            { icon: "🌏", title: "海外摩擦ゼロ", desc: "クレカ使えない国でも USDC で OK。日本国内 onramp は当社のみ対応 (Stripe Onramp は JP NG)。" },
+            { icon: "💰", title: "usage-based 課金", desc: "ツール呼び出し / トークン / 完了タスク単位で micro-payment。Stripe の $0.30 最低額の壁なし。" },
+            { icon: "⚡", title: "subscription 不要", desc: "従量制で受け取り。chargeback なし、invoice 自動、API key 配布不要。" },
+            { icon: "🌏", title: "海外摩擦ゼロ", desc: "Stripe Connect 非対応国でも動く。日本、インドネシア、アルゼンチン — 全部 day-one 対応。" },
           ].map((v) => (
             <div key={v.title} className="rounded-2xl border border-gray-200 bg-white p-5">
               <div className="text-3xl">{v.icon}</div>

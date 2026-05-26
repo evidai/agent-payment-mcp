@@ -165,11 +165,10 @@ export default function AboutPageEn() {
             </div>
             <div className="hidden md:flex items-center gap-6">
               {[
-                { label: "Pricing",      href: "/pricing" },
-                { label: "Consulting",   href: "/consulting" },
-                { label: "Trade stack",  href: "/trade" },
-                { label: "Features",     href: "#features" },
-                { label: "Quickstart",   href: "#quickstart" },
+                { label: "Docs",       href: "/docs" },
+                { label: "Pricing",    href: "/pricing" },
+                { label: "Quickstart", href: "#quickstart" },
+                { label: "Consulting", href: "/consulting" },
               ].map(({ label, href }) => (
                 <a key={label} href={href} className="text-[13px] text-white/50 hover:text-white/90 transition-colors">{label}</a>
               ))}
@@ -191,54 +190,155 @@ export default function AboutPageEn() {
       </nav>
 
       {/* ── Hero ── */}
+      {/*
+       * Repositioned 2026-05-27 from crypto-first to developer-billing-first.
+       * The previous hero ("Per-call USDC for AI agents · On Base · ERC-2612")
+       * tested poorly: 624 npm DL → 0 buyers, 1,271 DL → 3 site visits. The
+       * crypto framing scared away the actual ICP (MCP server devs who want
+       * monetization but don't want to learn Base / permits to install).
+       * USDC and non-custodial stay in /docs and /pricing comparison — they're
+       * differentiators once a dev decides to evaluate, but not what makes
+       * them click.
+       */}
       <div className="bg-[#fffd43] w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-32 pb-28 text-center">
+        <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
           <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            MPP-compatible · 1k tx/mo free · Non-custodial
+            Billing for MCP servers · 1k tx/mo free · No card
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Per-call USDC for AI agents.<br />
+            Monetize your MCP server<br />
             <span className="text-black">
-              On Base. On day one.
+              in 5 minutes.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Open ERC-2612 facilitator. Stripe MPP / Tempo interoperable.<br className="hidden md:block" />
-            Native JP onramp. Free up to 1,000 tx / month — $0.005 / tx after.
+            AI-native usage billing for APIs, tools, and agents.<br className="hidden md:block" />
+            No API key management. No subscription setup. No payment infrastructure headaches.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/v2"
+              href="/start/free"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Start free — no card <IconArrowRight />
+              Start building <IconArrowRight />
             </Link>
             <Link
-              href="/pricing"
+              href="/docs"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
             >
-              See pricing →
+              View docs →
             </Link>
           </div>
           <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-            Built on by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
+            Used by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
+          </p>
+        </section>
+
+        {/* Code snippet — sits inside the yellow hero band as a "this is real" anchor */}
+        <section className="max-w-3xl mx-auto px-6 pb-16">
+          <div className="rounded-2xl bg-[#1a0f00] text-white p-6 shadow-xl">
+            <div className="flex items-center gap-1.5 mb-4">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+              <span className="ml-3 text-[11px] font-mono text-white/40">tool-server.ts</span>
+            </div>
+            <pre className="font-mono text-[13px] leading-relaxed overflow-x-auto">
+              <code>
+                <span className="text-[#c8b800]">{"import"}</span>{" { createLemonCakeSDK } "}<span className="text-[#c8b800]">{"from"}</span> <span className="text-[#7bc97a]">{`"@lemon-cake/mcp-sdk"`}</span>;{"\n\n"}
+                <span className="text-[#c8b800]">const</span>{" lc = "}<span className="text-white">createLemonCakeSDK</span>{"({"}{"\n"}
+                {"  sellerKey: process.env."}<span className="text-[#7bc97a]">LEMONCAKE_SELLER_KEY</span>{"\n"}
+                {"});"}{"\n\n"}
+                <span className="text-white/50">{"// Charge $0.02 per tool call. That's it."}</span>{"\n"}
+                {"server.tool("}<span className="text-[#7bc97a]">{`"search"`}</span>{", "}<span className="text-white">lc.charge</span>{"({ price: "}<span className="text-[#febc2e]">{"0.02"}</span>{" }), handler);"}
+              </code>
+            </pre>
+          </div>
+          <p className="mt-4 text-center text-[12px] text-[#1a0f00]/50">
+            Drop-in MCP middleware. Works with any MCP SDK. Free up to 1,000 calls / month.
           </p>
         </section>
       </div>
 
+      {/* ── Why developers ── */}
+      {/*
+       * 6-card benefits grid replacing the old crypto-feature-set. Each card is
+       * a concrete dev pain ("API key management gone") rather than a crypto
+       * primitive ("ERC-2612 permit"). Order matters: lead with the most
+       * universal pain (usage billing), end with the MCP-specific differentiator.
+       */}
+      <section id="why-developers" className="max-w-6xl mx-auto px-6 py-24">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Why developers use LemonCake</p>
+        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+          Built for the things<br />
+          <span className="text-[#fffd43]">payment infra makes annoying.</span>
+        </h2>
+        <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
+          Six things you stop worrying about after wiring up LemonCake.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            { t: "Usage-based billing", d: "Charge per tool call, per token, per outcome. Sub-cent micro-payments work natively — no minimum transaction size, no Stripe-style $0.30 floor." },
+            { t: "AI agent payments",   d: "Agents pay your endpoint directly with one-time spend caps. No human in the loop, no API-key sharing, no \"reset my credentials\" support tickets." },
+            { t: "No API-key management", d: "Stop issuing, rotating, and revoking keys. Buyers authenticate once at install time; you never touch their secrets." },
+            { t: "Global by default",   d: "Works in countries where Stripe Connect doesn't. Japan, Indonesia, Argentina — supported on day one." },
+            { t: "Embedded wallet",     d: "Your buyers don't need a crypto wallet. We embed one at signup; they sign in with email and forget the underlying mechanics." },
+            { t: "MCP-native",          d: "Drop-in middleware for any MCP server. Auto-listing on Bazaar + Glama + Smithery + mcp.so + Claude Code Plugins Directory." },
+          ].map(({ t, d }) => (
+            <div key={t} className="rounded-2xl bg-white/4 border border-white/8 p-6">
+              <h3 className="text-[15px] font-bold text-white mb-2">{t}</h3>
+              <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Stripe comparison ── */}
+      <section className="bg-white/[0.02] border-y border-white/8">
+        <div className="max-w-4xl mx-auto px-6 py-20">
+          <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">vs The Default</p>
+          <h2 className="text-center text-3xl font-black text-white mb-4 leading-tight">
+            What Stripe doesn&apos;t cover.
+          </h2>
+          <p className="text-center text-[13px] text-white/45 mb-10 max-w-xl mx-auto">
+            Stripe is great for cards. For AI agents calling your API at $0.02/call across 30 countries, it&apos;s the wrong primitive.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-3 px-3 text-white/50 font-semibold"></th>
+                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
+                  <th className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Sub-cent micro-payments",   "—",                "$0.005 / tx"],
+                  ["AI agent as the buyer",     "Card-only",        "Native"],
+                  ["Agent-to-agent payments",   "—",                "Native"],
+                  ["MCP server middleware",     "—",                "Drop-in"],
+                  ["No API-key management",     "API keys still",   "Embedded auth"],
+                  ["Free tier",                 "Stripe standard",  "1,000 tx / mo, gas covered"],
+                  ["Setup time",                "Onboarding flow",  "One env var"],
+                ].map(([f, s, lc]) => (
+                  <tr key={f} className="border-b border-white/5">
+                    <td className="py-3 px-3 text-white/70 font-medium">{f}</td>
+                    <td className="py-3 px-3 text-white/40">{s}</td>
+                    <td className="py-3 px-3 text-white">{lc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-6 text-[11px] text-white/30 text-center font-mono">
+            We don&apos;t replace Stripe. We sit next to it for the surface area Stripe can&apos;t serve.
+          </p>
+        </div>
+      </section>
+
       {/* ── Integrations ── */}
-      <section id="integrations" className="relative overflow-hidden py-28">
-        {/* Video background */}
-        <video
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-          src="/dvd_screensaver.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-[#06060a]/40" />
+      <section id="integrations" className="relative overflow-hidden py-28 bg-[#06060a]">
         {/* Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-6">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Integrations</p>
