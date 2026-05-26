@@ -349,53 +349,91 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/* ── Open source / SDK callout ── */}
+      {/* ── Open core ── */}
+      {/*
+       * Open-core is the explicit corporate stance now (2026-05-27).
+       * Same pattern as Supabase / Clerk / Resend: SDK and integration
+       * surface are MIT, hosted billing engine + dashboard + compliance
+       * stay closed. The reason this layout exists: AI infra devs need
+       * to see what's open *and* what's not, because pure-OSS billing
+       * companies are abandonware-suspect and pure-SaaS billing
+       * companies are lock-in-suspect. Open-core threads the needle.
+       */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] border border-emerald-500/20 p-10 md:p-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div>
-              <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-4">Open source</p>
-              <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">
-                The SDK is MIT.<br />
-                <span className="text-emerald-400">Forks and adapters welcome.</span>
-              </h2>
-              <p className="text-[14px] text-white/55 leading-relaxed mb-5">
-                AI infrastructure that&apos;s closed gets abandoned the moment the company pivots. The LemonCake SDK, MCP packages, and migration guides are all open-source. Run a fork if you don&apos;t trust us — the on-chain ledger is public anyway.
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <a
-                  href="https://github.com/evidai/agent-payment-mcp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/8 text-white border border-white/15 font-semibold rounded-xl hover:bg-white/12 transition-colors text-[13px]"
-                >
+          <div className="text-center mb-10">
+            <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-4">Open core, like Supabase &amp; Clerk</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">
+              Fork the SDK.<br />
+              <span className="text-emerald-400">Let us host the boring stuff.</span>
+            </h2>
+            <p className="text-[14px] text-white/55 leading-relaxed max-w-2xl mx-auto">
+              Pure-OSS billing infra dies the moment funding does. Pure-SaaS billing infra is lock-in by design. Open core is the only honest middle: MIT-licensed SDK + hosted execution. If we vanish, your integration keeps working.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* OPEN side */}
+            <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-2 py-0.5 uppercase tracking-widest">Open · MIT</span>
+              </div>
+              <h3 className="text-[15px] font-bold text-white mb-3">What you can fork</h3>
+              <ul className="space-y-2 text-[12.5px] text-white/60 font-mono">
+                {[
+                  "@lemon-cake/mcp-sdk",
+                  "@lemon-cake/x402-server",
+                  "agent-payment-mcp",
+                  "examples/* (starter templates)",
+                  "MCP adapters (Claude / Cursor / LangChain)",
+                  "All docs and migration guides",
+                ].map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <span className="text-emerald-400 mt-0.5">●</span> {line}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex items-center gap-2">
+                <a href="https://github.com/evidai/agent-payment-mcp" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[12px] text-emerald-300 hover:text-emerald-200 transition-colors">
                   GitHub →
                 </a>
-                <a
-                  href="https://www.npmjs.com/package/agent-payment-mcp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/8 text-white border border-white/15 font-semibold rounded-xl hover:bg-white/12 transition-colors text-[13px]"
-                >
+                <span className="text-white/20">·</span>
+                <a href="https://www.npmjs.com/package/@lemon-cake/mcp-sdk" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[12px] text-emerald-300 hover:text-emerald-200 transition-colors">
                   npm →
                 </a>
-                <span className="text-[11px] text-white/30 font-mono">
-                  MIT · 5 production MCPs · 1,271 weekly DL
-                </span>
               </div>
             </div>
-            <div className="space-y-2.5 text-[12px] text-white/60 font-mono">
-              {[
-                "@lemon-cake/mcp-sdk        — MCP middleware",
-                "@lemon-cake/x402-server    — HTTP API middleware",
-                "agent-payment-mcp          — buyer-side MCP",
-                "xstocks-mcp                — trade-stack example",
-                "tokenized-stock-mcp        — trade-stack example",
-              ].map((line) => (
-                <div key={line} className="rounded-lg bg-black/40 border border-white/8 px-3 py-2">{line}</div>
-              ))}
+            {/* CLOSED side */}
+            <div className="rounded-2xl bg-white/4 border border-white/10 p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-white/60 bg-white/8 border border-white/15 rounded-full px-2 py-0.5 uppercase tracking-widest">Hosted</span>
+              </div>
+              <h3 className="text-[15px] font-bold text-white mb-3">What we run as a service</h3>
+              <ul className="space-y-2 text-[12.5px] text-white/55 font-mono">
+                {[
+                  "Billing engine (settlement, ledger)",
+                  "Revenue routing & payout logic",
+                  "Dashboard (analytics, payouts, abuse)",
+                  "Compliance (tax, invoicing, reporting)",
+                  "Fraud / abuse detection",
+                  "Hosted gateway & uptime SLA",
+                ].map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <span className="text-white/40 mt-0.5">●</span> {line}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5">
+                <Link href="/pricing" className="inline-flex items-center gap-1.5 text-[12px] text-white/60 hover:text-white transition-colors">
+                  See pricing →
+                </Link>
+              </div>
             </div>
           </div>
+          <p className="mt-6 text-[11px] text-white/30 text-center font-mono">
+            MIT · Supabase / Clerk / Resend pattern · 5 production MCPs published
+          </p>
         </div>
       </section>
 

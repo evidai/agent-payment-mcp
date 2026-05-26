@@ -55,7 +55,7 @@ Show HN: I shipped 5 MCP servers in 6 weeks. Here's what didn't work.
 ## Body (primary, ~470 words, AI-native billing framing)
 
 ```
-I've been building LemonCake — an AI-native usage-billing layer — for the last 6 weeks. The thesis: Stripe is great for humans, Orb and Metronome are great for SaaS, but nobody's built the billing primitive for the case where the buyer is an AI agent calling your API at $0.02/call. The SDK is one line of middleware, MIT licensed.
+I've been building LemonCake — an AI-native usage-billing layer — for the last 6 weeks. Tagline: "Add usage billing to your AI API in 5 minutes." Thesis: Stripe is great for humans, Orb and Metronome are great for SaaS, but nobody's built the billing primitive for the case where the buyer is an AI agent calling your API at $0.02/call. **Open core** (Supabase / Clerk pattern): SDK + examples + adapters are MIT, the hosted billing engine + dashboard + compliance stay closed.
 
 5 MCP servers shipped to npm. 1,271 downloads on the main package over the last 7 days.
 

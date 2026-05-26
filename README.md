@@ -1,26 +1,43 @@
 <div align="center">
 
-# LemonCake — agent-payment-mcp
+# LemonCake
 
-**Give your AI agent a USDC wallet. One signature, 90 days, done.**
+**AI-native usage billing. In one line of code.**
 
-> ERC-2612 permit-based pay-per-call infrastructure for autonomous AI agents.
-> No signup. No API keys. `npx agent-payment-mcp` boots in Demo Mode instantly.
+> Open-core billing infrastructure for AI APIs, MCP servers, and autonomous agents.
+> Stripe is for humans. Orb / Metronome are for SaaS. **LemonCake is for AI.**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
+[![Open core](https://img.shields.io/badge/model-open--core-brightgreen.svg)](#-open-core-what-is-open-what-is-hosted)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
-[![npm: agent-payment-mcp](https://img.shields.io/npm/v/agent-payment-mcp?label=agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
-[![npm: xstocks-mcp](https://img.shields.io/npm/v/xstocks-mcp?label=xstocks-mcp)](https://www.npmjs.com/package/xstocks-mcp)
-[![npm: alpaca-guard-mcp](https://img.shields.io/npm/v/alpaca-guard-mcp?label=alpaca-guard-mcp)](https://www.npmjs.com/package/alpaca-guard-mcp)
-[![npm: tokenized-stock-mcp](https://img.shields.io/npm/v/tokenized-stock-mcp?label=tokenized-stock-mcp)](https://www.npmjs.com/package/tokenized-stock-mcp)
 [![npm: @lemon-cake/mcp-sdk](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk?label=%40lemon-cake%2Fmcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
-[![Non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
-[![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
+[![npm: agent-payment-mcp](https://img.shields.io/npm/v/agent-payment-mcp?label=agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
+[![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-non--custodial-blue)](https://lemoncake.xyz/security)
 [![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 
-**[🚀 Try in 30 seconds](#-try-in-30-seconds-no-signup) · [💳 Unlock paid services](#-unlock-paid-services) · [🏗 Publish your API](https://lemoncake.xyz/sellers) · [📧 Contact](mailto:contact@aievid.com)**
+**[🚀 Quickstart](#-try-in-30-seconds-no-signup) · [🧩 Examples](./examples) · [💲 Pricing](https://lemoncake.xyz/pricing) · [📚 Docs](https://lemoncake.xyz/docs) · [📧 Contact](mailto:contact@aievid.com)**
 
 </div>
+
+---
+
+## 🧱 Open core: what is open, what is hosted
+
+LemonCake is **open-core** — same pattern as Supabase, Clerk, Resend. The SDK and integration surface are MIT-licensed and forkable. The hosted billing engine, dashboard, and compliance layer are run by us as a service.
+
+| Layer | Status | Where |
+|---|---|---|
+| TypeScript SDK (`@lemon-cake/mcp-sdk`) | ✅ MIT | [npm](https://www.npmjs.com/package/@lemon-cake/mcp-sdk), [src](./lemoncake-mcp-sdk) |
+| HTTP middleware (`@lemon-cake/x402-server`) | ✅ MIT | [src](./x402-server-mcp) |
+| Buyer-side MCP (`agent-payment-mcp`) | ✅ MIT | [npm](https://www.npmjs.com/package/agent-payment-mcp), [src](./mcp-server) |
+| Trade-stack MCPs (xstocks / gmx / alpaca-guard / tokenized-stock) | ✅ MIT | [examples in repo](#) |
+| Starter templates | ✅ MIT | [examples/](./examples) |
+| Docs site | ✅ Public | [lemoncake.xyz/docs](https://lemoncake.xyz/docs) |
+| **Billing engine** (settlement, ledger, revenue routing) | 🔒 Hosted | lemoncake.xyz |
+| **Dashboard** (analytics, abuse detection, payouts) | 🔒 Hosted | lemoncake.xyz |
+| **Compliance** (tax, invoicing, jurisdiction reporting) | 🔒 Hosted | lemoncake.xyz |
+
+If we ever shut down, your integration keeps working — the SDK is the only contract surface. The on-chain ledger is public anyway.
 
 ---
 
