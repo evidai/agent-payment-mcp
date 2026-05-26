@@ -203,17 +203,17 @@ export default function AboutPageEn() {
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
           <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            Billing for MCP servers · 1k tx/mo free · No card
+            AI billing OS · Open source SDK · 1k tx/mo free
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Monetize your MCP server<br />
+            AI-native usage billing.<br />
             <span className="text-black">
-              in 5 minutes.
+              In one line of code.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            AI-native usage billing for APIs, tools, and agents.<br className="hidden md:block" />
-            No API key management. No subscription setup. No payment infrastructure headaches.
+            Charge per call, per token, per agent. Built for the way AI APIs actually get used —<br className="hidden md:block" />
+            sub-cent micro-payments, machine-as-buyer, MCP-native middleware.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
@@ -293,15 +293,24 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/* ── Stripe comparison ── */}
+      {/* ── Billing stack comparison ── */}
+      {/*
+       * Reframed 2026-05-27 from "vs Stripe" to "vs the billing-as-a-service
+       * trio" (Orb / Metronome / Stripe). The honest landscape: Orb and
+       * Metronome handle metering + invoicing but defer payment execution
+       * to Stripe (and Stripe doesn't natively meter). LemonCake collapses
+       * meter + pay + auth into one SDK *and* treats the AI agent as a
+       * first-class buyer. That's the AI-native angle.
+       */}
       <section className="bg-white/[0.02] border-y border-white/8">
-        <div className="max-w-4xl mx-auto px-6 py-20">
-          <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">vs The Default</p>
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">The billing stack today</p>
           <h2 className="text-center text-3xl font-black text-white mb-4 leading-tight">
-            What Stripe doesn&apos;t cover.
+            Stripe is for humans. Orb &amp; Metronome are for SaaS.<br />
+            <span className="text-[#fffd43]">LemonCake is for AI.</span>
           </h2>
-          <p className="text-center text-[13px] text-white/45 mb-10 max-w-xl mx-auto">
-            Stripe is great for cards. For AI agents calling your API at $0.02/call across 30 countries, it&apos;s the wrong primitive.
+          <p className="text-center text-[13px] text-white/45 mb-10 max-w-2xl mx-auto">
+            Existing billing infra assumes a human swipes a card and an org renews a seat. AI APIs charge sub-cent per call to a non-human caller. Different shape — different stack.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -309,22 +318,25 @@ export default function AboutPageEn() {
                 <tr className="border-b border-white/10">
                   <th className="text-left py-3 px-3 text-white/50 font-semibold"></th>
                   <th className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
+                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
                   <th className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ["Sub-cent micro-payments",   "—",                "$0.005 / tx"],
-                  ["AI agent as the buyer",     "Card-only",        "Native"],
-                  ["Agent-to-agent payments",   "—",                "Native"],
-                  ["MCP server middleware",     "—",                "Drop-in"],
-                  ["No API-key management",     "API keys still",   "Embedded auth"],
-                  ["Free tier",                 "Stripe standard",  "1,000 tx / mo, gas covered"],
-                  ["Setup time",                "Onboarding flow",  "One env var"],
-                ].map(([f, s, lc]) => (
+                  ["Meter + invoice + pay in one SDK", "Pay only",                   "Meter + invoice (pay via Stripe)", "Yes"],
+                  ["AI agent as buyer",                "Card-only",                  "Org-billed only",                  "Native"],
+                  ["Sub-cent per call",                "$0.30 effective floor",      "Allowed, but Stripe-billed",       "$0.005"],
+                  ["MCP / agent middleware",           "—",                          "—",                                "Drop-in"],
+                  ["No API-key management",            "Keys still required",        "Keys still required",              "Embedded auth"],
+                  ["Free tier",                        "Stripe rates apply",         "Enterprise tiers",                 "1k tx / mo, gas covered"],
+                  ["Open-source SDK",                  "Closed",                     "Closed",                           "MIT"],
+                  ["Setup time",                       "Connect onboarding",         "Implementation engineer",          "One env var"],
+                ].map(([f, s, o, lc]) => (
                   <tr key={f} className="border-b border-white/5">
                     <td className="py-3 px-3 text-white/70 font-medium">{f}</td>
                     <td className="py-3 px-3 text-white/40">{s}</td>
+                    <td className="py-3 px-3 text-white/40">{o}</td>
                     <td className="py-3 px-3 text-white">{lc}</td>
                   </tr>
                 ))}
@@ -332,8 +344,58 @@ export default function AboutPageEn() {
             </table>
           </div>
           <p className="mt-6 text-[11px] text-white/30 text-center font-mono">
-            We don&apos;t replace Stripe. We sit next to it for the surface area Stripe can&apos;t serve.
+            We don&apos;t replace Stripe for human checkout. We&apos;re the stack you want when the buyer is an AI agent.
           </p>
+        </div>
+      </section>
+
+      {/* ── Open source / SDK callout ── */}
+      <section className="max-w-5xl mx-auto px-6 py-20">
+        <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] border border-emerald-500/20 p-10 md:p-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div>
+              <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-4">Open source</p>
+              <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">
+                The SDK is MIT.<br />
+                <span className="text-emerald-400">Forks and adapters welcome.</span>
+              </h2>
+              <p className="text-[14px] text-white/55 leading-relaxed mb-5">
+                AI infrastructure that&apos;s closed gets abandoned the moment the company pivots. The LemonCake SDK, MCP packages, and migration guides are all open-source. Run a fork if you don&apos;t trust us — the on-chain ledger is public anyway.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <a
+                  href="https://github.com/evidai/agent-payment-mcp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/8 text-white border border-white/15 font-semibold rounded-xl hover:bg-white/12 transition-colors text-[13px]"
+                >
+                  GitHub →
+                </a>
+                <a
+                  href="https://www.npmjs.com/package/agent-payment-mcp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/8 text-white border border-white/15 font-semibold rounded-xl hover:bg-white/12 transition-colors text-[13px]"
+                >
+                  npm →
+                </a>
+                <span className="text-[11px] text-white/30 font-mono">
+                  MIT · 5 production MCPs · 1,271 weekly DL
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2.5 text-[12px] text-white/60 font-mono">
+              {[
+                "@lemon-cake/mcp-sdk        — MCP middleware",
+                "@lemon-cake/x402-server    — HTTP API middleware",
+                "agent-payment-mcp          — buyer-side MCP",
+                "xstocks-mcp                — trade-stack example",
+                "tokenized-stock-mcp        — trade-stack example",
+              ].map((line) => (
+                <div key={line} className="rounded-lg bg-black/40 border border-white/8 px-3 py-2">{line}</div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

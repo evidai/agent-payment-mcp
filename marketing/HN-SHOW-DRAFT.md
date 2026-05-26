@@ -52,10 +52,10 @@ Show HN: I shipped 5 MCP servers in 6 weeks. Here's what didn't work.
 
 ---
 
-## Body (primary, ~470 words, dev-billing-first framing)
+## Body (primary, ~470 words, AI-native billing framing)
 
 ```
-I've been building LemonCake — a usage-billing layer for MCP servers and AI APIs — for the last 6 weeks. The pitch is "Stripe for AI tools": charge per tool call with a single line of middleware, no API-key management, no subscription setup, works in countries Stripe Connect doesn't.
+I've been building LemonCake — an AI-native usage-billing layer — for the last 6 weeks. The thesis: Stripe is great for humans, Orb and Metronome are great for SaaS, but nobody's built the billing primitive for the case where the buyer is an AI agent calling your API at $0.02/call. The SDK is one line of middleware, MIT licensed.
 
 5 MCP servers shipped to npm. 1,271 downloads on the main package over the last 7 days.
 
@@ -74,7 +74,7 @@ A few things I've changed in the last 48 hours after seeing this:
 
 1. Added stderr boot CTAs to all 5 MCP servers pointing to /pricing and a free tier. Most MCP servers I've installed don't do this — they boot silently, no URL. Conversion target: 5%.
 
-2. Repositioned the LP. The old hero led with the implementation ("non-custodial USDC on Base, ERC-2612 permits"). It scared away the actual ICP — MCP devs who want monetization but don't want to learn a crypto stack to install. New hero: "Monetize your MCP server in 5 minutes." The crypto is still under the hood; it's just not the headline.
+2. Repositioned the LP. The old hero led with the implementation ("non-custodial USDC on Base, ERC-2612 permits"). It scared away the actual ICP — AI infra devs who need billing but don't want a crypto stack as the headline. New hero: "AI-native usage billing. In one line of code." Compared against Orb / Metronome / Stripe directly. USDC is still the settlement primitive; it's just not how I sell the product anymore.
 
 3. Added consulting. Pure product can't survive on 0 buyers — I put up a /consulting page with fixed-price 2-week sprints ($2k audit, $5k integration, $8k custom MCP build). Cold-email outreach to 20 targets starts tomorrow.
 
@@ -83,7 +83,7 @@ A few things I've changed in the last 48 hours after seeing this:
 What I'd love feedback on:
 
 - If you've shipped an MCP server or any npm dev tool: what was your conversion from install to product page? I want to know whether 0.9% is normal or anomalous.
-- For folks who've built billing layers (Lago, Orb, m3ter, Paid.ai): is sub-cent per-call genuinely a new market or just a niche?
+- For folks who've built or used billing layers (Lago, Orb, m3ter, Paid.ai, Metronome): is the AI-agent-as-buyer case actually a new market or just SaaS metering in a different hat?
 - For solo founders: when did you call it on a product that wasn't converting? Any heuristic that worked?
 
 Links:
