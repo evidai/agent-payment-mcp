@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import ContactButton from "../ContactButton";
+import ContactButton from "../about/ContactButton";
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 // Sales URL for cold outreach. Pitched at engineering leads at API companies
