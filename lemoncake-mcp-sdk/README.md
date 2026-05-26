@@ -1,6 +1,6 @@
 # @lemon-cake/mcp-sdk
 
-**AI-native usage billing SDK.** Add per-call USDC billing to any MCP server or HTTP API in one line of code. MIT — the open core of [LemonCake](https://lemoncake.xyz).
+**The SDK for LemonCake's AI API Gatekeeper.** Add per-call billing + spend caps to any MCP server or HTTP API in one line of code. MIT — the open core of [LemonCake](https://lemoncake.xyz).
 
 [![npm](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)

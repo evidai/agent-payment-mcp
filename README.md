@@ -2,10 +2,12 @@
 
 # LemonCake
 
-**AI-native usage billing. In one line of code.**
+**Turn any AI API into a paid API in minutes.** `Private Beta · Open core`
 
-> Open-core billing infrastructure for AI APIs, MCP servers, and autonomous agents.
-> Stripe is for humans. Orb / Metronome are for SaaS. **LemonCake is for AI.**
+> The permission + billing layer between AI agents and your endpoints.
+> Drop in a URL rewrite or one line of SDK code. Spend-limited Pay Tokens included.
+>
+> *Not a payments company (Stripe owns it). Not a SaaS billing platform (Orb/Metronome own it). Not a wallet (Privy/Dynamic own it). LemonCake = AI API Gatekeeper.*
 
 [![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
 [![Open core](https://img.shields.io/badge/model-open--core-brightgreen.svg)](#-open-core-what-is-open-what-is-hosted)

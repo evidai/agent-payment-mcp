@@ -1,12 +1,11 @@
 {
-  "name": "polymarket-guard-mcp",
-  "mcpName": "io.github.evidai/polymarket-guard",
-  "version": "0.1.2",
-  "description": "MCP server for Polymarket prediction markets — buy/sell positions with USDC pay-per-call billing via LemonCake",
+  "name": "gmx-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for GMX v2 synthetic stock perpetuals — trade AAPL/TSLA/NVDA with USDC on Arbitrum. Pay-per-call via LemonCake.",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "bin": {
-    "polymarket-guard-mcp": "./dist/index.js"
+    "gmx-mcp": "./dist/index.mjs"
   },
   "files": [
     "dist",
@@ -16,30 +15,33 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
-    "polymarket",
-    "prediction-markets",
-    "usdc",
+    "gmx",
+    "gmx-v2",
     "defi",
-    "polygon",
+    "perpetuals",
+    "synthetic-stocks",
+    "arbitrum",
+    "usdc",
     "pay-per-call",
     "lemoncake",
-    "clob",
-    "ai-agent"
+    "ai-agent",
+    "claude",
+    "cursor"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/evidai/lemon-cake.git",
-    "directory": "polymarket-mcp"
+    "directory": "gmx-mcp"
   },
-  "homepage": "https://github.com/evidai/lemon-cake/tree/main/polymarket-mcp",
+  "homepage": "https://github.com/evidai/lemon-cake/tree/main/gmx-mcp",
   "bugs": {
     "url": "https://github.com/evidai/lemon-cake/issues"
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "node build.mjs",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node dist/index.mjs",
     "prepublishOnly": "npm run build"
   },
   "publishConfig": {
@@ -51,8 +53,9 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.4.0"
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
   }
 }

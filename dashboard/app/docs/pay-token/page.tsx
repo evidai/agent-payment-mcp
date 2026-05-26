@@ -29,7 +29,7 @@ export default function PayTokenPage() {
       <article className="mx-auto max-w-2xl px-5 py-12 sm:py-16 prose prose-sm">
         <Link href="/docs" className="text-xs text-amber-700 no-underline">← Docs</Link>
 
-        <div className="!mt-4 mb-4 flex items-center gap-2">
+        <div className="!mt-4 mb-4 flex items-center gap-2 flex-wrap">
           <span className="inline-block text-[10px] font-mono uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded">Draft v0.1</span>
           <span className="text-[11px] text-gray-500">Stabilizing in Q3 2026</span>
         </div>
@@ -38,6 +38,16 @@ export default function PayTokenPage() {
         <p className="text-sm text-gray-500 !mt-0">
           The permission primitive between an AI agent and your API. JSON, signable, scoped, expiring, and rate-limited at issuance time.
         </p>
+
+        {/* Honesty banner — what's spec vs what's shipped. Surface this loudly
+            because the page reads like it might already be running in prod,
+            and design partners deserve to know it's a forward-looking spec. */}
+        <div className="not-prose mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-bold mb-1">⚠ Status: spec only.</p>
+          <p className="leading-relaxed">
+            This page documents a <strong>forward-looking JSON spec</strong>. The reference issuance + verification implementation lands in <strong>Q3 2026</strong> as part of the hosted Gateway. Today the SDK (<code className="text-xs bg-amber-100 px-1 rounded">@lemon-cake/mcp-sdk@0.3.0</code>) ships a simpler pre-flight / charge flow that pre-dates this spec. Design partners get early access to the v0.5 reference impl when it lands.
+          </p>
+        </div>
 
         <hr className="my-8 border-gray-200" />
 

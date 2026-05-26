@@ -4,8 +4,8 @@ import AuthedRedirect from "../AuthedRedirect";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — M2M Payment Infrastructure for AI Agents",
-  description: "ERC-2612 permits + USDC balance management for autonomous Machine-to-Machine payments. Give your AI agent a wallet with a kill switch. Works with Claude, Cursor, Eliza.",
+  title: "LemonCake — AI API Gatekeeper (private beta)",
+  description: "Turn any AI API into a paid API in minutes. The permission + billing layer between AI agents and your endpoints. URL rewrite or one-line SDK. Spend-limited Pay Tokens. Open core, MIT.",
   // canonical を /en/about に統一（middleware が非 JP IP をこちらに送るため）
   alternates: {
     canonical: "https://lemoncake.xyz/en/about",
@@ -45,21 +45,6 @@ const IconTerminal = () => (
 const IconPackage = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
     <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-  </svg>
-);
-const IconPower = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
-  </svg>
-);
-const IconBadge = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
-  </svg>
-);
-const IconBeaker = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <path d="M4.5 3h15"/><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"/><path d="M6 14h12"/>
   </svg>
 );
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -202,8 +187,13 @@ export default function AboutPageEn() {
        */}
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
-          <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            AI API Gatekeeper · Open core · 1k tx/mo free
+          <div className="inline-flex items-center gap-2 mb-6">
+            <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+              AI API Gatekeeper · Open core · 1k tx/mo free
+            </span>
+            <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
+              Private Beta
+            </span>
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
             Turn any AI API into a<br />
@@ -211,9 +201,13 @@ export default function AboutPageEn() {
               paid API in minutes.
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-4 leading-relaxed">
             LemonCake is the permission + billing layer between AI agents and your endpoints.<br className="hidden md:block" />
             Drop in a URL rewrite or one line of SDK code. Spend-limited pay tokens included.
+          </p>
+          <p className="text-[12px] text-[#1a0f00]/45 mb-10 leading-relaxed max-w-xl mx-auto">
+            <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br className="hidden md:block" />
+            <strong>Q3 2026:</strong> hosted gateway, Pay Token issuance, margin dashboard. Design partners get early access.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
