@@ -273,10 +273,156 @@ https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
 
 ---
 
-## 送信前チェックリスト
+## 送信前チェックリスト (Tier S)
 
 - [ ] 全 5 通、過去 thread の subject line をコピーして "Re:" 付ける (新規 thread だと bury される)
 - [ ] 各社の最近の release を 1 行だけ specific observation に差し込む (LinkedIn / Twitter で 2 分確認)
 - [ ] /pricing が live になってることを確認 (https://lemoncake.xyz/pricing が 200)
 - [ ] 送信は 1 時間スパンで分散 (Gmail spam フィルタ回避)
 - [ ] 各送信後、Gmail label `consulting/outreach-2026-05` を付与
+
+---
+
+## Tier A — 5 件の cold email draft (x402 / Coinbase 周辺、新規 cold)
+
+Tier S とは違い **新規 cold**。R2-R3 thread はないので件名から作る。
+全件 MPP-aware かつ「Coinbase / x402 spec への deference」を見せて、敵対しない pitch。
+warm intro があれば優先 (Anthropic Directory は提出済 thread を follow up できる)。
+
+### 6. Coinbase Developer Platform (x402 spec team)
+
+接触経路: x402 spec の GitHub issue / Coinbase Dev Discord / Twitter (@CoinbaseDev) — メールより public channel の方が見られる確率高い。
+
+```
+Subject: x402 facilitator implementer — partnership / reference impl?
+
+Hi x402 team,
+
+I'm Hiroto (evidai) — built an independent x402 facilitator on top of CDP
+(now live at lemoncake.xyz, 5 production MCPs already paying through it).
+After Stripe Sessions 2026 dropped MPP, I refit the facilitator to settle
+MPP-signed payments on Base/USDC — keeping x402 as the gateway spec.
+
+Two things you might find interesting:
+  1. Reference implementation: we're MIT-licensing the permit/facilitator
+     kit later this month. Happy to flag the PR if the spec docs want a
+     non-Coinbase impl to link.
+  2. Edge cases we hit: JP onramp (Stripe Crypto Onramp doesn't serve
+     Japan, so we built a parallel JPY → USDC → Base flow). Worth a
+     spec note if Bazaar wants JP-buyer-reachable APIs.
+
+Open to a 15-min call if either is useful. Otherwise feel free to
+ignore — just wanted to surface it.
+
+— Hiroto
+contact@aievid.com · github.com/evidai · https://lemoncake.xyz/pricing
+```
+
+### 7. Coinbase Bazaar team
+
+```
+Subject: x402 / Bazaar listing — partner consultant for new entrants?
+
+Hi Bazaar team,
+
+I'm Hiroto — run a Bazaar-listed x402 facilitator (lemoncake.xyz) and
+have shipped 5 production MCPs that route paid calls through it.
+
+I get inbound from teams who want to list on Bazaar but don't have the
+in-house bandwidth to wire up x402 + MPP. We're offering a fixed-price
+($5k / 2-week) integration package — would Bazaar want us as a referral
+partner for new applicants? No cost to Coinbase; we'd just take the
+direct contract and ensure they end up Bazaar-listed at the end.
+
+15-min if there's mutual interest, otherwise no worries.
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 8. Anthropic Developer Relations (Directory submission follow-up)
+
+接触経路: 既に Anthropic Directory submission の thread あり (memo 参照: project_anthropic_directory_submission)。そこに reply.
+
+```
+Subject: Re: LemonCake Directory submission — also offering MCP+x402 integration help
+
+Hi {{reviewer name from existing thread}},
+
+Quick update on lemon-cake-0.5.0 (Directory submission, week of 5/8) —
+also wanted to flag: post-Stripe-Sessions-2026, we're now MPP-compatible
+and offering paid integration help to partners who want MCP + x402 in
+their stack. Fixed price, $5k / 2 weeks, written deliverable.
+
+If any Directory-listed partners ask about agent payment integration on
+the side, happy to be the referral. We've already touched Modal,
+Pipedream, LangChain, LlamaIndex with that pitch — happy to share early
+signal if helpful for your partner sales.
+
+Otherwise no follow-up needed, just keeping the thread useful.
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 9. Anchorage Digital — agent-payment custody settle
+
+接触経路: LinkedIn cold (個別 employee) or contact form。
+
+```
+Subject: x402 facilitator + institutional custody settle — pattern question
+
+Hi Anchorage team,
+
+I'm Hiroto (evidai) — built a non-custodial x402 facilitator on Base
+(lemoncake.xyz). Settling 5 production MCPs through it, $0.005/tx public
+pricing, MPP-compatible.
+
+I get the question often: "what if the buyer is a regulated fund that
+needs Anchorage custody for the USDC?" The settle pattern between
+non-custodial agent permit and qualified custody isn't documented
+anywhere I've found.
+
+Would Anchorage be open to a 30-min call to compare notes? I'm not
+selling — genuinely trying to figure out whether there's a clean way
+for permit-based agent payments to settle out of Anchorage-held USDC
+without breaking either side's compliance posture.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+```
+
+### 10. Fireblocks — same pattern, institutional rail
+
+```
+Subject: ERC-2612 permit + Fireblocks-held USDC settlement — feasibility
+
+Hi Fireblocks team,
+
+I'm Hiroto, run lemoncake.xyz (x402 facilitator on Base, MPP-compatible,
+non-custodial). 5 production MCPs paying through it today.
+
+Hypothetical: agent operator wants to hand the agent a 90-day ERC-2612
+permit, but the underlying USDC lives in a Fireblocks vault. Today my
+facilitator can't settle out of a Fireblocks-custodied wallet because
+the permit signing flow assumes EOA control of the spend key.
+
+Is there a known integration pattern for ERC-2612 permits signed via
+Fireblocks policy engine? If not, would 30 min on a call be useful — I
+can describe what builders are asking for from our side, you can tell
+me if it's already on roadmap or off the table.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+```
+
+---
+
+## 送信前チェックリスト (Tier A)
+
+- [ ] Tier S → 1 週間後の **Tue 2026-06-02 〜 Wed 06-03** に送る (Tier S の返事を待ってから判断)
+- [ ] Coinbase 2 件は Twitter / Discord 経由を試して反応見てから email、最初から email でもいい
+- [ ] Anthropic は **Directory thread に reply**、新規 cold ではない
+- [ ] Anchorage / Fireblocks は LinkedIn 経由が反応高い (cold メールは spam フィルタ通りにくい)
+- [ ] /pricing と /consulting URL が両方 200 で生きてること確認
+- [ ] 返事 1 件でも来たら Tier B / C は止めて intro 確保に全力 (時間配分間違えない)

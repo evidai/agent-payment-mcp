@@ -382,13 +382,17 @@ export default function StartV2Page() {
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
           <p className="font-bold">
-            🍋 LemonCake never holds your {currency}. AI agents pay API providers directly.
+            🍋 LemonCake never holds your {currency}. MPP-compatible facilitator — AI agents pay API providers directly on Base.
           </p>
         </div>
 
         <h1 className="text-3xl font-bold text-gray-900">Get started in 2 minutes</h1>
         <p className="mt-2 text-gray-600">
-          Sign once for 90 days. After that, your AI calls APIs with no further prompts.
+          Sign one ERC-2612 permit for 90 days. Free up to 1,000 tx / month — gas sponsored, no card.{" "}
+          <a href="/pricing" className="font-semibold text-amber-700 underline-offset-2 hover:underline">See pricing →</a>
+        </p>
+        <p className="mt-1.5 text-[12px] text-gray-500">
+          Stripe MPP / Tempo interop · KYA Tier 1 included · Non-custodial (FSA-confirmed)
         </p>
 
         {/* Currency toggle — wins over the rest of the flow. Lives above
