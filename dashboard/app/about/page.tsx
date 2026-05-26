@@ -301,39 +301,49 @@ export default function AboutPage() {
             />
           </div>
           {/* Text — bottom on mobile, left on desktop */}
+          {/*
+           * Hero repivoted 2026-05-27: dev-billing / open-core narrative
+           * (matches /about/en). 旧 hero ("Code pays code · We never touch
+           * the funds") は crypto / non-custodial を前面に出してて、ICP
+           * (MCP / API 開発者) が「自分向けじゃない」と離脱してた。
+           * 新 hero は SDK と「3 行で課金追加」を主役に。
+           */}
           <div className="flex-1 text-center md:text-left order-2 md:order-1">
+            <div className="inline-block px-3 py-1 mb-5 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+              AI billing OS · オープンコア · 月 1,000 tx 無料
+            </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-              Code pays code.<br />
+              AI ツールに課金を、<br />
               <span className="text-black">
-                We never touch the funds.
+                3 行のコードで。
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-xl mb-10 leading-relaxed mx-auto md:mx-0">
-              AI エージェント向け非カストディ USDC 決済基盤。<br className="hidden md:block" />
-              <strong>1 度の permit 署名</strong>で 90 日間ノーサイン。USDC は<strong>あなたのウォレット</strong>に残ったまま、API 提供者へ直接送金。
+            <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
+              AI ネイティブな usage-based billing。call / token / agent 単位で課金、
+              <strong>API キー管理不要</strong>、<strong>subscription 設定不要</strong>、Stripe Connect 非対応国でも動く。
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link
-                href="/start/v2"
+                href="/start/free"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
               >
-                🍋 1 分で permit 発行 <IconArrowRight />
+                無料で始める <IconArrowRight />
+              </Link>
+              <Link
+                href="/docs"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+              >
+                ドキュメント →
               </Link>
               <Link
                 href="/sellers"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-[#1a0f00]/30 text-[#1a0f00] font-semibold rounded-xl hover:bg-[#1a0f00]/5 transition-colors text-sm"
-              >
-                API を公開する（無料）
-              </Link>
-              <Link
-                href="/start"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-transparent text-[#1a0f00]/70 font-semibold hover:text-[#1a0f00] transition-colors text-sm"
               >
-                Demo Mode を試す →
+                API 提供者向け →
               </Link>
             </div>
             <p className="text-[12px] text-[#1a0f00]/50 mt-4">
-              <code className="font-mono">npx -y agent-payment-mcp</code> · サインアップ不要・FSA 確認済・x402 native
+              <code className="font-mono">npm i @lemon-cake/mcp-sdk</code> · MIT · オープンコア（Supabase / Clerk と同じパターン）
             </p>
           </div>
         </section>

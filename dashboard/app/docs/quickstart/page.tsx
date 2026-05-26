@@ -1,9 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+// Rewritten 2026-05-27 to be SDK-first, not MCP-config-first. The previous
+// version walked through Claude Desktop config files and Demo Mode tools.
+// That positioned LemonCake as "an MCP server you install" — useful for
+// the buyer-side audience, but the seller-side audience (the one we're
+// actually monetizing) needs to see "how do I add billing to my own tool"
+// in the first 30 seconds. Vercel / Supabase / Resend style: install,
+// import, one line, done.
+
 export const metadata: Metadata = {
   title: "Quickstart — LemonCake Docs",
-  description: "5 分で agent-payment-mcp を Claude / Cursor / Cline に接続。Demo Mode から permit 発行まで。",
+  description: "Add usage billing to your MCP server or AI API in under 5 minutes. Three lines of code, demo mode out of the box, MIT-licensed SDK.",
   alternates: { canonical: "https://lemoncake.xyz/docs/quickstart" },
 };
 
@@ -14,101 +22,110 @@ export default function QuickstartPage() {
         <Link href="/docs" className="text-xs text-amber-700 no-underline">← Docs</Link>
 
         <h1 className="!mt-4 !mb-2 text-3xl font-bold text-gray-900">Quickstart</h1>
-        <p className="text-sm text-gray-500 !mt-0">5 分で AI エージェントに USDC ウォレットを持たせる。</p>
+        <p className="text-sm text-gray-500 !mt-0">
+          Add usage billing to your tool in 3 lines of code. Demo mode is the default — no signup, no card, no env vars required.
+        </p>
 
         <hr className="my-8 border-gray-200" />
 
-        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">Step 1: MCP server を追加</h2>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          Claude Desktop / Cursor / Cline の MCP 設定ファイル（典型的には{" "}
-          <code className="text-xs bg-gray-100 px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
-          ）に追記：
-        </p>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`{
-  "mcpServers": {
-    "lemon": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"]
-    }
-  }
-}`}</pre>
-        <div className="text-xs text-gray-500 leading-relaxed mt-2 rounded-lg border border-amber-200 bg-amber-50/30 px-3 py-2.5">
-          <p>
-            env vars 無しで起動すると <strong className="text-gray-700">Demo Mode</strong>。サインアップ不要・課金なしで以下 8 つの実 API を試せる：
-          </p>
-          <ul className="mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-0.5 text-[11px] font-mono text-gray-700">
-            <li>demo_search</li>
-            <li>demo_translate</li>
-            <li>demo_weather</li>
-            <li>demo_geocode</li>
-            <li>demo_time</li>
-            <li>demo_dictionary</li>
-            <li>demo_fx</li>
-            <li>demo_echo</li>
-          </ul>
-          <p className="mt-1.5">
-            レート制限: 1 ツール <strong className="text-gray-700">60 calls/h</strong>。気に入ったら Step 3 で paid services を解放。
-          </p>
-        </div>
-
-        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">Step 2: Claude にアクセス</h2>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          MCP client を再起動後、agent に話しかける：
-        </p>
-        <pre className="bg-gray-950 text-amber-300 rounded-xl p-4 text-sm overflow-x-auto">{`「lemon を使って Wikipedia で 'Model Context Protocol' を検索して要約して」`}</pre>
-        <p className="text-xs text-gray-500 leading-relaxed mt-2">
-          agent が <code className="text-[10px] bg-gray-100 px-1 rounded">list_services</code> → <code className="text-[10px] bg-gray-100 px-1 rounded">call_service(demo_search)</code> を自動実行する。
+        {/* ── Install ── */}
+        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">1 · Install</h2>
+        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`npm install @lemon-cake/mcp-sdk
+# or pnpm / yarn / bun — works with all of them`}</pre>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          MIT licensed, ~12kB gzipped, zero runtime dependencies. Source at{" "}
+          <a href="https://github.com/evidai/agent-payment-mcp/tree/main/lemoncake-mcp-sdk" className="text-amber-700 underline-offset-2 hover:underline">github.com/evidai/agent-payment-mcp</a>.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">Step 3: paid services を解放（任意）</h2>
+        {/* ── Wrap your tool ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">2 · Wrap your tool</h2>
         <p className="text-sm text-gray-700 leading-relaxed">
-          Demo Mode で気に入ったら、<Link href="/start/v2" className="text-amber-700 font-bold">/start/v2</Link> で permit を発行：
+          Import the SDK, create a client, wrap each tool handler with{" "}
+          <code className="text-xs bg-gray-100 px-1 rounded">lc.charge()</code>. That&apos;s the entire integration.
         </p>
-        <ol className="text-sm text-gray-700 leading-relaxed pl-5 list-decimal space-y-1.5">
-          <li>Google でサインイン（Privy が embedded wallet を自動生成）</li>
-          <li>Apple Pay / Google Pay / 銀行振込で USDC を購入（Coinbase / Transak が内蔵）</li>
-          <li>ERC-2612 permit に 1 度署名（90 日 / $25/日 hard cap、ガス代不要）</li>
-          <li>表示された <code className="text-xs bg-gray-100 px-1 rounded">LEMON_CAKE_PERMIT</code> をコピペで env に貼る</li>
+        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
+
+const lc = createLemonCakeSDK();        // demo mode without env vars
+
+server.tool(
+  "search",
+  lc.charge({ price: 0.02 }),           // ← the one line you add
+  async ({ query }) => {
+    return await myActualSearch(query);
+  },
+);`}</pre>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          The wrapper handles: pre-flight budget check, charge recording, idempotency, and error formatting. If the buyer&apos;s budget is exhausted, the handler never runs — no compute wasted on uncollectable calls.
+        </p>
+
+        {/* ── Run in demo ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">3 · Run it</h2>
+        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`$ node server.js
+[lemoncake] demo mode — charges logged to stderr, no real USDC
+[lemoncake]   search       $0.02
+[lemoncake]   summarize    $0.05
+[lemoncake]   → set LEMONCAKE_SELLER_KEY to go live`}</pre>
+        <p className="text-sm text-gray-700 leading-relaxed mt-3">
+          That&apos;s it. The server is now metering every call. Demo mode is local-only — no telemetry leaves your machine.
+        </p>
+
+        {/* ── Go live ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">4 · Go live (when ready)</h2>
+        <ol className="text-sm text-gray-700 leading-relaxed list-decimal pl-5 space-y-2">
+          <li>
+            Grab a seller key at{" "}
+            <Link href="/start/free" className="text-amber-700 underline-offset-2 hover:underline font-semibold">/start/free</Link>
+            {" "}(3 fields, no card, manual provisioning within 24h while inbound is small).
+          </li>
+          <li>Export the key as an env var:
+            <pre className="bg-gray-950 text-gray-300 rounded-xl p-3 text-xs mt-2 leading-relaxed">{`export LEMONCAKE_SELLER_KEY="lc_seller_..."`}</pre>
+          </li>
+          <li>Restart your server. The SDK auto-detects the key and switches to live mode. Real charges, paid out as USDC on Base.</li>
         </ol>
 
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed mt-3">{`{
-  "mcpServers": {
-    "lemon": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"],
-      "env": {
-        "LEMON_CAKE_PERMIT": "<paste blob>"
-      }
-    }
-  }
-}`}</pre>
-
-        <p className="text-sm text-gray-700 leading-relaxed mt-3">
-          これで Serper（Google Search）、Hunter.io、gBizINFO、NTA 適格請求書 API などの paid services を呼べる。
-          単価は Provider 設定（多くは <code className="text-xs bg-gray-100 px-1 rounded">$0.001</code> 〜 <code className="text-xs bg-gray-100 px-1 rounded">$0.05</code>/call）。
-        </p>
-
-        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">FAQ</h2>
-
-        <h3 className="text-base font-bold mt-5 mb-1 text-gray-900">USDC が漏洩したらどうなるの？</h3>
+        {/* ── Complete example ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Complete working example</h2>
         <p className="text-sm text-gray-700 leading-relaxed">
-          permit に焼かれた cap（デフォルト $25/日）を超えて引かれない。<code className="text-xs bg-gray-100 px-1 rounded">approve(spender, 0)</code> を USDC contract に直接送れば即時 revoke も可能。
-          詳細は <Link href="/docs/permit" className="text-amber-700">permit ドキュメント</Link>。
+          A full runnable MCP server with 2 paid tools lives at{" "}
+          <a href="https://github.com/evidai/agent-payment-mcp/tree/main/examples/mcp-monetization-starter" className="text-amber-700 underline-offset-2 hover:underline font-semibold">examples/mcp-monetization-starter</a>:
+        </p>
+        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`git clone https://github.com/evidai/agent-payment-mcp
+cd agent-payment-mcp/examples/mcp-monetization-starter
+npm install && npm start
+# → boots a working MCP server with billing in demo mode`}</pre>
+
+        {/* ── HTTP API ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Not an MCP server? HTTP works too</h2>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          For regular HTTP APIs (Express, Hono, Next.js Route Handlers, Cloudflare Workers, etc.), use{" "}
+          <code className="text-xs bg-gray-100 px-1 rounded">@lemon-cake/x402-server</code>:
+        </p>
+        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`import { paymentMiddleware } from "@lemon-cake/x402-server";
+
+app.use("/api/search", paymentMiddleware({ pricePerCallUsdc: 0.02 }));
+app.get("/api/search", async (req, res) => {
+  return res.json(await myActualSearch(req.query.q));
+});`}</pre>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          x402-compatible — any agent that speaks the{" "}
+          <a href="https://www.x402.org/" className="text-amber-700 underline-offset-2 hover:underline">x402 protocol</a>{" "}
+          (Coinbase Bazaar, AWS Bedrock AgentCore, Anthropic Connectors) can pay your endpoint directly.
         </p>
 
-        <h3 className="text-base font-bold mt-5 mb-1 text-gray-900">90 日後どうなる？</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          permit の deadline が切れて自動失効。<Link href="/start/v2" className="text-amber-700">/start/v2</Link> で再署名するだけ。
-        </p>
-
-        <h3 className="text-base font-bold mt-5 mb-1 text-gray-900">LemonCake は USDC を持ってない？</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          一切持たない。AI が API を呼ぶ瞬間、あなたのウォレットから Provider のウォレットへ直接オンチェーン送金される。LemonCake はこの送金を実行するための permit を渡すだけ。
-          <Link href="/security" className="text-amber-700">セキュリティ詳細</Link>。
-        </p>
+        {/* ── What next ── */}
+        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">What to read next</h2>
+        <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-2">
+          <li><Link href="/pricing" className="text-amber-700 underline-offset-2 hover:underline">Pricing</Link> — free tier limits, Pro tier rates, Enterprise terms</li>
+          <li><Link href="/docs/permit" className="text-amber-700 underline-offset-2 hover:underline">ERC-2612 permit primer</Link> — how the on-chain hard cap actually works (only matters if you care)</li>
+          <li><Link href="/docs/x402-hybrid" className="text-amber-700 underline-offset-2 hover:underline">x402 hybrid mode</Link> — auto-listing on Coinbase Bazaar + AgentCore directories</li>
+          <li><Link href="/docs/migrate-from-coinbase" className="text-amber-700 underline-offset-2 hover:underline">Migrating from Coinbase x402</Link> — drop-in middleware swap</li>
+          <li><Link href="/docs/migrate-from-stripe-mpp" className="text-amber-700 underline-offset-2 hover:underline">Coexisting with Stripe MPP</Link> — when to route which way</li>
+        </ul>
 
         <hr className="my-10 border-gray-200" />
-        <p className="text-xs text-gray-500">次：<Link href="/docs/permit" className="text-amber-700 font-bold">ERC-2612 permit の仕組み →</Link></p>
+        <p className="text-xs text-gray-400">
+          SDK source · MIT · <a href="https://github.com/evidai/agent-payment-mcp" className="underline hover:text-amber-700">github.com/evidai/agent-payment-mcp</a> · Questions: <a href="mailto:contact@aievid.com" className="underline hover:text-amber-700">contact@aievid.com</a>
+        </p>
       </article>
     </main>
   );

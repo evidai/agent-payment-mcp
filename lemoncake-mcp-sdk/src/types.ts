@@ -185,6 +185,19 @@ export interface LemonCakeSDK {
   middleware(config: MiddlewareConfig): GlobalMiddlewareFn;
 
   /**
+   * Returns an Express/Connect-compatible HTTP middleware that bills
+   * requests matching a path. The middleware short-circuits non-matching
+   * routes (returns `next()` without doing anything).
+   *
+   * Usage: app.use(lc.protect("/api/search", { cost: 0.02 }))
+   *
+   * Returns `(req, res, next) => Promise<void>`. We avoid declaring the
+   * Express types here so consumers don't need @types/express installed.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protect(path: string | RegExp, options: import("./protect.js").ProtectOptions): (req: any, res: any, next: (err?: unknown) => void) => Promise<void>;
+
+  /**
    * Fetch cumulative earnings for the configured seller.
    */
   getEarnings(): Promise<EarningsResponse>;

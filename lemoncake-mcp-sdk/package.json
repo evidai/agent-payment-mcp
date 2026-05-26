@@ -1,7 +1,7 @@
 {
   "name": "@lemon-cake/mcp-sdk",
-  "version": "0.2.1",
-  "description": "Stripe for MCP servers — add pay-per-call USDC billing to any MCP tool in 3 lines. v0.2 adds ERC-2612 permit verification for the non-custodial path (Japan FSA Q11 confirmed registration-exempt).",
+  "version": "0.3.0",
+  "description": "AI-native usage billing SDK. lc.charge() wraps MCP tools, lc.protect() wraps HTTP routes. MIT-licensed open-core component of LemonCake.",
   "keywords": [
     "mcp",
     "model-context-protocol",

@@ -1,18 +1,39 @@
 # @lemon-cake/mcp-sdk
 
-**Stripe for MCP servers.** Add pay-per-call USDC billing to any MCP tool in three lines of code.
+**AI-native usage billing SDK.** Add per-call USDC billing to any MCP server or HTTP API in one line of code. MIT — the open core of [LemonCake](https://lemoncake.xyz).
 
 [![npm](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
-[![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/start/v2)
-[![Non-custodial v2](https://img.shields.io/badge/v2_non--custodial-preview-blueviolet)](https://lemoncake.xyz/start/v2)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Open core](https://img.shields.io/badge/model-open--core-brightgreen.svg)](https://lemoncake.xyz)
+[![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-non--custodial-blue)](https://lemoncake.xyz/security)
+
+## MCP — `lc.charge()`
 
 ```typescript
 import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
 
-const lc = createLemonCakeSDK({ sellerKey: process.env.LEMONCAKE_SELLER_KEY });
+const lc = createLemonCakeSDK();              // demo mode without env vars
 
-server.tool("search_patents", lc.charge({ price: 0.05 })(handler));
+server.tool("search", lc.charge({ price: 0.02 }), async ({ query }) => {
+  return await myActualSearch(query);
+});
 ```
+
+## HTTP — `lc.protect()` *(new in v0.3)*
+
+```typescript
+import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
+
+const lc = createLemonCakeSDK();
+
+app.use(lc.protect("/api/search", { cost: 0.02 }));
+
+app.get("/api/search", async (req, res) => {
+  res.json(await myActualSearch(req.query.q));
+});
+```
+
+`protect()` is an Express / Connect / Polka-compatible middleware. The buyer's pay token is read from `Authorization: Bearer …`, `X-LemonCake-Pay-Token`, or `?payToken=…`. Pre-flight hits the LemonCake API; charge is recorded after the response flushes. Demo mode (no `LEMONCAKE_SELLER_KEY`) logs to stderr instead of charging.
 
 > **🍋 v2 (non-custodial) verifier shipped.** As of the 2026-05-21 Japan
 > FSA Fintech Support Desk ruling (Q11), LemonCake operates as a pure SDK

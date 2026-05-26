@@ -246,10 +246,10 @@ export default function AboutPageEn() {
             <pre className="font-mono text-[13px] leading-relaxed overflow-x-auto">
               <code>
                 <span className="text-[#c8b800]">{"import"}</span>{" { createLemonCakeSDK } "}<span className="text-[#c8b800]">{"from"}</span> <span className="text-[#7bc97a]">{`"@lemon-cake/mcp-sdk"`}</span>;{"\n\n"}
-                <span className="text-[#c8b800]">const</span>{" lc = "}<span className="text-white">createLemonCakeSDK</span>{"({"}{"\n"}
-                {"  sellerKey: process.env."}<span className="text-[#7bc97a]">LEMONCAKE_SELLER_KEY</span>{"\n"}
-                {"});"}{"\n\n"}
-                <span className="text-white/50">{"// Charge $0.02 per tool call. That's it."}</span>{"\n"}
+                <span className="text-[#c8b800]">const</span>{" lc = "}<span className="text-white">createLemonCakeSDK</span>{"();"}{" "}<span className="text-white/40">{"// demo mode without env vars"}</span>{"\n\n"}
+                <span className="text-white/50">{"// HTTP route — one line."}</span>{"\n"}
+                {"app.use("}<span className="text-white">lc.protect</span>{"("}<span className="text-[#7bc97a]">{`"/api/search"`}</span>{", { cost: "}<span className="text-[#febc2e]">{"0.02"}</span>{" }));"}{"\n\n"}
+                <span className="text-white/50">{"// Or an MCP tool — same idea."}</span>{"\n"}
                 {"server.tool("}<span className="text-[#7bc97a]">{`"search"`}</span>{", "}<span className="text-white">lc.charge</span>{"({ price: "}<span className="text-[#febc2e]">{"0.02"}</span>{" }), handler);"}
               </code>
             </pre>
@@ -488,71 +488,29 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-28">
-        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Features</p>
-        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
-          Three safety rails<br />built into every token
-        </h2>
-        <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
-          Kill the runaway. Unlock bigger budgets after identity checks. Dry-run without moving real money.<br />
-          Everything from one dashboard.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Kill Switch */}
-          <div className="rounded-3xl bg-gradient-to-br from-red-500/10 to-red-500/[0.02] border border-red-500/20 p-8 flex flex-col">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
-                <IconPower />
-              </div>
-              <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">Kill Switch</span>
+      {/* ── Safety rails (condensed) ── */}
+      {/*
+       * The old "Three safety rails" 3-card grid (Kill Switch / KYA /
+       * Sandbox) was conceptually duplicated by the new Why-developers
+       * grid. Condensed to a single inline strip — the info is still
+       * here for evaluators who want it, just no longer occupying its
+       * own section's worth of real estate.
+       */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="rounded-2xl bg-white/4 border border-white/8 p-6 md:p-8">
+          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4 text-center">Safety rails</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-center md:text-left">
+            <div>
+              <h3 className="text-[14px] font-bold text-white mb-1.5">Kill switch</h3>
+              <p className="text-[12.5px] text-white/55 leading-relaxed">One-click revoke on the dashboard. Subsequent charges return 422 atomically.</p>
             </div>
-            <h3 className="text-xl font-black text-white mb-2">One-click revocation</h3>
-            <p className="text-[13px] text-white/45 leading-relaxed mb-5">
-              Revoke any issued permit instantly. The moment your agent starts doing something unexpected, all payments stop. Subsequent charge requests are rejected with 422.
-            </p>
-            <div className="mt-auto flex flex-col gap-2 text-[12px] text-white/50">
-              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Atomic revoke (race-condition-free)</div>
-              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Owner-only operation</div>
-              <div className="flex items-center gap-2"><span className="text-red-400"><IconCheck /></span>Dashboard → My Permits</div>
+            <div>
+              <h3 className="text-[14px] font-bold text-white mb-1.5">Tiered limits (KYA)</h3>
+              <p className="text-[12.5px] text-white/55 leading-relaxed">$10/day default → $1k/day with Know-Your-Agent → $50k/day with full KYC.</p>
             </div>
-          </div>
-
-          {/* KYA */}
-          <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] border border-emerald-500/20 p-8 flex flex-col">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <IconBadge />
-              </div>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">Know Your Agent</span>
-            </div>
-            <h3 className="text-xl font-black text-white mb-2">Tiered limits via KYA</h3>
-            <p className="text-[13px] text-white/45 leading-relaxed mb-5">
-              Declare your agent&apos;s name and purpose — KYA verified instantly. Daily limit jumps from 10 to 1,000 USDC. Full KYC unlocks 50,000 USDC/day.
-            </p>
-            <div className="mt-auto flex flex-col gap-2 text-[12px] text-white/50">
-              <div className="flex items-center gap-2"><span className="text-emerald-400"><IconCheck /></span>NONE: 10 USDC/day</div>
-              <div className="flex items-center gap-2"><span className="text-emerald-400"><IconCheck /></span>KYA: 1,000 USDC/day (instant)</div>
-              <div className="flex items-center gap-2"><span className="text-emerald-400"><IconCheck /></span>KYC: 50,000 USDC/day</div>
-            </div>
-          </div>
-
-          {/* Sandbox */}
-          <div className="rounded-3xl bg-gradient-to-br from-purple-500/10 to-purple-500/[0.02] border border-purple-500/20 p-8 flex flex-col">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-11 h-11 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <IconBeaker />
-              </div>
-              <span className="text-[10px] font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">Sandbox</span>
-            </div>
-            <h3 className="text-xl font-black text-white mb-2">Risk-free end-to-end test</h3>
-            <p className="text-[13px] text-white/45 leading-relaxed mb-5">
-              Tokens issued with the Sandbox flag never move a real USDC. Limit accounting, charge logs, and proxy forwarding all behave identically to production — dry-run your agent with confidence.
-            </p>
-            <div className="mt-auto flex flex-col gap-2 text-[12px] text-white/50">
-              <div className="flex items-center gap-2"><span className="text-purple-400"><IconCheck /></span>Real balance untouched</div>
-              <div className="flex items-center gap-2"><span className="text-purple-400"><IconCheck /></span>Limits &amp; idempotency match prod</div>
-              <div className="flex items-center gap-2"><span className="text-purple-400"><IconCheck /></span>TEST badge on each row</div>
+            <div>
+              <h3 className="text-[14px] font-bold text-white mb-1.5">Sandbox mode</h3>
+              <p className="text-[12.5px] text-white/55 leading-relaxed">Issue test tokens that match production behavior but never move real USDC.</p>
             </div>
           </div>
         </div>

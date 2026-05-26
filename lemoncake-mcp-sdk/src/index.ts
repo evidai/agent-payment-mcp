@@ -19,6 +19,7 @@
 import { LemonCakeClient, DEFAULT_API_URL } from "./client.js";
 import { buildChargeWrapper } from "./withPayment.js";
 import { buildMiddleware } from "./middleware.js";
+import { buildProtect, type ProtectOptions } from "./protect.js";
 import type {
   LemonCakeSDKConfig,
   LemonCakeSDK,
@@ -29,6 +30,8 @@ import type {
   MCPToolContext,
   EarningsResponse,
 } from "./types.js";
+
+export type { ProtectOptions } from "./protect.js";
 
 export { LemonCakePaymentError, LemonCakeAPIError, LemonCakeRateLimitError } from "./errors.js";
 export type {
@@ -75,6 +78,10 @@ export function createLemonCakeSDK(config: LemonCakeSDKConfig = {}): LemonCakeSD
 
   const client = isDemo ? null : new LemonCakeClient(apiUrl, sellerKey!);
   const chargeWrapper = buildChargeWrapper(client, isDemo, serviceId, defaultPayToken);
+  // `protect` is the HTTP-middleware sibling of `charge`. Built lazily so the
+  // SDK has no required dep on the LemonCakeClient class — demo-mode SDKs
+  // get a working `protect` that just logs to stderr.
+  const protectFn = buildProtect(client as LemonCakeClient, isDemo, serviceId, defaultPayToken);
 
   const sdk: LemonCakeSDK = {
     get isDemo() {
@@ -136,6 +143,22 @@ export function createLemonCakeSDK(config: LemonCakeSDKConfig = {}): LemonCakeSD
      */
     middleware(config: MiddlewareConfig) {
       return buildMiddleware(client, isDemo, serviceId, defaultPayToken, config);
+    },
+
+    /**
+     * Wrap an HTTP route (Express / Connect / Polka / any framework that
+     * accepts `(req, res, next)` middleware) with usage billing.
+     *
+     * ```typescript
+     * const lc = createLemonCakeSDK();
+     * app.use(lc.protect("/api/search", { cost: 0.02 }));
+     * app.get("/api/search", async (req, res) => { ... });
+     * ```
+     *
+     * In demo mode this logs to stderr instead of charging.
+     */
+    protect(path: string | RegExp, options: ProtectOptions) {
+      return protectFn(path, options);
     },
 
     /**
