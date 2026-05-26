@@ -201,16 +201,16 @@ export default function PricingPage() {
       {/* ── Hero ── */}
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-block px-3 py-1 mb-6 bg-[#fffd43]/10 border border-[#fffd43]/25 rounded-full text-[11px] font-mono text-[#fffd43]/80">
-          AI billing OS · 1k tx/mo free · Open source SDK
+          AI API Gatekeeper · 1k tx/mo free · Open core
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-6 leading-[1.05]">
-          Charge per call.<br />
-          <span className="text-[#fffd43]">No subscription overhead.</span>
+          Pay only for what<br />
+          <span className="text-[#fffd43]">your gateway lets through.</span>
         </h1>
         <p className="text-lg text-white/55 max-w-2xl mx-auto mb-10 leading-relaxed">
-          AI-native usage billing: $0.005 per transaction, sub-cent micro-payments included.
-          Free up to 1,000 tx / month — gas sponsored, no card on file.
-          Cheaper than Orb / Metronome at the seat tier, simpler than Stripe at the call tier.
+          Spend-limited Pay Tokens. Per-call USDC settlement. Free up to 1,000 tx / month —
+          gas sponsored, no card on file. Cheaper than Orb / Metronome at the seat tier,
+          simpler than Stripe at the call tier, narrower than both — by design.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link

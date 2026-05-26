@@ -45,6 +45,13 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
         badge: "RECOMMENDED",
       },
       {
+        title: "Pay Token spec (draft v0.1)",
+        desc:  "AI エージェントに渡す spend-limited 権限トークンの JSON 仕様。max_spend / expires_in / allowed_api / rate_limit を 1 つの署名つき token で表現。LemonCake の核",
+        href:  "/docs/pay-token",
+        icon:  "🎟️",
+        badge: "SPEC",
+      },
+      {
         title: "Coinbase x402 からの移行ガイド",
         desc:  "facilitator URL 1 行差し替えで Coinbase x402 → LemonCake へ。MPP 互換、free 1k tx/mo、JP onramp。cutover plan + rollback script 同梱",
         href:  "/docs/migrate-from-coinbase",

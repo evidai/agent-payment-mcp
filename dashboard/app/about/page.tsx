@@ -310,29 +310,30 @@ export default function AboutPage() {
            */}
           <div className="flex-1 text-center md:text-left order-2 md:order-1">
             <div className="inline-block px-3 py-1 mb-5 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-              AI billing OS · オープンコア · 月 1,000 tx 無料
+              AI API Gatekeeper · オープンコア · 月 1,000 tx 無料
             </div>
             {/*
-             * Hero hierarchy (revised 2026-05-27):
-             *   1. Emotional anchor (H1)     — "AI が払える、API が稼げる"
-             *   2. Concrete promise (H2)     — "3 行のコードで"
-             *   3. Mechanism description (p) — usage-based / no API key / global
-             * Order matters: emotional first, practical second. Matches the
-             * Stripe / Vercel-style hero pattern where the headline is the
-             * vision and the subheadline is the implementation hook.
+             * Hero hierarchy (re-revised 2026-05-27, Gatekeeper pivot):
+             *   1. Seller promise (H1)   — "AI APIを、数分で有料化"
+             *   2. Buyer/seller hook (H2) — "AI が払える、API が稼げる"
+             *   3. Mechanism (p)         — gateway + Pay Token
+             * Why H1 went from agent-centric to seller-centric: the actual
+             * ICP is "AI API sellers who want monetization without building
+             * billing infra." The agent-side rhetoric still belongs (as H2)
+             * because it justifies why agents will accept paying.
              */}
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-3 leading-[1.08]">
-              AI エージェントが、そのまま払える。<br />
+              AI API を、<br />
               <span className="text-black">
-                API が、そのまま稼げる。
+                数分で有料化。
               </span>
             </h1>
             <p className="text-xl md:text-2xl font-bold text-[#1a0f00]/85 mb-5 leading-tight">
-              AI ツールに課金を、3 行のコードで。
+              AI エージェントが、そのまま払える。API が、そのまま稼げる。
             </p>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              AI ネイティブな usage-based billing。call / token / agent 単位で課金、
-              <strong>API キー管理不要</strong>、<strong>subscription 設定不要</strong>、Stripe Connect 非対応国でも動く。
+              LemonCake は AI エージェントと API の間に立つ <strong>権限 + 課金レイヤー</strong>。
+              URL を 1 行差し替えるか、SDK を 3 行入れるだけ。spend-limited な Pay Token 同梱。
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link

@@ -16,13 +16,22 @@
 
 ## Title candidates (ranked, primary first)
 
-**Primary (A1):**
+**Primary (A1) — vulnerability-first:**
 ```
 Show HN: 1,271 npm downloads, 11 website visits, 0 paying users
 ```
 - 64 chars, single-axis, data-forward
 - The "11" is the hook — wildly low ratio, HN devs will want the diagnosis
 - No product name in title (force click for context)
+- Body now leads with the Gatekeeper repositioning + the negative-result data
+
+**Alternative (A1b) — product-first, if vulnerability frame feels too dramatic on the morning of:**
+```
+Show HN: LemonCake – Turn any AI API into a paid API in minutes
+```
+- 64 chars
+- Direct product pitch using the new tagline
+- Less likely to flag but also less likely to break out
 
 **Backup options (rank order if A1 stalls):**
 
@@ -55,7 +64,16 @@ Show HN: I shipped 5 MCP servers in 6 weeks. Here's what didn't work.
 ## Body (primary, ~470 words, AI-native billing framing)
 
 ```
-I've been building LemonCake — an AI-native usage-billing layer — for the last 6 weeks. Tagline: "Add usage billing to your AI API in 5 minutes." Thesis: Stripe is great for humans, Orb and Metronome are great for SaaS, but nobody's built the billing primitive for the case where the buyer is an AI agent calling your API at $0.02/call. **Open core** (Supabase / Clerk pattern): SDK + examples + adapters are MIT, the hosted billing engine + dashboard + compliance stay closed.
+I've been building LemonCake — an AI API Gatekeeper — for the last 6 weeks. Tagline: "Turn any AI API into a paid API in minutes." The thesis sharpened a few times before landing here, so let me name the corners we explicitly didn't take:
+
+- We're not a payments company. Stripe / Tempo own that.
+- We're not a SaaS billing platform. Orb / Metronome / Lago own that.
+- We're not an MCP marketplace. The supply-demand chicken/egg kills that.
+- We're not a wallet. Privy / Dynamic / Crossmint own that.
+
+What we are is the **permission + metering layer that sits between an AI agent and your API endpoints**. The agent gets a spend-limited Pay Token (JSON, $5 cap, 1h expiry, allowed_api, rate-limit). The gateway (a URL rewrite *or* one line of SDK code) verifies, throttles, charges. Operator never hands out API keys or wallet private keys.
+
+Open core, Supabase / Clerk pattern: SDK + examples + Pay Token spec are MIT; the hosted gateway + dashboard + compliance + margin viz stay closed.
 
 5 MCP servers shipped to npm. 1,271 downloads on the main package over the last 7 days.
 

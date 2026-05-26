@@ -203,17 +203,17 @@ export default function AboutPageEn() {
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
           <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            AI billing OS · Open source SDK · 1k tx/mo free
+            AI API Gatekeeper · Open core · 1k tx/mo free
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            AI-native usage billing.<br />
+            Turn any AI API into a<br />
             <span className="text-black">
-              In one line of code.
+              paid API in minutes.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Charge per call, per token, per agent. Built for the way AI APIs actually get used —<br className="hidden md:block" />
-            sub-cent micro-payments, machine-as-buyer, MCP-native middleware.
+            LemonCake is the permission + billing layer between AI agents and your endpoints.<br className="hidden md:block" />
+            Drop in a URL rewrite or one line of SDK code. Spend-limited pay tokens included.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
