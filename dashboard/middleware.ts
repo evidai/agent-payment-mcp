@@ -9,7 +9,7 @@
  * 自動振り分け対象（LP 系のみ）:
  *   /, /start, /sellers, /about, /security, /privacy, /legal/*
  * 除外（locale 関係なく動かす）:
- *   /start/v2 (permit 署名)、/api、/_next、/admin、/founder
+ *   /start/v2 (permit 署名)、/api、/_next、/admin
  */
 
 import { NextResponse, type NextRequest } from "next/server";

@@ -8,7 +8,7 @@
  *
  * 設計方針:
  *   - 重複送信防止: 同一 pathname は 1 sessionStorage 期間に 1 回だけ
- *   - 除外パス: /admin/* /api/* /founder /_next/* （ダッシュボード内 nav）
+ *   - 除外パス: /admin/* /api/* /_next/* （ダッシュボード内 nav）
  *   - referrer は document.referrer（外部からの流入のみ意味あり、
  *     internal navigation だと前 LP path になるので取り扱い注意）
  *   - utm_*: URL から抽出
@@ -23,9 +23,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://skillful-blessing-production.up.railway.app";
 
-// /admin と /founder は内部ツール、/api と /_next は API/静的アセット。
+// /admin は内部ツール、/api と /_next は API/静的アセット。
 // 計測対象は LP / docs / Buyer dashboard / Seller wizard など public 系のみ。
-const EXCLUDED_PREFIXES = ["/admin", "/founder", "/api", "/_next"];
+const EXCLUDED_PREFIXES = ["/admin", "/api", "/_next"];
 
 function shouldTrack(pathname: string): boolean {
   return !EXCLUDED_PREFIXES.some(p => pathname.startsWith(p));

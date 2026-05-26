@@ -919,13 +919,6 @@ function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>voi
               <p className="text-[10px] text-gray-400 mt-0.5 truncate">DB 直結のコンバージョン漏斗</p>
             </div>
           </a>
-          <a href="/founder" className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all">
-            <span className="text-base leading-none flex-shrink-0">📝</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium leading-tight">創業者メモ</p>
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate">個人運営メモ + リンク集</p>
-            </div>
-          </a>
         </div>
       </nav>
 

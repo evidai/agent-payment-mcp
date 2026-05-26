@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * /admin/* と /founder で共有するナビゲーション。
+ * /admin/* で共有するナビゲーション。
  *
  * 目的：今まで各ページが「← Admin Console」リンクしか持たず、
- * Funnel ↔ Telemetry ↔ Founder ↔ Admin の往復が面倒だったのを解消する。
+ * Funnel ↔ Telemetry ↔ Admin の往復が面倒だったのを解消する。
  *
  * 使い方:
  *   export default function MyAdminPage() {
@@ -35,7 +35,6 @@ const ITEMS: NavItem[] = [
   { href: "/admin",           label: "管理コンソール", desc: "v2 全体ダッシュボード",         icon: "🛠️", group: "core" },
   { href: "/admin/funnel",    label: "ファネル",       desc: "DB 直結のコンバージョン漏斗",   icon: "📉", group: "core" },
   { href: "/admin/telemetry", label: "テレメトリ",     desc: "SDK / MCP family 利用集計",     icon: "📊", group: "core" },
-  { href: "/founder",         label: "創業者メモ",     desc: "個人運営メモ + リンク集",       icon: "📝", group: "core" },
   { href: "/",                label: "ユーザー側",     desc: "Buyer / Provider ダッシュ",     icon: "🏠", group: "external" },
   { href: "https://analytics.google.com", label: "GA4",  desc: "Google Analytics",            icon: "📈", group: "external", external: true },
   { href: "https://vercel.com/contact-2985s-projects/dashboard/analytics", label: "Vercel Analytics", desc: "Web Analytics", icon: "▲", group: "external", external: true },
