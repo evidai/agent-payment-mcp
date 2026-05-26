@@ -361,6 +361,13 @@ async function main() {
   process.stderr.write(
     `[alpaca-guard-mcp] v${VERSION} ready. mode=${paperMode() ? "paper" : (liveAllowed() ? "live(opt-in)" : "live(BLOCKED)")} creds=${hasCredentials() ? "set" : "MISSING"}\n`
   );
+  // Web funnel CTAs — boot stderr is the most reliable npm→web bridge.
+  process.stderr.write(
+    `[alpaca-guard-mcp]   → Free tier (1k tx/mo, gas sponsored): https://lemoncake.xyz/start/free?utm_source=npm-boot&utm_medium=cli&utm_campaign=alpaca-guard-mcp\n`
+  );
+  process.stderr.write(
+    `[alpaca-guard-mcp]   → Pricing & MPP interop: https://lemoncake.xyz/pricing?utm_source=npm-boot&utm_medium=cli&utm_campaign=alpaca-guard-mcp\n`
+  );
 }
 
 main().catch((err) => {

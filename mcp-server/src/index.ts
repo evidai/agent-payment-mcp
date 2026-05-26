@@ -326,6 +326,11 @@ const UTM            = "utm_source=mcp-server&utm_medium=cli";
 const PERMIT_URL     = `https://lemoncake.xyz/start/v2?${UTM}&utm_campaign=credential-missing`;
 const DASHBOARD_URL  = `https://lemoncake.xyz/?${UTM}`;
 const DOCS_URL       = `https://lemoncake.xyz/about?${UTM}`;
+// Free tier funnel (added 2026-05-26 — production telemetry showed
+// 0.3% npm→web conversion; goal is 5%+ by surfacing /pricing + /start/free
+// in the boot stderr that every MCP client logs).
+const PRICING_URL    = `https://lemoncake.xyz/pricing?${UTM}&utm_campaign=boot-cta`;
+const FREE_TIER_URL  = `https://lemoncake.xyz/start/free?${UTM}&utm_campaign=boot-cta`;
 
 // ── 起動時: 認証状態を stderr に出力（MCP クライアントのログに残る）───────────
 
@@ -349,6 +354,9 @@ if (DEMO_MODE) {
   console.error("[LemonCake MCP]");
   console.error(`[LemonCake MCP]   To unlock paid services: sign 1 permit at  →  ${PERMIT_URL}`);
 }
+console.error("[LemonCake MCP]");
+console.error(`[LemonCake MCP]   💰 Free tier (1k tx/mo, gas sponsored):  ${FREE_TIER_URL}`);
+console.error(`[LemonCake MCP]   📊 Pricing + MPP/Tempo interop docs:     ${PRICING_URL}`);
 
 // ── ヘルパー ──────────────────────────────────────────────────────────────────
 

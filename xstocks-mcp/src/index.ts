@@ -377,6 +377,16 @@ async function main() {
   process.stderr.write(
     `[xstocks-mcp] v${VERSION} ready. mode=${liveMode() ? "live(opt-in)" : "dry-run"} fee=$${FEE_USD.toFixed(2)}/trade\n`
   );
+  // Surface the web funnel — boot output is the single most reliable place
+  // to convert npm installs into website visits. Production telemetry on
+  // 2026-05-26 showed 200+ DL/day vs ~1.5 web views/day = 0.3% conversion.
+  // Goal: bump to 5%+ by making the pricing URL impossible to miss.
+  process.stderr.write(
+    `[xstocks-mcp]   → Pro tier ($0.005/swap): set LEMONCAKE_STOCK_FEE_USD=0.005 (see https://lemoncake.xyz/pricing?utm_source=npm-boot&utm_medium=cli&utm_campaign=xstocks-mcp)\n`
+  );
+  process.stderr.write(
+    `[xstocks-mcp]   → Free tier (1k tx/mo, gas sponsored): https://lemoncake.xyz/start/free?utm_source=npm-boot&utm_medium=cli&utm_campaign=xstocks-mcp\n`
+  );
 }
 
 main().catch((err) => {

@@ -369,6 +369,13 @@ async function main() {
   process.stderr.write(
     `[tokenized-stock-mcp] v${VERSION} ready. mode=${sandboxMode() ? "sandbox" : (liveAllowed() ? "live(opt-in)" : "live(BLOCKED)")} creds=${hasCredentials() ? "set" : "MISSING"} fee=$${FEE_USD.toFixed(2)}/trade\n`
   );
+  // Web funnel CTAs — boot stderr is the most reliable npm→web bridge.
+  process.stderr.write(
+    `[tokenized-stock-mcp]   → Pro tier ($0.005/trade): set LEMONCAKE_STOCK_FEE_USD=0.005 (see https://lemoncake.xyz/pricing?utm_source=npm-boot&utm_medium=cli&utm_campaign=tokenized-stock-mcp)\n`
+  );
+  process.stderr.write(
+    `[tokenized-stock-mcp]   → Free tier (1k tx/mo, gas sponsored): https://lemoncake.xyz/start/free?utm_source=npm-boot&utm_medium=cli&utm_campaign=tokenized-stock-mcp\n`
+  );
 }
 
 main().catch((err) => {

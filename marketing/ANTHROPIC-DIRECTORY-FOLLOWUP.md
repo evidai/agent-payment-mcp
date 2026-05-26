@@ -39,7 +39,7 @@ they're useful for the listing:
        - Free up to 1,000 tx/month (gas sponsored on Base)
        - Pro $50/mo + $0.005/tx
        - Enterprise from $500/mo with KYA bundle
-     Public page: https://lemoncake.xyz/pricing
+     Public page: https://lemoncake.xyz/pricing?utm_source=anthropic-directory&utm_medium=email&utm_campaign=followup-2026-05
      If the Directory listing carries pricing info, this is the
      current source of truth.
 
@@ -58,7 +58,7 @@ flag the changes.
 Thanks,
 Hiroto Yoshida
 evidai · contact@aievid.com
-https://lemoncake.xyz · github.com/evidai
+https://lemoncake.xyz?utm_source=anthropic-directory&utm_medium=email&utm_campaign=followup-2026-05 · github.com/evidai
 ```
 
 ---

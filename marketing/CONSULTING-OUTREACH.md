@@ -24,7 +24,7 @@ facilitator into your API in 2 weeks, $5k flat. ERC-2612 permit so your agents s
 and get a 90-day spending cap; KYA bundle included; works alongside (not against) Stripe MPP.
 
 15-min intro this week? Or just reply with "tell me more" — I'll send a 1-page scope.
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 
 — Hiroto
 contact@aievid.com · @aievid · github.com/evidai
@@ -41,7 +41,7 @@ evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済 / npm 
 
 {{specific_observation}} — Stripe MPP 互換の Base/USDC facilitator を 2 週間 / $5k 固定で組み込めます。Stripe MPP と並走可、ERC-2612 permit で 90 日 spending cap、KYA bundle 同梱。**日本国内の USDC onramp を持つのは現状当社のみ** (Stripe Crypto Onramp は JP 非対応)。
 
-15 分の intro お時間いただけますか。詳細: https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+15 分の intro お時間いただけますか。詳細: https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 
 — Hiroto
 contact@aievid.com
@@ -173,7 +173,7 @@ Open to a 15-min intro this week? Happy to send the 1-page scope first.
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 2. Pipedream — workflow URL の monetization
@@ -196,7 +196,7 @@ Worth a 15-min call? I can pre-share the integration diagram.
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 3. LangChain — LangGraph tool monetization
@@ -220,7 +220,7 @@ Worth a 15-min? Happy to lead with a working PoC video first if that's easier.
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 4. LlamaIndex — LlamaCloud retrieval pricing
@@ -244,7 +244,7 @@ Includes the docs page.
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 5. Replicate — per-prediction agent billing
@@ -268,7 +268,7 @@ Open to a quick 15-min call?
 
 — Hiroto
 contact@aievid.com · github.com/evidai
-https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05 · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ---
@@ -315,7 +315,7 @@ Open to a 15-min call if either is useful. Otherwise feel free to
 ignore — just wanted to surface it.
 
 — Hiroto
-contact@aievid.com · github.com/evidai · https://lemoncake.xyz/pricing
+contact@aievid.com · github.com/evidai · https://lemoncake.xyz/pricing?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 7. Coinbase Bazaar team
@@ -337,7 +337,7 @@ direct contract and ensure they end up Bazaar-listed at the end.
 15-min if there's mutual interest, otherwise no worries.
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 8. Anthropic Developer Relations (Directory submission follow-up)
@@ -362,7 +362,7 @@ signal if helpful for your partner sales.
 Otherwise no follow-up needed, just keeping the thread useful.
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 9. Anchorage Digital — agent-payment custody settle
@@ -458,7 +458,7 @@ also just be on the bench for AI SDK users who ask about pay-per-call.
 15-min call worth booking?
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 12. Cohere
@@ -483,7 +483,7 @@ or just a partner-listed third-party — your call.
 Worth a 15-min?
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 13. HuggingFace Inference team
@@ -507,7 +507,7 @@ docs PR.
 Worth a 15-min?
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 14. Trigger.dev
@@ -531,7 +531,7 @@ metering surface to upsell.
 15-min call?
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 15. Inngest
@@ -553,7 +553,7 @@ pay per event. Free 1k tx/mo, $0.005/tx after.
 15-min if there's interest?
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ---
@@ -583,7 +583,7 @@ evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済、x402
 15 分の意見交換のお時間いただけますか。
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 17. Sakana AI
@@ -602,7 +602,7 @@ Sakana の自律エージェント研究を SaaS 化する際、M2M 決済層を
 Sakana の研究成果を商用化する際の「決済 plumbing」を担うパートナーとしてご検討いただけませんか。15 分お時間いただけると幸いです。
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 18. Preferred Networks (PFN)
@@ -621,7 +621,7 @@ Plamo を agent 化して外部 API を呼ばせる際、M2M 決済 layer は不
 15 分の意見交換、もしくは技術担当者へ転送いただくだけでも助かります。
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 19. freee / MoneyForward API team (warm)
@@ -640,7 +640,7 @@ lemoncake.xyz の Hiroto です。Stripe Sessions 2026 で MPP がリリース�
 2 週間 / $5k で「freee × agent-payment-mcp」の PoC を組めます。partnership 文脈とは別に有償でやらせていただけませんか。
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ### 20. メルカリ Crypto / Stripe Japan (cold but warm-adjacent)
@@ -661,7 +661,7 @@ Stripe MPP は globally に強いプロトコルですが、Stripe Crypto Onramp
 メルカリ Crypto としては既存ユーザの USDC 利用パターン拡張、Stripe Japan としては MPP の JP geo 補完。どちらの文脈でも 15 分のお時間いただけると幸いです。
 
 — Hiroto
-contact@aievid.com · https://lemoncake.xyz/consulting
+contact@aievid.com · https://lemoncake.xyz/consulting?utm_source=cold-email&utm_medium=email&utm_campaign=outreach-2026-05
 ```
 
 ---

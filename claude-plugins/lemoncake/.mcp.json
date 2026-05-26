@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "lemoncake": {
+      "command": "npx",
+      "args":    ["-y", "agent-payment-mcp@latest"],
+      "env":     {
+        "LEMON_CAKE_API_URL":   "https://skillful-blessing-production.up.railway.app",
+        "LEMON_CAKE_UTM_SOURCE": "claude-code-plugin"
+      }
+    },
+    "xstocks": {
+      "command": "npx",
+      "args":    ["-y", "xstocks-mcp@latest"]
+    },
+    "tokenized-stock": {
+      "command": "npx",
+      "args":    ["-y", "tokenized-stock-mcp@latest"]
+    },
+    "alpaca-guard": {
+      "command": "npx",
+      "args":    ["-y", "alpaca-guard-mcp@latest"]
+    },
+    "gmx": {
+      "command": "npx",
+      "args":    ["-y", "gmx-mcp@latest"]
+    }
+  }
+}
