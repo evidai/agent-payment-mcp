@@ -165,11 +165,11 @@ export default function AboutPageEn() {
             </div>
             <div className="hidden md:flex items-center gap-6">
               {[
-                { label: "Integrations", href: "#integrations" },
+                { label: "Pricing",      href: "/pricing" },
+                { label: "Consulting",   href: "/consulting" },
+                { label: "Trade stack",  href: "/trade" },
                 { label: "Features",     href: "#features" },
                 { label: "Quickstart",   href: "#quickstart" },
-                { label: "How it works", href: "#infrastructure" },
-                { label: "Use cases",    href: "#use-cases" },
               ].map(({ label, href }) => (
                 <a key={label} href={href} className="text-[13px] text-white/50 hover:text-white/90 transition-colors">{label}</a>
               ))}
@@ -194,34 +194,34 @@ export default function AboutPageEn() {
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-28 text-center">
           <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            For crypto-native AI agents
+            MPP-compatible · 1k tx/mo free · Non-custodial
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Let Claude trade.<br />
+            Per-call USDC for AI agents.<br />
             <span className="text-black">
-              On-chain guardrails included.
+              On Base. On day one.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Solana DEX swaps, tokenized stocks, perps — your AI executes,<br className="hidden md:block" />
-            ERC-2612 caps the spend. Per-call USDC on Base. Non-custodial.
+            Open ERC-2612 facilitator. Stripe MPP / Tempo interoperable.<br className="hidden md:block" />
+            Native JP onramp. Free up to 1,000 tx / month — $0.005 / tx after.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
               href="/start/v2"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Sign one permit, trade for 90 days <IconArrowRight />
+              Start free — no card <IconArrowRight />
             </Link>
             <Link
-              href="/trade"
+              href="/pricing"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
             >
-              Browse the trading stack →
+              See pricing →
             </Link>
           </div>
           <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-            xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp
+            Built on by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
           </p>
         </section>
       </div>

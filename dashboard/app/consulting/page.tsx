@@ -53,15 +53,16 @@ const SERVICES = [
     badge:  "text-purple-300 bg-purple-500/15 border-purple-500/30",
   },
   {
-    name:        "x402 facilitator integration",
+    name:        "x402 / MPP integration",
     price:       "$5,000",
     duration:    "2 weeks",
-    pitch:       "Your API speaks HTTP 402 by sprint end. Production-ready.",
-    deliverable: "Live x402 endpoint + middleware PR into your repo",
+    pitch:       "Your API speaks HTTP 402 by sprint end. MPP-compatible. Production-ready.",
+    deliverable: "Live x402 endpoint + MPP-interop middleware PR into your repo",
     bullets: [
-      "Coinbase CDP-routed facilitator OR self-hosted Base node — your call",
-      "ERC-2612 permit flow + 90-day hard cap per buyer",
-      "Test suite (jest / vitest) covering settle / refund / replay-attack",
+      "Coinbase CDP-routed OR self-hosted Base facilitator — your call",
+      "Stripe Machine Payments Protocol (MPP) + Tempo interop built in",
+      "ERC-2612 permit flow + 90-day hard cap + KYA Tier 1 hooks",
+      "Test suite (jest / vitest) covering settle / refund / replay / MPP roundtrip",
       "Public docs page draft + 30 days of post-launch fixes",
     ],
     cta:    "Get fixed quote in 24h",
@@ -111,15 +112,16 @@ export default function ConsultingPage() {
       {/* ── Hero ── */}
       <section className="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
         <div className="inline-block px-3 py-1 mb-6 bg-[#fffd43]/10 border border-[#fffd43]/25 rounded-full text-[11px] font-mono text-[#fffd43]/80">
-          For API companies adding agent commerce
+          For API teams adopting MPP / x402 / agent commerce
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-6 leading-[1.05]">
-          x402 + agent payment<br />
+          x402 + Stripe MPP integration,<br />
           <span className="text-[#fffd43]">shipped in 2 weeks.</span>
         </h1>
         <p className="text-lg text-white/55 max-w-2xl mx-auto mb-10 leading-relaxed">
-          We built the x402 facilitator and 5 production MCPs that AI agents pay with today.
-          Now we drop the same plumbing into your API — fixed quote, fixed timeline, written deliverables.
+          We built the x402 facilitator and 5 production MCPs that AI agents pay with today —
+          now MPP-compatible. We drop the same plumbing into your API, interop with Stripe MPP and Tempo,
+          and hand off a written, working integration in 14 days.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <a
@@ -144,7 +146,7 @@ export default function ConsultingPage() {
       <section className="border-y border-white/8 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-6 py-10">
           <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-6">Why us</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
             <div>
               <p className="text-3xl font-black text-white">5</p>
               <p className="text-[11px] text-white/40 mt-1">production MCPs on npm</p>
@@ -158,8 +160,12 @@ export default function ConsultingPage() {
               <p className="text-[11px] text-white/40 mt-1">native facilitator live</p>
             </div>
             <div>
-              <p className="text-3xl font-black text-white">ERC-2612</p>
-              <p className="text-[11px] text-white/40 mt-1">permit flow in production</p>
+              <p className="text-3xl font-black text-white">MPP</p>
+              <p className="text-[11px] text-white/40 mt-1">Stripe / Tempo interop</p>
+            </div>
+            <div>
+              <p className="text-3xl font-black text-white">JP</p>
+              <p className="text-[11px] text-white/40 mt-1">onramp + regulatory cleared</p>
             </div>
           </div>
         </div>
@@ -268,6 +274,14 @@ export default function ConsultingPage() {
             {
               q: "Can you work with our existing payments stack (Stripe, etc.)?",
               a: "Yes — x402 sits next to Stripe, not in place of it. Card buyers stay on Stripe, agent buyers route through the facilitator.",
+            },
+            {
+              q: "Why us instead of Stripe Machine Payments Protocol?",
+              a: "You don't have to pick. We build MPP-compatible by default — your agents can pay via MPP-signed transactions and we settle them on Base/USDC. Where we have a real edge over Stripe alone: (a) JP onramp (Stripe Crypto Onramp doesn't serve Japan), (b) lower per-tx fees on volume, (c) KYA verified-agent identity bundled in.",
+            },
+            {
+              q: "Migrating from Coinbase x402 facilitator?",
+              a: "Yes — drop-in middleware change, same spec. Migration sprint costs the same $5k flat and includes the cutover plus a rollback script if anything goes sideways in production.",
             },
           ].map(({ q, a }) => (
             <div key={q} className="rounded-2xl bg-white/4 border border-white/8 p-6">

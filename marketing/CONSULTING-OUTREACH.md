@@ -5,18 +5,26 @@
 
 ---
 
-## Cold email template (3-sentence, English)
+## Cold email template (3-sentence, English) — MPP-aware
+
+After Stripe Sessions 2026 shipped Machine Payments Protocol (MPP), the pitch
+is **NOT** "use us instead of Stripe" — it's "use us **alongside** Stripe / Tempo,
+on Base/USDC, with the geo and KYA bundle Stripe can't ship."
 
 ```
-Subject: x402 facilitator for {{company}}?
+Subject: x402 + MPP integration for {{company}}?
 
 Hi {{first_name}},
 
-I'm Hiroto — built lemoncake.xyz (FSA non-custodial cleared, 5 production MCPs on npm, x402 facilitator live on Base).
+I'm Hiroto — built lemoncake.xyz (FSA non-custodial cleared, 5 production MCPs on npm,
+x402 facilitator live on Base, now MPP-compatible).
 
-{{specific_observation_about_their_product}} — adding x402-native pay-per-call would take ~2 weeks at $5k flat, ERC-2612 permit so users sign once and get a 90-day spending cap.
+{{specific_observation_about_their_product}} — we ship a Stripe MPP-compatible Base/USDC
+facilitator into your API in 2 weeks, $5k flat. ERC-2612 permit so your agents sign once
+and get a 90-day spending cap; KYA bundle included; works alongside (not against) Stripe MPP.
 
-15-min intro this week? Or just reply with "tell me more" — I'll send a 1-page scope. https://lemoncake.xyz/consulting
+15-min intro this week? Or just reply with "tell me more" — I'll send a 1-page scope.
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
 
 — Hiroto
 contact@aievid.com · @aievid · github.com/evidai
@@ -25,15 +33,15 @@ contact@aievid.com · @aievid · github.com/evidai
 **Variant for Japanese targets** (shorter, more casual):
 
 ```
-件名: {{company}} の API、x402 化のご相談
+件名: {{company}} の API、x402 + MPP 統合のご相談
 
 {{first_name}} 様
 
-evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済 / npm に 5 つ MCP / x402 facilitator 本番稼働) を運営してます。
+evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済 / npm に 5 つ MCP / x402 facilitator 本番稼働 / Stripe MPP 互換) を運営してます。
 
-{{specific_observation}} — x402 化 (HTTP 402 ネイティブの pay-per-call) を 2 週間 / $5k 固定で組み込めます。ERC-2612 permit でユーザは 1 回署名で 90 日 spending cap、Stripe と並走可。
+{{specific_observation}} — Stripe MPP 互換の Base/USDC facilitator を 2 週間 / $5k 固定で組み込めます。Stripe MPP と並走可、ERC-2612 permit で 90 日 spending cap、KYA bundle 同梱。**日本国内の USDC onramp を持つのは現状当社のみ** (Stripe Crypto Onramp は JP 非対応)。
 
-15 分の intro お時間いただけますか。詳細: https://lemoncake.xyz/consulting
+15 分の intro お時間いただけますか。詳細: https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
 
 — Hiroto
 contact@aievid.com
@@ -136,3 +144,139 @@ Memory note: R1-R4 rounds already sent partnership pitches. These get a *differe
 ## 既存 marketing tasks の処遇
 
 Day 4 launch (X / Reddit / Discord) 5 本 はそのまま走らせる but **CTA を /trade → /consulting も併記** に変えた方がリードが拾える可能性あり。判断は別途。
+
+---
+
+## Tier S — 5 件の cold email draft (即送信可、specific observation 入り)
+
+それぞれ既存 R2-R3 で touch 済みの thread に **reply** する形 (新規メールではなく)。
+件名はそのまま継続でも OK、もし返事なかった thread が古ければ件名を「Re: ... + MPP migration?」に変えると最近性が出る。
+
+### 1. Modal Labs — Modal Sandbox MCP の決済 hook
+
+```
+Subject: Re: Modal + agent payment — now MPP-aware
+
+Hi Erik / Akshat,
+
+Quick follow-up on my earlier note about Modal × agent payments. Stripe Sessions
+2026 shipped MPP last week, which changes the conversation: instead of "should
+we add an agent billing layer," it's now "which facilitator do we route MPP-signed
+calls through."
+
+Modal's serverless function URLs are already HTTPS endpoints — the cleanest place
+in the entire agent stack to bolt x402 + MPP. Two-week sprint, $5k flat, drop-in
+middleware that accepts MPP-signed payments and settles them on Base/USDC.
+Includes a /pricing + /docs page draft so your users see it the moment it lands.
+
+Open to a 15-min intro this week? Happy to send the 1-page scope first.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+```
+
+### 2. Pipedream — workflow URL の monetization
+
+```
+Subject: Re: Pipedream + per-trigger agent payment
+
+Hi Tod / Dylan,
+
+Following up on the partnership note from a couple weeks back — wanted to flag
+that the calculus changed after Stripe Sessions 2026 (MPP shipped, Tempo mainnet).
+
+Pipedream workflow URLs are basically already the "atomic billable unit" for agent
+commerce — a public HTTPS endpoint, one canonical action per trigger. The 2-week
+$5k integration we're offering now ships MPP-compatible x402 alongside your
+existing Stripe Connect, so paid workflow URLs can be invoked by MPP-signed
+agents *or* card-paying humans, no fork.
+
+Worth a 15-min call? I can pre-share the integration diagram.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+```
+
+### 3. LangChain — LangGraph tool monetization
+
+```
+Subject: Re: LangChain — tool author monetization for LangGraph
+
+Hi Harrison / team,
+
+Earlier note from me was about LangSmith × agent commerce. The interesting
+update: MPP just landed, which finally gives tool authors a portable signing
+spec — but no one in the LangGraph ecosystem can settle MPP payments today.
+
+We could ship a LangChain-native `lc.tools.paid()` decorator that wraps any
+tool with an MPP-compatible x402 facilitator. Tool author defines a price,
+agent's wallet auto-charges per call, settled on Base/USDC with hard cap from
+ERC-2612 permit. Two-week build, $5k flat — could be a LangChain-shipped
+integration if there's interest.
+
+Worth a 15-min? Happy to lead with a working PoC video first if that's easier.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+```
+
+### 4. LlamaIndex — LlamaCloud retrieval pricing
+
+```
+Subject: Re: LlamaCloud × agent-paid retrieval
+
+Hi Jerry / team,
+
+Quick MPP-driven follow-up. LlamaCloud retrieval is priced per-request today,
+billed to a LlamaCloud org account. Post-MPP, an interesting unlock: each
+retrieval call can be paid directly by the agent's wallet, no org account
+required, no API-key handoff.
+
+2-week, $5k flat integration: MPP-compatible x402 facilitator on top of your
+existing retrieval endpoints. Agents top up via USDC on Base, ERC-2612 permit
+caps daily spend, LlamaCloud takes a take rate without invoicing seats.
+Includes the docs page.
+
+15-min to walk through? I can share the architecture sketch beforehand.
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+```
+
+### 5. Replicate — per-prediction agent billing
+
+```
+Subject: Re: Replicate × agent-paid predictions
+
+Hi Ben / team,
+
+Earlier note was about R3 partnership exploration. The MPP launch reshapes
+the question — Replicate predictions are already per-second billed, the
+missing piece is letting an agent pay for predictions without inheriting
+its operator's API key.
+
+2-week $5k flat: MPP-compatible x402 wrapper that lets an agent's wallet pay
+per prediction directly. ERC-2612 permit handles daily caps, Base/USDC for
+settlement. Net effect: a new buyer class (autonomous agents) using Replicate
+without onboarding into org accounts. Includes the integration PR.
+
+Open to a quick 15-min call?
+
+— Hiroto
+contact@aievid.com · github.com/evidai
+https://lemoncake.xyz/consulting · https://lemoncake.xyz/pricing
+```
+
+---
+
+## 送信前チェックリスト
+
+- [ ] 全 5 通、過去 thread の subject line をコピーして "Re:" 付ける (新規 thread だと bury される)
+- [ ] 各社の最近の release を 1 行だけ specific observation に差し込む (LinkedIn / Twitter で 2 分確認)
+- [ ] /pricing が live になってることを確認 (https://lemoncake.xyz/pricing が 200)
+- [ ] 送信は 1 時間スパンで分散 (Gmail spam フィルタ回避)
+- [ ] 各送信後、Gmail label `consulting/outreach-2026-05` を付与
