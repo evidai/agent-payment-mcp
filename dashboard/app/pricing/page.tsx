@@ -46,7 +46,7 @@ const TIERS = [
     price:    "$0",
     suffix:   "/ month",
     cta:      "Start free",
-    href:     "/start/v2",
+    href:     "/start/free",
     features: [
       "1,000 settled tx / month included",
       "Gas sponsored by us (you pay 0 ETH)",
@@ -189,7 +189,7 @@ export default function PricingPage() {
               Log in
             </Link>
             <Link
-              href="/start/v2"
+              href="/start/free"
               className="text-[13px] font-semibold px-4 py-1.5 bg-[#fffd43] text-[#1a0f00] rounded-lg hover:bg-[#fffd43]/90 transition-colors"
             >
               Start free
@@ -213,7 +213,7 @@ export default function PricingPage() {
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link
-            href="/start/v2"
+            href="/start/free"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#fffd43] text-[#1a0f00] font-semibold rounded-xl hover:bg-[#fffd43]/90 transition-colors text-sm"
           >
             Start free — no card <IconArrow />
@@ -402,7 +402,7 @@ export default function PricingPage() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/v2"
+              href="/start/free"
               className="inline-flex items-center gap-2 px-7 py-3 bg-[#fffd43] text-[#1a0f00] font-bold rounded-xl hover:bg-[#fffd43]/90 transition-colors text-sm"
             >
               Start free <IconArrow />

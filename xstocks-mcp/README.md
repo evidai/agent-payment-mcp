@@ -10,6 +10,8 @@
 [![pricing](https://img.shields.io/badge/pricing-free_1k_tx%2Fmo-fffd43)](https://lemoncake.xyz/pricing)
 
 > 💰 **Free up to 1,000 tx / month** on the LemonCake facilitator (gas sponsored). MPP / Tempo interop. [See pricing →](https://lemoncake.xyz/pricing)
+>
+> **Pro tier ($50/mo):** set `LEMONCAKE_STOCK_FEE_USD=0.005` to apply the Pro per-swap fee (default flat $0.10). The env var override is built-in; no code change required.
 
 > 🍋 **Part of the LemonCake suite.** Japan FSA Q1–Q11 inquiry completed
 > (2026-05): "ソフトウェアの開発・配布のみ" の SDK 配布モデルは
