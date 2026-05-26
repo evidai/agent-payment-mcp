@@ -45,6 +45,13 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
         badge: "RECOMMENDED",
       },
       {
+        title: "Coinbase x402 からの移行ガイド",
+        desc:  "facilitator URL 1 行差し替えで Coinbase x402 → LemonCake へ。MPP 互換、free 1k tx/mo、JP onramp。cutover plan + rollback script 同梱",
+        href:  "/docs/migrate-from-coinbase",
+        icon:  "🔄",
+        badge: "NEW",
+      },
+      {
         title: "freee / MF 自動仕訳",
         desc:  "Pro プランで提供。USDC 受領のたびに freee / MoneyForward に journal entry 自動生成",
         href:  "/docs/accounting",

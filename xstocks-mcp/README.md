@@ -7,6 +7,9 @@
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 [![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/security)
 [![Non-custodial](https://img.shields.io/badge/architecture-non--custodial-blueviolet)](https://lemoncake.xyz/start/v2)
+[![pricing](https://img.shields.io/badge/pricing-free_1k_tx%2Fmo-fffd43)](https://lemoncake.xyz/pricing)
+
+> 💰 **Free up to 1,000 tx / month** on the LemonCake facilitator (gas sponsored). MPP / Tempo interop. [See pricing →](https://lemoncake.xyz/pricing)
 
 > 🍋 **Part of the LemonCake suite.** Japan FSA Q1–Q11 inquiry completed
 > (2026-05): "ソフトウェアの開発・配布のみ" の SDK 配布モデルは

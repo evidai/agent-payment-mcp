@@ -426,3 +426,251 @@ contact@aievid.com · github.com/evidai
 - [ ] Anchorage / Fireblocks は LinkedIn 経由が反応高い (cold メールは spam フィルタ通りにくい)
 - [ ] /pricing と /consulting URL が両方 200 で生きてること確認
 - [ ] 返事 1 件でも来たら Tier B / C は止めて intro 確保に全力 (時間配分間違えない)
+
+---
+
+## Tier B — 5 件の cold email draft (SaaS / AI infra、cold)
+
+Tier S と Tier A の反応見て、まだ余地あれば Tue 2026-06-09 〜 Wed 06-10 で送る。
+全て **新規 cold**。R3 で touch 済みも一部あるが、改めて consulting offer として送る。
+
+### 11. Vercel AI team
+
+接触: vercel.com/contact、Twitter (@vercel), LinkedIn (Lee Robinson / Guillermo Rauch にはまず DM)。
+
+```
+Subject: AI SDK × per-call agent payment — integration consultant available
+
+Hi Vercel AI team (Lee / Guillermo),
+
+I'm Hiroto (evidai) — built lemoncake.xyz, the x402 facilitator that's
+now MPP-compatible. Watching the AI SDK ship streaming + tool calling
+into the default Next.js setup.
+
+The piece that AI SDK doesn't have today is monetization for tool authors.
+Most SDK users hand-roll their own metering or skip it entirely. We could
+ship a Vercel-native `paid()` wrapper that turns any tool into a per-call
+USDC endpoint, gas-sponsored up to 1k tx/mo, MPP-signed.
+
+2-week / $5k integration if Vercel wants this as a partner ship; happy to
+also just be on the bench for AI SDK users who ask about pay-per-call.
+
+15-min call worth booking?
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 12. Cohere
+
+```
+Subject: Cohere API × agent-paid embeds — consultant proposal
+
+Hi Cohere team,
+
+I'm Hiroto, lemoncake.xyz (x402 facilitator, MPP-compatible, FSA-cleared).
+
+Cohere Embed v3 priced per-token is fine for orgs, but agents-as-buyers
+can't easily onboard without inheriting a Cohere org account + API key.
+We could wrap Cohere endpoints with an MPP-compatible x402 facilitator
+so an agent's wallet pays per-call directly — no API key sharing, no
+seat-based pricing.
+
+2-week / $5k. Includes the wrapped endpoints, docs, and an example
+LangChain / LlamaIndex integration. Could be a Cohere-shipped paid SDK
+or just a partner-listed third-party — your call.
+
+Worth a 15-min?
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 13. HuggingFace Inference team
+
+```
+Subject: HF Inference Endpoints × agent-paid inference
+
+Hi HF Inference team,
+
+Hiroto here, run lemoncake.xyz (x402 + MPP facilitator).
+
+Inference Endpoints today bill per-hour, which leaves money on the table
+for spike-y agent traffic (1k calls in a minute, then nothing for an
+hour). x402 + ERC-2612 permit captures that pattern cleanly — agent
+pre-authorizes spend cap, pays per call as it makes them.
+
+2-week / $5k to wrap your Inference Endpoints API with an x402 + MPP
+facilitator layer. Listing on HF Hub as an optional addon. Includes the
+docs PR.
+
+Worth a 15-min?
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 14. Trigger.dev
+
+```
+Subject: Trigger.dev × per-job agent payment
+
+Hi Trigger.dev team (Eric / Matt),
+
+I'm Hiroto — built lemoncake.xyz, an MPP-compatible x402 facilitator
+that 5 production MCPs route paid calls through today.
+
+Trigger.dev jobs are basically the perfect "agent-paid event" primitive
+— atomic, deterministic, idempotent. We could add an `agentPayments`
+trigger option that requires an MPP-signed payment to enter the job
+queue. Builders charge per execution, agents pay in USDC, you get a
+metering surface to upsell.
+
+2-week / $5k. Could be Trigger.dev-shipped or partner-listed.
+
+15-min call?
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 15. Inngest
+
+```
+Subject: Inngest × per-event agent payment monetization
+
+Hi Inngest team (Dan / Tony),
+
+I'm Hiroto, lemoncake.xyz facilitator (x402 + MPP on Base).
+
+Inngest customers ship event-driven workflows — most of which could be
+sold per-trigger to AI agents that don't have humans in the loop. We
+could wrap Inngest function URLs with x402 / MPP middleware so agents
+pay per event. Free 1k tx/mo, $0.005/tx after.
+
+2-week / $5k for the integration + docs.
+
+15-min if there's interest?
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+---
+
+## Tier C — 5 件 (Japan-specific、日本語ネイティブ)
+
+JP 規制 + JP onramp が **構造的 wedge** なので、ここは英語版 cold より「日本の AI agent 決済を解決できる唯一の事業者」という positioning で強気に。
+東京補助金結果出る前から signaling 始めてよい。
+
+### 16. JPYC 株式会社 (warm)
+
+接触経路: 既に Tokyo grant 関連で warm (project_tokyo_jpyc_grant_2026)、岡部氏 X DM ルートあり。岡部氏に DM、または info@ にメール。
+
+```
+件名: JPYC × USDC クロス決済 facilitator のご提案
+
+岡部 様
+
+evidai の Hiroto です。lemoncake.xyz (FSA 非カストディ確認済、x402 + MPP 互換 facilitator) を運営しています。東京都ステーブルコイン補助金で JPYC 連携を主軸に申請中、本件で改めてご相談です。
+
+ご提案: JPYC を Polygon 上 ERC-2612 permit と組み合わせて「JPY 建て agent 決済」の唯一の事業者になりたい、貴社の新規制対応版 JPYC (Polygon 0xE7C3D8C9...) と当社 facilitator を統合する PoC を 2 週間 $5k で着手可能です。具体的には:
+
+1. permit 署名 → JPYC 自動チャージ → 海外 API 決済時に USDC へリアルタイム swap
+2. 補助金採択時は協業先として申請文書に明記、JPYC の認知度向上に寄与
+3. 海外 AI agent が JPY 建てで日本の API 提供者へ支払う唯一の経路
+
+15 分の意見交換のお時間いただけますか。
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 17. Sakana AI
+
+接触: Sakana AI contact form、X (@SakanaAILabs)、David Ha LinkedIn。
+
+```
+件名: Sakana エージェント製品向け M2M 決済 layer
+
+Sakana AI 様
+
+evidai の Hiroto と申します。AI agent 向けの M2M 決済 infra (lemoncake.xyz, FSA 非カストディ確認済) を運営しています。
+
+Sakana の自律エージェント研究を SaaS 化する際、M2M 決済層をフルスクラッチで作るのはコストが見合わないはず。x402 + Stripe MPP 互換の facilitator を 2 週間 / $5k で組み込めます。日本国内向けには JPYC、海外向けには USDC で受領、ERC-2612 permit で daily cap を on-chain で保証。
+
+Sakana の研究成果を商用化する際の「決済 plumbing」を担うパートナーとしてご検討いただけませんか。15 分お時間いただけると幸いです。
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 18. Preferred Networks (PFN)
+
+接触: PFN PR / info@、Plamo / pfgen 関連の担当者 LinkedIn。
+
+```
+件名: Plamo エージェント向け USDC / JPYC 決済 layer のご提案
+
+Preferred Networks 様
+
+evidai の Hiroto です。lemoncake.xyz (非カストディ x402 + MPP facilitator) を運営、5 つの本番 MCP を npm に出しています。
+
+Plamo を agent 化して外部 API を呼ばせる際、M2M 決済 layer は不可欠です。当社 facilitator を 2 週間 / $5k で Plamo の inference / agent パイプラインに組み込めます。FSA 非カストディ確認済 + 東京都補助金申請中なので、日本企業との連携が compliance 上スムーズです。
+
+15 分の意見交換、もしくは技術担当者へ転送いただくだけでも助かります。
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 19. freee / MoneyForward API team (warm)
+
+接触: 既存 partnership thread あり (memory: project_directory_reviews_pending の freee 再申請関連)。担当者に reply。
+
+```
+件名: Re: freee API × AI agent 自動仕訳の有償 PoC
+
+freee 担当 様 (もしくは MoneyForward 担当 様)
+
+lemoncake.xyz の Hiroto です。Stripe Sessions 2026 で MPP がリリースされたことで状況が変わりました。
+
+具体的には: AI agent が freee API を経由して自動仕訳する際、agent からの認証を OAuth ではなく MPP-signed permit に切り替えると、(a) 1 ユーザのアカウントを agent と共有する必要が消える、(b) 認可 scope が permit に lock される、(c) freee 側に新たな「agent buyer」というカテゴリの新規ユーザが流入する。
+
+2 週間 / $5k で「freee × agent-payment-mcp」の PoC を組めます。partnership 文脈とは別に有償でやらせていただけませんか。
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+### 20. メルカリ Crypto / Stripe Japan (cold but warm-adjacent)
+
+接触: メルカリ HR / Crypto 担当の LinkedIn、Stripe Japan は Twitter (@StripeJapan) か日本オフィス info@stripe.com.
+
+```
+件名: 日本市場での AI agent 決済 — Stripe MPP との並走モデル
+
+メルカリ Crypto 様 (もしくは Stripe Japan 様)
+
+evidai の Hiroto です。lemoncake.xyz で x402 + Stripe MPP 互換の facilitator を運営しています。
+
+Stripe MPP は globally に強いプロトコルですが、Stripe Crypto Onramp は日本未対応のため、JP 国内 USDC × Base の動線は構造的に空白です。当社は FSA 非カストディ確認済 + 東京都ステーブルコイン補助金申請中で、ここを担う唯一の事業者になり得ます。
+
+ご提案: 日本国内の AI agent 決済需要を Stripe MPP signed → LemonCake facilitator → Base/USDC で settle する協業モデル。2 週間 / $5k で技術 PoC、その後 partnership 締結も視野。
+
+メルカリ Crypto としては既存ユーザの USDC 利用パターン拡張、Stripe Japan としては MPP の JP geo 補完。どちらの文脈でも 15 分のお時間いただけると幸いです。
+
+— Hiroto
+contact@aievid.com · https://lemoncake.xyz/consulting
+```
+
+---
+
+## 送信前チェックリスト (Tier B/C)
+
+- [ ] Tier A → 1 週間後の **Tue 2026-06-09 〜 Wed 06-10** に送る (Tier A の反応見て判断)
+- [ ] Tier B は全て **新規 cold**、件名は specific observation を盛り込む
+- [ ] Tier C は warm 経路 (JPYC 岡部氏 / freee の既存 thread) を優先、cold は最後
+- [ ] 日本語 cold email は spam フィルタに引っかかりにくいが、過度に丁寧すぎても刺さらない (上記 template は中庸狙い)
+- [ ] /pricing と /consulting URL の状態確認、特に JP からのアクセスで /about (JP) に強制リダイレクトされないか
+- [ ] **Tier A まで合計 10 通送信して返事 0 だったら Tier B/C 着手前に pitch を再検討する** (テンプレが効いてない可能性)

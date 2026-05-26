@@ -9,6 +9,10 @@
 [![non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
 [![x402](https://img.shields.io/badge/x402-Bazaar_discoverable-blueviolet)](https://www.x402.org/)
 [![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
+[![pricing](https://img.shields.io/badge/pricing-free_1k_tx%2Fmo-fffd43)](https://lemoncake.xyz/pricing)
+[![MPP-compatible](https://img.shields.io/badge/MPP_%2F_Tempo-interop-blueviolet)](https://lemoncake.xyz/pricing)
+
+> 💰 **Free up to 1,000 tx / month** on the LemonCake facilitator — gas sponsored, no card. Stripe MPP / Tempo signed payments settle alongside x402 on Base/USDC. [See pricing →](https://lemoncake.xyz/pricing)
 
 ---
 
