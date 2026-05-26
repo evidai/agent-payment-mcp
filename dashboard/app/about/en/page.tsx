@@ -95,12 +95,12 @@ const whyItems = [
     flipped: false,
   },
   {
-    eyebrow: "JPYC → USDC",
-    title: "Deposit in JPYC,\nspend in USDC",
-    body: "Send the JPY-pegged stablecoin JPYC and it reflects as USDC balance instantly. Manage treasury in yen while the agent pays globally in USDC. Polygon ERC-20 means settlement costs stay near zero.",
+    eyebrow: "Base · USDC",
+    title: "Settle on Base.\nFunded in seconds.",
+    body: "USDC on Base means ~$0.0001 gas, ~2 second finality, and a Coinbase-grade onramp. Your agent pays per call in real money — no JWT bookkeeping, no API key juggling, no fund custody.",
     stats: [
-      { num: "JPYC", label: "Deposit currency" },
-      { num: "Polygon", label: "Chain" },
+      { num: "USDC", label: "Settlement currency" },
+      { num: "Base", label: "L2 chain" },
     ],
     flipped: true,
   },
@@ -110,7 +110,7 @@ const buyerFeatures = [
   "Grant agents safe payment capability with permits",
   "Control risk with spending limits, expiry, and scoped services",
   "Agents autonomously select APIs and complete payments instantly",
-  "Send JPYC on-chain and it reflects as USDC balance immediately",
+  "Fund the wallet on Base in seconds — no custody, no manual top-ups",
   "KYA/KYC tiers manage daily limits in graduated steps",
   "Real-time monitoring of charges, balance, and token usage",
 ];
@@ -193,24 +193,36 @@ export default function AboutPageEn() {
       {/* ── Hero ── */}
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-28 text-center">
+          <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+            For crypto-native AI agents
+          </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Code pays code.<br />
+            Let Claude trade.<br />
             <span className="text-black">
-              We handle the rest.
+              On-chain guardrails included.
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            AI agents autonomously pick APIs, pay, and finish the job.<br className="hidden md:block" />
-            We ship the whole mechanism.
+            Solana DEX swaps, tokenized stocks, perps — your AI executes,<br className="hidden md:block" />
+            ERC-2612 caps the spend. Per-call USDC on Base. Non-custodial.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/register"
+              href="/start/v2"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Sign a permit <IconArrowRight />
+              Sign one permit, trade for 90 days <IconArrowRight />
+            </Link>
+            <Link
+              href="/trade"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+            >
+              Browse the trading stack →
             </Link>
           </div>
+          <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
+            xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp
+          </p>
         </section>
       </div>
 
@@ -625,7 +637,7 @@ export default function AboutPageEn() {
             <div>
               <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest mb-3">Legal</p>
               <ul className="flex flex-col gap-2">
-                {["Terms of Service", "Privacy Policy", "Specified Commercial Transactions", "Contact"].map(item => (
+                {["Terms of Service", "Privacy Policy", "Contact"].map(item => (
                   <li key={item}><span className="text-[12px] text-white/40">{item}</span></li>
                 ))}
               </ul>
@@ -633,7 +645,7 @@ export default function AboutPageEn() {
           </div>
           <div className="border-t border-white/8 pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
             <p className="text-[11px] text-white/20">© 2026 LemonCake. All rights reserved.</p>
-            <p className="text-[11px] text-white/20">KYA/KYC tier auth · ERC-2612 permit · Polygon · USDC · JPYC</p>
+            <p className="text-[11px] text-white/20">KYA/KYC tier auth · ERC-2612 permit · Base · USDC · x402</p>
           </div>
         </div>
       </footer>
