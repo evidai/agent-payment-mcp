@@ -34,22 +34,28 @@ function slugFromEmail(email: string): string {
   return email.split("@")[0].toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 24);
 }
 
-function buildMailto({ email, apiUrl, price, expected, useCase }: {
-  email:    string;
-  apiUrl:   string;
-  price:    string;
-  expected: string;
-  useCase:  string;
+function buildMailto({ email, apiUrl, price, expected, useCase, apiName, rateLimit, monthlyCap }: {
+  email:      string;
+  apiUrl:     string;
+  price:      string;
+  expected:   string;
+  useCase:    string;
+  apiName:    string;
+  rateLimit:  string;
+  monthlyCap: string;
 }) {
   const subject = encodeURIComponent("Launch Plan signup — LemonCake");
   const body = encodeURIComponent(
     `Hi Hiroto,\n\n` +
     `I want to monetize an AI API with LemonCake's Launch Plan.\n\n` +
-    `Email:               ${email || "[fill in]"}\n` +
-    `API endpoint URL:    ${apiUrl || "[fill in]"}\n` +
+    `Email:                ${email || "[fill in]"}\n` +
+    `API name:             ${apiName || "[e.g. search-api]"}\n` +
+    `API endpoint URL:     ${apiUrl || "[fill in]"}\n` +
     `Price per call (USD): ${price || "[e.g. 0.02]"}\n` +
-    `Expected calls/mo:   ${expected || "[best guess]"}\n` +
-    `Use case:            ${useCase || "[1-2 lines]"}\n\n` +
+    `Rate limit:           ${rateLimit || "[default 60/min]"}\n` +
+    `Monthly call cap:     ${monthlyCap || "[default unlimited]"}\n` +
+    `Expected calls/mo:    ${expected || "[best guess]"}\n` +
+    `Use case:             ${useCase || "[1-2 lines]"}\n\n` +
     `Send me my seller key + gateway URL when ready.\n\n` +
     `Thanks!`
   );
@@ -105,16 +111,20 @@ function StepCard({
 
 export default function StartFreePage() {
   const [email, setEmail]       = useState("");
+  const [apiName, setApiName]   = useState("");
   const [apiUrl, setApiUrl]     = useState("");
   const [price, setPrice]       = useState("");
+  const [rateLimit, setRateLimit]       = useState("60/min");
+  const [monthlyCap, setMonthlyCap]     = useState("1000");
   const [expected, setExpected] = useState("");
   const [useCase, setUseCase]   = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const formValid = email.includes("@") && apiUrl.length > 0 && price.length > 0;
   const slug = useMemo(() => slugFromEmail(email), [email]);
-  const sampleGatewayUrl = `https://gateway.lemoncake.xyz/${slug}${apiUrl ? new URL(apiUrl, "https://x.x").pathname : "/api/search"}`;
-  const mailto = buildMailto({ email, apiUrl, price, expected, useCase });
+  const apiSlug = apiName.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 24) || slug;
+  const sampleGatewayUrl = `https://gateway.lemoncake.xyz/${apiSlug}${apiUrl ? new URL(apiUrl, "https://x.x").pathname : "/api/search"}`;
+  const mailto = buildMailto({ email, apiUrl, price, expected, useCase, apiName, rateLimit, monthlyCap });
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 text-gray-900">
@@ -162,38 +172,98 @@ export default function StartFreePage() {
             No setup fee. No monthly fee. First 3,000 API calls free regardless of revenue. The 3% Monetization fee fires only when a buyer actually pays for a call. See <Link href="/pricing" className="text-amber-700 underline-offset-2 hover:underline font-semibold">/pricing</Link> for the full breakdown.
           </StepCard>
 
-          {/* 3 — API URL */}
-          <StepCard number={3} title="Your API endpoint URL" status="active">
-            <input
-              type="url"
-              placeholder="https://api.your-thing.com/v1/search"
-              value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
-            />
+          {/* 3 — Name + URL */}
+          <StepCard number={3} title="Name your API + endpoint" status="active">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3 mt-2">
+              <input
+                type="text"
+                placeholder="search-api"
+                value={apiName}
+                onChange={(e) => setApiName(e.target.value)}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
+              />
+              <input
+                type="url"
+                placeholder="https://api.your-thing.com/v1/search"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
+              />
+            </div>
             <p className="mt-2 text-[11px] text-gray-500">
-              The endpoint LemonCake will proxy. Can be a single path or a prefix (we&apos;ll match suffixes too).
+              <strong>Name</strong>: becomes the slug in your gateway URL. <strong>URL</strong>: the endpoint we&apos;ll proxy (path or prefix).
             </p>
           </StepCard>
 
-          {/* 4 — Price per call */}
-          <StepCard number={4} title="Price per call (USD)" status="active">
-            <div className="mt-2 flex items-center gap-3">
-              <span className="text-sm font-bold text-gray-500">$</span>
-              <input
-                type="text"
-                placeholder="0.02"
-                value={price}
-                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="w-32 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
-              />
-              <span className="text-[11px] text-gray-500">per successful call</span>
+          {/* 4 — Price + Rate limit + Monthly cap + Revenue preview */}
+          <StepCard number={4} title="Pricing &amp; spend rules" status="active">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+              {/* Price */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 mb-1">Price / call (USD)</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-500">$</span>
+                  <input
+                    type="text"
+                    placeholder="0.02"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+                    className="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+              {/* Rate limit */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 mb-1">Rate limit (default)</label>
+                <input
+                  type="text"
+                  placeholder="60/min"
+                  value={rateLimit}
+                  onChange={(e) => setRateLimit(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
+                />
+              </div>
+              {/* Monthly cap */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 mb-1">Monthly call cap</label>
+                <input
+                  type="text"
+                  placeholder="unlimited"
+                  value={monthlyCap}
+                  onChange={(e) => setMonthlyCap(e.target.value.replace(/[^0-9]/g, ""))}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none font-mono"
+                />
+              </div>
             </div>
-            {price && (
-              <p className="mt-2 text-[11px] text-gray-500">
-                LemonCake takes 3% = <code className="bg-gray-100 px-1 rounded">${(Number(price) * 0.03).toFixed(5)}</code> per call. You keep <code className="bg-gray-100 px-1 rounded">${(Number(price) * 0.97).toFixed(5)}</code>.
-              </p>
+
+            {/* Revenue preview — only renders when price is meaningful */}
+            {price && Number(price) > 0 && (
+              <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-800/70 mb-2">Revenue preview</p>
+                <div className="grid grid-cols-3 gap-3 text-[12px]">
+                  {[
+                    { vol: 1000,  label: "1K calls / mo"  },
+                    { vol: 10000, label: "10K calls / mo" },
+                    { vol: 100000, label: "100K calls / mo" },
+                  ].map(({ vol, label }) => {
+                    const revenue = Number(price) * vol;
+                    const fee     = revenue * 0.03;
+                    const earn    = revenue * 0.97;
+                    return (
+                      <div key={vol}>
+                        <p className="text-[10px] text-emerald-900/55 font-mono">{label}</p>
+                        <p className="font-mono text-emerald-900 font-bold mt-1">${earn.toFixed(2)}</p>
+                        <p className="text-[10px] text-emerald-900/55 mt-0.5 font-mono">3% fee: ${fee.toFixed(2)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
+
+            <p className="mt-3 text-[11px] text-gray-500">
+              All three are defaults — buyers can issue Pay Tokens with stricter caps via the dashboard.
+            </p>
           </StepCard>
 
           {/* 5 — Gateway URL preview */}
@@ -207,24 +277,45 @@ export default function StartFreePage() {
             </p>
           </StepCard>
 
-          {/* 6 — Pay Token sample */}
+          {/* 6 — Pay Token sample (card UI) */}
           <StepCard number={6} title="Issue a Pay Token to your first buyer" status="beta">
-            <p className="text-[12px] text-gray-600 mb-2">
-              Each buyer (agent or human) gets a spend-limited Pay Token. Sample shape:
+            <p className="text-[12px] text-gray-600 mb-3">
+              Each buyer (agent or human) gets a spend-limited Pay Token. Think of it like a one-time credit card with rules:
             </p>
-            <div className="rounded-xl bg-gray-950 text-gray-300 p-4 text-xs font-mono overflow-x-auto leading-relaxed">
-{`{
-  "v": "0.1",
-  "iss": "lc_seller_${slug.slice(0, 8)}...",
-  "allowed_api": "${slug}",
-  "exp": <epoch + 1h>,
-  "max_spend": 5.00,
-  "price_per_call": ${price || "0.02"},
-  "rate_limit": "10/min"
-}`}
+            {/* Card UI — matches the user-spec visual style */}
+            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-100 border border-amber-300 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/70">Pay Token</p>
+                  <p className="text-[14px] font-mono text-amber-950 mt-0.5">
+                    lc_pt_<span className="text-amber-700">{slug.slice(0, 6)}</span>…
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5">Active</span>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
+                <dt className="text-amber-900/55">API</dt>
+                <dd className="text-amber-950 font-mono text-right truncate">{apiName || apiSlug || "your-api"}</dd>
+
+                <dt className="text-amber-900/55">Max spend</dt>
+                <dd className="text-amber-950 font-bold text-right">$5.00</dd>
+
+                <dt className="text-amber-900/55">Expires</dt>
+                <dd className="text-amber-950 text-right">in 1 hour</dd>
+
+                <dt className="text-amber-900/55">Max calls</dt>
+                <dd className="text-amber-950 text-right">100</dd>
+
+                <dt className="text-amber-900/55">Rate limit</dt>
+                <dd className="text-amber-950 text-right">10 / min</dd>
+
+                <dt className="text-amber-900/55">Price / call</dt>
+                <dd className="text-amber-950 text-right">${price || "0.02"}</dd>
+              </dl>
             </div>
-            <p className="mt-2 text-[11px] text-gray-500">
-              Full spec: <Link href="/docs/pay-token" className="text-amber-700 underline-offset-2 hover:underline">/docs/pay-token</Link>.
+            <p className="mt-3 text-[11px] text-gray-500">
+              Plain-English version: <em>&quot;This API · 1 hour · max $5 · 100 calls · 10/min&quot;</em>. Full JSON spec at{" "}
+              <Link href="/docs/pay-token" className="text-amber-700 underline-offset-2 hover:underline">/docs/pay-token</Link>.
             </p>
           </StepCard>
 

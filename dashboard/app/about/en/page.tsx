@@ -254,6 +254,71 @@ export default function AboutPageEn() {
         </section>
       </div>
 
+      {/* ── API Monetization Flow visualization ── */}
+      {/*
+       * Stripe/Vercel-style "here's what the product does" diagram.
+       * Sits directly after the hero so visitors who don't read code
+       * still get the mental model in < 5 seconds.
+       *
+       * 4 cards with arrows between: Your API → Gateway → Paid Access → Revenue.
+       * Each card has a short verb-noun caption — no jargon, no crypto words.
+       */}
+      <section className="max-w-6xl mx-auto px-6 py-20">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
+        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-12 leading-tight">
+          Four boxes between you<br />
+          <span className="text-[#fffd43]">and per-call revenue.</span>
+        </h2>
+
+        <div className="relative">
+          {/* Desktop: horizontal flow with arrows */}
+          <div className="hidden md:flex items-center justify-between gap-3">
+            {[
+              { num: "1", title: "Your API",     sub: "Anything HTTP",       tone: "bg-white/4 border-white/10" },
+              { num: "2", title: "Gateway",      sub: "We add a URL prefix",  tone: "bg-[#fffd43]/10 border-[#fffd43]/30" },
+              { num: "3", title: "Paid access",   sub: "Buyer pays via Pay Token", tone: "bg-[#fffd43]/10 border-[#fffd43]/30" },
+              { num: "4", title: "Revenue",      sub: "97% to you, 3% to us", tone: "bg-emerald-500/10 border-emerald-500/30" },
+            ].map((step, i, arr) => (
+              <div key={step.num} className="flex items-center flex-1">
+                <div className={`flex-1 rounded-2xl border p-5 text-center ${step.tone}`}>
+                  <div className="text-[10px] font-mono text-white/40 mb-1">STEP {step.num}</div>
+                  <div className="text-[16px] font-bold text-white">{step.title}</div>
+                  <div className="text-[12px] text-white/55 mt-1.5">{step.sub}</div>
+                </div>
+                {i < arr.length - 1 && (
+                  <div className="px-2 text-white/30 text-xl font-thin">→</div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile: stacked vertical */}
+          <div className="md:hidden flex flex-col gap-3">
+            {[
+              { num: "1", title: "Your API",     sub: "Anything HTTP" },
+              { num: "2", title: "Gateway",      sub: "We add a URL prefix" },
+              { num: "3", title: "Paid access",   sub: "Buyer pays via Pay Token" },
+              { num: "4", title: "Revenue",      sub: "97% to you, 3% to us" },
+            ].map((step, i, arr) => (
+              <div key={step.num}>
+                <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
+                  <div className="text-[10px] font-mono text-white/40">STEP {step.num}</div>
+                  <div className="text-[15px] font-bold text-white mt-1">{step.title}</div>
+                  <div className="text-[12px] text-white/55 mt-1">{step.sub}</div>
+                </div>
+                {i < arr.length - 1 && (
+                  <div className="text-center py-1 text-white/30 text-lg">↓</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-10 text-center text-[12px] text-white/40 max-w-xl mx-auto leading-relaxed">
+          You change one URL. We do gateway routing, Pay Token verification, rate limiting, usage metering, and settle the 97% to your wallet.
+        </p>
+      </section>
+
       {/* ── Why developers ── */}
       {/*
        * 6-card benefits grid replacing the old crypto-feature-set. Each card is
@@ -340,6 +405,49 @@ export default function AboutPageEn() {
           <p className="mt-6 text-[11px] text-white/30 text-center font-mono">
             We don&apos;t replace Stripe for human checkout. We&apos;re the stack you want when the buyer is an AI agent.
           </p>
+        </div>
+      </section>
+
+      {/* ── Abuse Prevention Log ── */}
+      {/*
+       * Differentiator visualization — LemonCake doesn't just bill,
+       * it actively blocks runaway / abusive callers. This card mocks
+       * what the live dashboard's "Blocked requests" feed looks like.
+       * Critical for the enterprise pitch (insurance value) but also
+       * resonates with indie devs who've been burned by a bad agent
+       * loop.
+       */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="rounded-3xl bg-gradient-to-br from-red-500/10 to-red-500/[0.02] border border-red-500/25 p-8 md:p-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+              <p className="text-[11px] font-semibold text-red-300 uppercase tracking-widest mb-3">Not just billing — abuse prevention</p>
+              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3">
+                We block runaway agents.<br />
+                <span className="text-red-300">Before they cost you anything.</span>
+              </h2>
+              <p className="text-[14px] text-white/55 leading-relaxed">
+                Pay Token spend caps + rate limits are checked at the gateway. A misbehaving agent in an infinite loop hits the wall instantly — your API never sees the request, your AWS bill never moves. The blocked-request feed in your dashboard shows you what we caught.
+              </p>
+            </div>
+            {/* mock log */}
+            <div className="rounded-2xl bg-black/40 border border-white/10 p-4 font-mono text-[11.5px] text-white/70">
+              <div className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Blocked request feed (sample)</div>
+              {[
+                { t: "14:21:08", reason: "spend_cap_exceeded",  saved: "$12.40" },
+                { t: "14:19:55", reason: "rate_limit_exceeded", saved: "$0.78"  },
+                { t: "14:15:02", reason: "permit_revoked",       saved: "$0.04"  },
+                { t: "14:11:30", reason: "spend_cap_exceeded",  saved: "$8.20"  },
+              ].map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-b-0">
+                  <span className="text-white/40">{r.t}</span>
+                  <span className="text-red-300/85">{r.reason}</span>
+                  <span className="text-emerald-300/85 font-bold">−{r.saved}</span>
+                </div>
+              ))}
+              <p className="mt-3 text-[10px] text-white/35 text-center">Sample data — live feed lands Q3 2026.</p>
+            </div>
+          </div>
         </div>
       </section>
 
