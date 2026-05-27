@@ -49,6 +49,10 @@ const Icon = {
   Lock:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>),
   Bolt:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M13 2 3 14h7l-1 8 10-12h-7z" /></svg>),
   Lemon:   (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M12 3c4.5 0 9 4.5 9 9s-4.5 9-9 9-9-4.5-9-9 4.5-9 9-9zm0 2c-3.4 0-7 3.6-7 7s3.6 7 7 7 7-3.6 7-7-3.6-7-7-7z" /></svg>),
+  Book:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16M9 7h6M9 11h6" /></svg>),
+  Swap:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 8h14m0 0-3-3m3 3-3 3M20 16H6m0 0 3 3m-3-3 3-3" /></svg>),
+  Receipt: (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 3v18l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2V3zM9 8h6M9 12h6M9 16h4" /></svg>),
+  Yen:     (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="m8 7 4 6 4-6M8 13h8M8 16h8M12 13v6" /></svg>),
 };
 
 /* ──────────────────────────── sidebar config ──────────────────────────── */
@@ -74,6 +78,15 @@ const SIDEBAR: NavGroup[] = [
     items: [
       { label: "Revenue",          icon: "Dollar", href: "/pricing" },
       { label: "Blocked Requests", icon: "Shield", href: "/about/en" },
+    ],
+  },
+  {
+    heading: "Resources",
+    items: [
+      { label: "Quickstart",  icon: "Book",    href: "/docs/quickstart" },
+      { label: "Migrate",     icon: "Swap",    href: "/docs/migrate-from-stripe-mpp" },
+      { label: "Accounting",  icon: "Receipt", href: "/docs/accounting" },
+      { label: "JPY offramp", icon: "Yen",     href: "/docs/jpy-offramp" },
     ],
   },
 ];
