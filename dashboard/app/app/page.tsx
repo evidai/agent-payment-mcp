@@ -169,6 +169,7 @@ function useLocalState<T>(key: string, initial: T): [T, (next: T | ((prev: T) =>
 
 export default function AppDashboard() {
   const [activePane, setActivePane] = useState<Pane>("add");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -212,14 +213,85 @@ export default function AppDashboard() {
               <Icon.External className="w-3.5 h-3.5" />
               API Reference
             </Link>
-            <button
-              type="button"
-              className="ml-1 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-white border border-[#1a0f00]/10 hover:bg-[#1a0f00]/[0.03] transition-colors"
-              aria-label="Account menu"
-            >
-              <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-[#1a0f00] text-white text-[10px] font-black">LC</span>
-              <Icon.ChevDn className="w-3.5 h-3.5 text-[#1a0f00]/55" />
-            </button>
+            <div className="relative ml-1">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-white border border-[#1a0f00]/10 hover:bg-[#1a0f00]/[0.03] transition-colors"
+                aria-label="Local workspace menu"
+                aria-expanded={menuOpen}
+              >
+                <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-[#1a0f00] text-white text-[10px] font-black">LC</span>
+                <Icon.ChevDn className={`w-3.5 h-3.5 text-[#1a0f00]/55 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {menuOpen && (
+                <>
+                  {/* click-outside backdrop */}
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-30 cursor-default"
+                    aria-hidden
+                    tabIndex={-1}
+                  />
+                  {/* popover */}
+                  <div className="absolute top-full right-0 mt-2 w-[280px] rounded-xl bg-white border border-[#1a0f00]/12 shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-4 z-40">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Local workspace</p>
+                    <p className="text-[12.5px] font-bold mb-3 leading-tight">Private Beta · no account yet</p>
+
+                    <dl className="text-[11.5px] space-y-1.5 mb-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt className="text-[#1a0f00]/65">Endpoints</dt>
+                        <dd className="font-mono font-semibold">{endpoints.length}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt className="text-[#1a0f00]/65">Active Pay Tokens</dt>
+                        <dd className="font-mono font-semibold">{activeTokens}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt className="text-[#1a0f00]/65">Paid calls</dt>
+                        <dd className="font-mono font-semibold">{testRuns.length}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6">
+                        <dt className="text-[#1a0f00]/65">Earned (net)</dt>
+                        <dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(totalRevenue * 0.97)}</dd>
+                      </div>
+                    </dl>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!confirm("Clear all workspace data (endpoints, Pay Tokens, paid calls, blocked log)? This can't be undone.")) return;
+                        setEndpoints([]);
+                        setPayTokens([]);
+                        setTestRuns([]);
+                        setBlocked([]);
+                        setActivePane("add");
+                        setMenuOpen(false);
+                      }}
+                      disabled={endpoints.length === 0 && payTokens.length === 0 && testRuns.length === 0 && blocked.length === 0}
+                      className="w-full py-2 text-[11.5px] font-semibold text-[#DC2626] bg-[#DC2626]/8 hover:bg-[#DC2626]/12 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#DC2626]/8"
+                    >
+                      Reset workspace
+                    </button>
+
+                    <div className="my-3 h-px bg-[#1a0f00]/8" />
+
+                    <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed mb-2">
+                      Real accounts with saved settings + cloud sync arrive Q3 2026.
+                    </p>
+                    <Link
+                      href="/start/free"
+                      onClick={() => setMenuOpen(false)}
+                      className="block text-center py-2 text-[11.5px] font-semibold text-white bg-[#1a0f00] hover:bg-[#1a0f00]/90 rounded-lg transition-colors"
+                    >
+                      Request design-partner access →
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
