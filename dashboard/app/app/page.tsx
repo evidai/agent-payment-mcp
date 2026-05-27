@@ -53,32 +53,27 @@ const Icon = {
 
 /* ──────────────────────────── sidebar config ──────────────────────────── */
 
-type NavItem = { label: string; icon: keyof typeof Icon; active?: boolean };
+type NavItem = { label: string; icon: keyof typeof Icon; href: string; active?: boolean };
 type NavGroup = { heading: string; items: NavItem[] };
 
+// Every sidebar row points to an existing page. Usage / Settings / Settlement
+// are intentionally omitted until they're real — surfacing dead navigation
+// hurts trust more than a shorter menu does.
 const SIDEBAR: NavGroup[] = [
   {
     heading: "Setup",
     items: [
-      { label: "Add API",      icon: "Plus", active: true },
-      { label: "Gateway",      icon: "Code" },
-      { label: "Pay Token",    icon: "Key" },
-      { label: "Test Request", icon: "Play" },
+      { label: "Add API",      icon: "Plus", href: "/app",                        active: true },
+      { label: "Gateway",      icon: "Code", href: "/docs/migrate-from-coinbase" },
+      { label: "Pay Token",    icon: "Key",  href: "/docs/pay-token" },
+      { label: "Test Request", icon: "Play", href: "/docs/quickstart" },
     ],
   },
   {
     heading: "Monitor",
     items: [
-      { label: "Usage",            icon: "Chart" },
-      { label: "Revenue",          icon: "Dollar" },
-      { label: "Blocked Requests", icon: "Shield" },
-    ],
-  },
-  {
-    heading: "Manage",
-    items: [
-      { label: "Settings",   icon: "Gear" },
-      { label: "Settlement", icon: "Bank" },
+      { label: "Revenue",          icon: "Dollar", href: "/pricing" },
+      { label: "Blocked Requests", icon: "Shield", href: "/about/en" },
     ],
   },
 ];
@@ -142,7 +137,7 @@ export default function AppDashboard() {
               <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
               <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
             </Link>
-            <span className="px-2.5 py-1 bg-[#fffd43] text-[#1a0f00] rounded-full text-[9.5px] font-bold uppercase tracking-widest">
+            <span className="px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">
               Private Beta
             </span>
           </div>
@@ -154,11 +149,11 @@ export default function AppDashboard() {
             </Link>
             <button
               type="button"
-              className="ml-1 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-[#fffd43] hover:bg-[#fff070] transition-colors"
+              className="ml-1 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-white border border-[#1a0f00]/10 hover:bg-[#1a0f00]/[0.03] transition-colors"
               aria-label="Account menu"
             >
-              <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-[#1a0f00] text-[#fffd43] text-[10px] font-black">LC</span>
-              <Icon.ChevDn className="w-3.5 h-3.5 text-[#1a0f00]/65" />
+              <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-[#1a0f00] text-white text-[10px] font-black">LC</span>
+              <Icon.ChevDn className="w-3.5 h-3.5 text-[#1a0f00]/55" />
             </button>
           </div>
         </div>
@@ -179,8 +174,8 @@ export default function AppDashboard() {
                     const Ico = Icon[item.icon];
                     return (
                       <li key={item.label}>
-                        <button
-                          type="button"
+                        <Link
+                          href={item.href}
                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${
                             item.active
                               ? "bg-[#fffd43] text-[#1a0f00] font-semibold"
@@ -189,7 +184,7 @@ export default function AppDashboard() {
                         >
                           <Ico className="w-4 h-4 flex-shrink-0" />
                           <span>{item.label}</span>
-                        </button>
+                        </Link>
                       </li>
                     );
                   })}
@@ -236,9 +231,9 @@ export default function AppDashboard() {
               Enter your existing API URL, set a price, and get a paid LemonCake Gateway endpoint.
             </p>
 
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#fffd43]/55 border border-[#fffd43]">
-              <Icon.Lemon className="w-4 h-4 text-[#1a0f00]" />
-              <span className="text-[12px] font-medium text-[#1a0f00]">No monthly fee. 3% only when your API earns.</span>
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#1a0f00]/12">
+              <Icon.Lemon className="w-4 h-4 text-[#1a0f00]/55" />
+              <span className="text-[12px] font-medium text-[#1a0f00]/80">No monthly fee. 3% only when your API earns.</span>
             </div>
           </div>
 
@@ -392,9 +387,9 @@ export default function AppDashboard() {
 
           {/* Bottom: tip pill + watch demo */}
           <section className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#fffd43]/55 border border-[#fffd43]">
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#1a0f00]/12">
               <span className="text-[14px]">💡</span>
-              <span className="text-[12px] text-[#1a0f00]"><span className="font-semibold">Tip:</span> After creating your API, generate a Pay Token and try a test request.</span>
+              <span className="text-[12px] text-[#1a0f00]/85"><span className="font-semibold text-[#1a0f00]">Tip:</span> After creating your API, generate a Pay Token and try a test request.</span>
             </div>
             <Link
               href="/docs/quickstart"
@@ -413,7 +408,7 @@ export default function AppDashboard() {
                 <div>
                   <h3 className="text-[16px] font-bold flex items-center gap-2">
                     Your paid API is live
-                    <span className="text-[9.5px] font-mono px-1.5 py-0.5 bg-[#fffd43] text-[#1a0f00] rounded uppercase tracking-widest">Preview</span>
+                    <span className="text-[9.5px] font-mono px-1.5 py-0.5 bg-[#1a0f00]/8 text-[#1a0f00]/70 rounded uppercase tracking-widest">Preview</span>
                   </h3>
                   <p className="text-[12px] text-[#1a0f00]/55 mt-0.5 max-w-[640px]">
                     This is what your dashboard will look like once your seller key arrives. The configuration is locked into your{" "}
@@ -435,7 +430,7 @@ export default function AppDashboard() {
                 <button
                   type="button"
                   onClick={() => setPayTokenIssued(true)}
-                  className="px-4 py-2 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[12.5px] rounded-lg transition-colors"
+                  className="px-4 py-2 bg-[#1a0f00] hover:bg-[#1a0f00]/90 text-white font-bold text-[12.5px] rounded-lg transition-colors"
                 >
                   {payTokenIssued ? "Pay Token issued ✓" : "Generate Pay Token"}
                 </button>
@@ -500,7 +495,7 @@ export default function AppDashboard() {
                 <button
                   type="button"
                   onClick={() => setPayTokenIssued(true)}
-                  className="mt-4 w-full py-2 bg-[#1a0f00] text-[#fffd43] font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors"
+                  className="mt-4 w-full py-2 bg-[#1a0f00] text-white font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors"
                 >
                   {payTokenIssued ? "Pay Token active ✓" : "Generate token"}
                 </button>
@@ -534,7 +529,7 @@ export default function AppDashboard() {
                   type="button"
                   onClick={() => setTestSent(true)}
                   disabled={!payTokenIssued}
-                  className="w-full py-2 bg-[#1a0f00] text-[#fffd43] font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-2 bg-[#1a0f00] text-white font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {testSent ? "Request sent ✓" : payTokenIssued ? "Send request" : "Issue a Pay Token first"}
                 </button>
@@ -590,7 +585,7 @@ function UrlBox({ label, url, tint }: { label: string; url: string; tint?: boole
     <div>
       <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 mb-1.5">{label}</p>
       <div className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 ${
-        tint ? "bg-[#fffd43]/40 border-[#fffd43]" : "bg-[#fafaf7] border-[#1a0f00]/12"
+        tint ? "bg-[#fffd43]/12 border-[#1a0f00]/12" : "bg-[#fafaf7] border-[#1a0f00]/12"
       }`}>
         <code className="font-mono text-[11.5px] text-[#1a0f00] break-all truncate">{url || "—"}</code>
         <button
@@ -634,7 +629,7 @@ function FlowStep({ n, title, desc, icon, active }: {
   return (
     <div className="flex items-center gap-3">
       <span className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-[12px] font-black ${
-        active ? "bg-[#fffd43] text-[#1a0f00]" : "bg-[#1a0f00]/8 text-[#1a0f00]/60"
+        active ? "bg-[#1a0f00] text-white" : "bg-[#1a0f00]/8 text-[#1a0f00]/60"
       }`}>
         {n}
       </span>
