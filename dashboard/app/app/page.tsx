@@ -414,19 +414,32 @@ function AddPane({
   setEndpoints: (n: Endpoint[] | ((p: Endpoint[]) => Endpoint[])) => void;
   goTo: (p: Pane) => void;
 }) {
-  const [apiName,      setApiName]      = useState("");
-  const [apiUrl,       setApiUrl]       = useState("");
+  // Defaults are real values, not placeholder strings — click Create and
+  // an endpoint actually lands. Edit any field to make it yours.
+  const [apiName,      setApiName]      = useState("AI Search API");
+  const [apiUrl,       setApiUrl]       = useState("https://api.example.com/search");
   const [pricePerCall, setPricePerCall] = useState("0.01");
   const [tokenBudget,  setTokenBudget]  = useState("5.00");
   const [rateLimit,    setRateLimit]    = useState("60");
   const [estCalls,     setEstCalls]     = useState<1000 | 10000 | 100000>(1000);
   const [err, setErr] = useState<string | null>(null);
 
-  const slug       = slugify(apiName) || "your-api";
-  const gatewayUrl = gatewayUrlOf(slug);
-  const priceNum   = Math.max(0, parseFloat(pricePerCall) || 0);
-  const budgetNum  = Math.max(0, parseFloat(tokenBudget) || 0);
-  const rateNum    = Math.max(1, parseInt(rateLimit, 10) || 1);
+  const rawSlug = slugify(apiName) || "your-api";
+
+  // Auto-resolve slug conflicts so the live preview shows the URL the
+  // endpoint will actually save with, not a URL we'd reject on submit.
+  let finalSlug = rawSlug;
+  if (endpoints.some((e) => e.slug === finalSlug)) {
+    let i = 2;
+    while (endpoints.some((e) => e.slug === `${rawSlug}-${i}`)) i++;
+    finalSlug = `${rawSlug}-${i}`;
+  }
+  const slugConflict = finalSlug !== rawSlug;
+  const gatewayUrl   = gatewayUrlOf(finalSlug);
+
+  const priceNum  = Math.max(0, parseFloat(pricePerCall) || 0);
+  const budgetNum = Math.max(0, parseFloat(tokenBudget) || 0);
+  const rateNum   = Math.max(1, parseInt(rateLimit, 10) || 1);
 
   const estRevenue = priceNum * estCalls;
   const estFee     = estRevenue * 0.03;
@@ -437,12 +450,11 @@ function AddPane({
     if (!apiName.trim())  return setErr("API name is required.");
     if (!/^https?:\/\//.test(apiUrl)) return setErr("API URL must start with http(s)://");
     if (priceNum <= 0)    return setErr("Price per call must be greater than 0.");
-    if (endpoints.some(e => e.slug === slug)) return setErr(`Slug "${slug}" is already taken. Try a different name.`);
 
     const e: Endpoint = {
       id: uid("ep"),
       name: apiName.trim(),
-      slug,
+      slug: finalSlug,
       originalUrl: apiUrl.trim(),
       gatewayUrl,
       pricePerCall: priceNum,
@@ -541,7 +553,12 @@ function AddPane({
 
           <div className="space-y-4">
             <UrlBox label="Original API"      url={apiUrl || "—"} />
-            <UrlBox label="LemonCake Gateway" url={gatewayUrl} tint />
+            <UrlBox
+              label="LemonCake Gateway"
+              url={gatewayUrl}
+              tint
+              hint={slugConflict ? `“${rawSlug}” already exists — will save as “${finalSlug}”.` : undefined}
+            />
 
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -1279,7 +1296,7 @@ function Select({ value, onChange, children }: { value: string; onChange: (v: st
   );
 }
 
-function UrlBox({ label, url, tint }: { label: string; url: string; tint?: boolean }) {
+function UrlBox({ label, url, tint, hint }: { label: string; url: string; tint?: boolean; hint?: string }) {
   return (
     <div>
       <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 mb-1.5">{label}</p>
@@ -1289,6 +1306,7 @@ function UrlBox({ label, url, tint }: { label: string; url: string; tint?: boole
           <Icon.Copy className="w-3.5 h-3.5" />
         </button>
       </div>
+      {hint && <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">{hint}</p>}
     </div>
   );
 }
