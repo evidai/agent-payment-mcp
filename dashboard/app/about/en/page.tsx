@@ -6,12 +6,12 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 export const metadata = {
   title: "LemonCake — AI API Gatekeeper (private beta)",
   description: "Turn any AI API into a paid API in minutes. The permission + billing layer between AI agents and your endpoints. URL rewrite or one-line SDK. Spend-limited Pay Tokens. Open core, MIT.",
-  // canonical を /en/about に統一（middleware が非 JP IP をこちらに送るため）
+  // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
-    canonical: "https://lemoncake.xyz/en/about",
+    canonical: "https://lemoncake.xyz/about/en",
     languages: {
       "ja-JP": "https://lemoncake.xyz/about",
-      "en-US": "https://lemoncake.xyz/en/about",
+      "en-US": "https://lemoncake.xyz/about/en",
     },
   },
 };
@@ -161,11 +161,8 @@ export default function AboutPageEn() {
           </div>
           <div className="flex items-center gap-3">
             <LangSwitcher current="en" basePath="/about" variant="dark" />
-            <Link href="/me" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
-              My account
-            </Link>
-            <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
-              Log in
+            <Link href="/app" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+              Dashboard
             </Link>
             <ContactButton className="text-[13px] font-semibold px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors">
               Contact

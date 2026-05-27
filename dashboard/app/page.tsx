@@ -4015,10 +4015,11 @@ export default function Dashboard() {
   const [myServices,     setMyServices]     = useState<MyServiceEntry[]>([]);
 
   // ── 認証チェック ──────────────────────────────────────────────────────────
+  // /login は廃止済み。未認証は public LP (/about) に送る。
   useEffect(() => {
     const token = localStorage.getItem("buyer_token");
     if (!token) {
-      window.location.href = "/login";
+      window.location.href = "/about";
       return;
     }
     // 既存ログインユーザーの cookie が無い場合にここで補填（middleware 用）
@@ -4033,7 +4034,7 @@ export default function Dashboard() {
     localStorage.removeItem("buyer_token");
     // middleware の / → /about リダイレクトを再開させるため cookie を削除
     document.cookie = "lc_auth=; path=/; max-age=0; SameSite=Strict";
-    window.location.href = "/login";
+    window.location.href = "/about";
   }
 
   // ホームに戻るたびに残高を再取得

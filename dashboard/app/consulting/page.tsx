@@ -100,7 +100,6 @@ export default function ConsultingPage() {
             <span className="font-bold text-[15px] text-white">LemonCake</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/trade" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">Trade stack</Link>
             <Link href="/about/en" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">About</Link>
             <ContactButton className="text-[13px] font-semibold px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors">
               Talk to us
@@ -320,7 +319,6 @@ export default function ConsultingPage() {
           <p className="text-[11px] text-white/30">© 2026 evidai · LemonCake consulting</p>
           <div className="flex items-center gap-5 text-[11px] text-white/30">
             <Link href="/about/en" className="hover:text-white/60 transition-colors">Product</Link>
-            <Link href="/trade" className="hover:text-white/60 transition-colors">Trade stack</Link>
             <a href="mailto:contact@aievid.com" className="hover:text-white/60 transition-colors">contact@aievid.com</a>
           </div>
         </div>

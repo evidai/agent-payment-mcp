@@ -252,7 +252,7 @@ export default function FreeeIntegrationPage() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/register"
+              href="/start/free"
               className="inline-block bg-[#fffd43] text-black px-6 py-3 rounded-lg font-bold hover:opacity-90"
             >
               無料で始める →

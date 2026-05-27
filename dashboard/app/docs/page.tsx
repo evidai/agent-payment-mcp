@@ -59,13 +59,6 @@ const SECTIONS: { heading: string; items: DocSection[] }[] = [
         badge: "NEW",
       },
       {
-        title: "Crossmint からの移行ガイド",
-        desc:  "per-MAW vs per-tx の honest cost calculator + 非カストディ wallet 移行の playbook。card 系は Crossmint 残置・USDC は LemonCake、coexist 設計",
-        href:  "/docs/migrate-from-crossmint",
-        icon:  "🔁",
-        badge: "NEW",
-      },
-      {
         title: "Stripe MPP との coexistence",
         desc:  "Stripe MPP は捨てない、LemonCake を MPP-signed payment の Base/USDC 設定 layer として並走させる。JP buyer / 高頻度 micro-payment / 非カストディ 3 シナリオで効く",
         href:  "/docs/migrate-from-stripe-mpp",

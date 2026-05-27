@@ -280,10 +280,6 @@ export default function SecurityPage() {
               ← LemonCake トップ
             </Link>
             {" · "}
-            <Link href="/hire" className="hover:text-amber-700 hover:underline">
-              受託・業務委託
-            </Link>
-            {" · "}
             <Link href="/start/v2" className="hover:text-amber-700 hover:underline">
               v2 (Non-custodial)
             </Link>

@@ -10,7 +10,7 @@ export const metadata = {
     canonical: "https://lemoncake.xyz/about",
     languages: {
       "ja-JP": "https://lemoncake.xyz/about",
-      "en-US": "https://lemoncake.xyz/en/about",
+      "en-US": "https://lemoncake.xyz/about/en",
     },
   },
   openGraph: {
@@ -276,11 +276,8 @@ export default function AboutPage() {
           </div>
           <div className="flex items-center gap-3">
             <LangSwitcher current="ja" basePath="/about" variant="dark" />
-            <Link href="/me" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
-              マイページ
-            </Link>
-            <Link href="/login" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
-              ログイン
+            <Link href="/app" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+              ダッシュボード
             </Link>
             <ContactButton className="text-[13px] font-semibold px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors">
               お問い合わせ
@@ -616,8 +613,8 @@ export default function AboutPage() {
               <p className="text-[13px] text-white/45 leading-relaxed mb-3">
                 メールアドレスで即登録。テスト用に Sandbox トークンを使えば実 USDC なしでも最後まで試せます。
               </p>
-              <Link href="/register" className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/80 hover:text-[#fffd43]">
-                登録する <IconArrowRight />
+              <Link href="/start/free" className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/80 hover:text-[#fffd43]">
+                無料で始める <IconArrowRight />
               </Link>
             </div>
           </li>
@@ -679,7 +676,7 @@ export default function AboutPage() {
 
         <div className="mt-10 text-center">
           <Link
-            href="/register"
+            href="/start/free"
             className="inline-flex items-center gap-2 px-7 py-3 bg-[#fffd43] text-[#1a0f00] font-semibold rounded-xl hover:bg-[#fffd43]/90 transition-colors text-sm"
           >
             無料で始める <IconArrowRight />
@@ -768,8 +765,8 @@ export default function AboutPage() {
             ))}
           </div>
           <div className="text-center mt-10">
-            <a href="/services" className="inline-block px-6 py-3 bg-yellow-300 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-400 transition-colors">
-              16 個の稼働中 API を見る →
+            <a href="/docs" className="inline-block px-6 py-3 bg-yellow-300 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-400 transition-colors">
+              技術ドキュメントを見る →
             </a>
           </div>
         </section>
@@ -1102,10 +1099,10 @@ export default function AboutPage() {
                 お問い合わせフォームを開く
               </ContactButton>
               <Link
-                href="/login"
+                href="/app"
                 className="inline-flex items-center gap-2 px-7 py-3 bg-gray-100 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm"
               >
-                ログイン
+                ダッシュボード
               </Link>
             </div>
           </div>

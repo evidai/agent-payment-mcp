@@ -914,12 +914,7 @@ export default function StartV2Page() {
               {/* 次にやること — Buyer dashboard / docs / Provider 登録 */}
               <div className="mt-8">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Next steps</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <a href="/me" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
-                    <div className="text-2xl mb-1">📊</div>
-                    <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">View balance & charge history</p>
-                    <p className="mt-0.5 text-[10px] text-gray-500">/me — Buyer dashboard</p>
-                  </a>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a href="/docs/quickstart" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
                     <div className="text-2xl mb-1">🛠</div>
                     <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">How to paste MCP config</p>
