@@ -70,6 +70,11 @@ export default function PricingPage() {
 
       {/* ── Hero ── */}
       <section className="max-w-3xl mx-auto px-6 pt-24 pb-12 text-center">
+        {/* Two-line eyebrow: category positioning on top, plan badge below.
+            Stripe / Vercel hero pattern — institutional line + plan badge. */}
+        <p className="text-[12px] font-mono text-[#1a0f00]/55 mb-3 uppercase tracking-widest">
+          The safe monetization layer for AI APIs
+        </p>
         <div className="inline-block px-3 py-1 mb-6 bg-[#fffd43] text-[#1a0f00] rounded-full text-[11px] font-bold uppercase tracking-widest">
           Launch Plan · Private Beta
         </div>
