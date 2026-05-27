@@ -278,16 +278,16 @@ export default function AppDashboard() {
 
                     <div className="my-3 h-px bg-[#1a0f00]/8" />
 
-                    <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed mb-2">
-                      Real accounts with saved settings + cloud sync arrive Q3 2026.
+                    <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed">
+                      Real accounts + cloud sync land Q3 2026. Until then everything you build here lives in this browser.
                     </p>
-                    <Link
-                      href="/start/free"
+                    <a
+                      href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake"
                       onClick={() => setMenuOpen(false)}
-                      className="block text-center py-2 text-[11.5px] font-semibold text-white bg-[#1a0f00] hover:bg-[#1a0f00]/90 rounded-lg transition-colors"
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]"
                     >
-                      Request design-partner access →
-                    </Link>
+                      Talk to us about earlier access →
+                    </a>
                   </div>
                 </>
               )}
