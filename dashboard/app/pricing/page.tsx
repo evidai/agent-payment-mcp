@@ -55,8 +55,8 @@ export default function PricingPage() {
             <Link href="/about/en" className="hover:text-[#1a0f00] transition-colors">About</Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-[13px] text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">
-              Log in
+            <Link href="/app" className="text-[13px] text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">
+              Dashboard
             </Link>
             <Link
               href="/start/free"
