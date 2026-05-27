@@ -30,6 +30,11 @@ export default function StartFreePage() {
   const [email, setEmail]       = useState("");
   const [stack, setStack]       = useState("");
   const [expected, setExpected] = useState("");
+  // Local-only "submitted" flag flips when the user clicks the mailto link.
+  // We can't actually verify they sent the email — that's their mail
+  // client's job — but we *can* show a clear "we're expecting you" state
+  // so the page doesn't feel like nothing happened.
+  const [submitted, setSubmitted] = useState(false);
 
   const subject = encodeURIComponent("Free tier signup — LemonCake");
   const body = encodeURIComponent(
@@ -41,9 +46,25 @@ export default function StartFreePage() {
     `Thanks!`
   );
   const mailto = `mailto:contact@aievid.com?subject=${subject}&body=${body}`;
+  const formValid = email.trim().length > 0 && email.includes("@");
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50">
+      {/* Minimal nav so users coming directly to /start/free can hop back. */}
+      <nav className="sticky top-0 z-20 bg-amber-50/80 backdrop-blur-md border-b border-amber-200/60">
+        <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
+          <Link href="/about/en" className="flex items-center gap-2">
+            <img src="/logo.png" alt="LemonCake" className="w-6 h-6 rounded-md object-cover" />
+            <span className="text-sm font-bold text-gray-900">LemonCake</span>
+          </Link>
+          <div className="flex items-center gap-4 text-xs">
+            <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</Link>
+            <Link href="/docs"    className="text-gray-600 hover:text-gray-900 transition-colors">Docs</Link>
+            <Link href="/about/en" className="text-gray-600 hover:text-gray-900 transition-colors">About</Link>
+          </div>
+        </div>
+      </nav>
+
       <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
 
         {/* Banner */}
@@ -103,15 +124,43 @@ export default function StartFreePage() {
           </label>
 
           <a
-            href={mailto}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800"
+            href={formValid ? mailto : undefined}
+            onClick={() => formValid && setSubmitted(true)}
+            aria-disabled={!formValid}
+            className={`mt-6 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition-colors ${
+              formValid
+                ? "bg-gray-900 text-white hover:bg-gray-800"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
           >
             Open email draft →
           </a>
-          <p className="mt-3 text-[11px] text-gray-500">
-            Clicking opens your default mail client with the message pre-filled.
-            Review and hit send — we&apos;ll reply with your API key within 24h.
-          </p>
+          {!formValid && (
+            <p className="mt-3 text-[11px] text-gray-500">
+              Fill in your email above first — we need a way to send the API key back.
+            </p>
+          )}
+          {formValid && !submitted && (
+            <p className="mt-3 text-[11px] text-gray-500">
+              Clicking opens your default mail client with the message pre-filled.
+              Review and hit send.
+            </p>
+          )}
+          {submitted && (
+            <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <p className="font-bold mb-1">✓ Email draft opened.</p>
+              <p className="leading-relaxed">
+                Review the draft in your mail client and hit send. We&apos;ll reply with
+                your seller key + onboarding doc within 24h (usually faster — Hiroto
+                checks the inbox a few times a day).
+              </p>
+              <p className="mt-3 text-[12px] text-emerald-900/75">
+                <strong>What to expect next:</strong> a reply from <code className="text-xs bg-emerald-100 px-1 rounded">contact@aievid.com</code>{" "}
+                with your <code className="text-xs bg-emerald-100 px-1 rounded">LEMONCAKE_SELLER_KEY</code>,
+                a one-page integration guide, and an invite to a private Slack channel for design partners.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* What you get */}

@@ -462,56 +462,14 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/* ── Integrations ── */}
-      <section id="integrations" className="relative overflow-hidden py-28 bg-[#06060a]">
-        {/* Content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
-        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Integrations</p>
-        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
-          Connect your agent<br />in 3 minutes
-        </h2>
-        <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
-          First-party packages for the most popular agent frameworks — Claude, Cursor, Eliza, and any REST client.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {integrations.map(({ icon, badge, title, subtitle, body, code, tools, href, published }) => (
-            <div key={title} className="rounded-3xl bg-white/4 border border-white/8 p-8 flex flex-col gap-6">
-              {/* Header */}
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#fffd43]/10 border border-[#fffd43]/20 flex items-center justify-center text-[#fffd43]">
-                    {icon}
-                  </div>
-                  <span className="text-[11px] font-mono text-white/30 bg-white/5 px-2 py-0.5 rounded">{badge}</span>
-                  {published && (
-                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">✓ published</span>
-                  )}
-                </div>
-                <h3 className="text-xl font-black text-white mb-0.5">{title}</h3>
-                <p className="text-[12px] text-white/40">{subtitle}</p>
-              </div>
-              {/* Body */}
-              <p className="text-[13px] text-white/50 leading-relaxed">{body}</p>
-              {/* Code block */}
-              <div className="rounded-xl bg-black/40 border border-white/8 px-4 py-3 font-mono text-[13px] text-[#fffd43]">
-                $ {code}
-              </div>
-              {/* Tools */}
-              <div className="flex flex-wrap gap-2">
-                {tools.map(t => (
-                  <span key={t} className="text-[11px] font-mono text-white/40 bg-white/5 border border-white/8 px-2 py-0.5 rounded-md">{t}</span>
-                ))}
-              </div>
-              {/* Link */}
-              <a href={href} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/70 hover:text-[#fffd43] transition-colors mt-auto">
-                See on npm <IconArrowRight />
-              </a>
-            </div>
-          ))}
-        </div>
-        </div>
-      </section>
+      {/*
+       * 2026-05-27: removed the old "Integrations" section that touted
+       * agent-payment-mcp + eliza-plugin-lemoncake. Both still exist on
+       * npm, but the new positioning ("AI API Gatekeeper for sellers")
+       * doesn't lead with "MCP for agents to use" — it leads with
+       * "SDK for sellers to monetize". The MCP server is now a
+       * demonstration of the SDK, not the headline.
+       */}
 
       {/* ── Safety rails (condensed) ── */}
       {/*
@@ -541,243 +499,56 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/* ── Quickstart ── */}
-      <section id="quickstart" className="max-w-5xl mx-auto px-6 py-28">
-        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Quickstart</p>
-        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
-          Ship in <span className="text-[#fffd43]">5 minutes</span>
-        </h2>
-        <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
-          Register, sign a permit, hand it to your agent. That&apos;s it.
-        </p>
+      {/*
+       * 2026-05-27: cut sections from old positioning (Quickstart that
+       * mirrored /docs/quickstart, Mission "give your agent a safe wallet"
+       * narrative, Buyer/Seller 2-column, The Infrastructure whyItems
+       * grid, Philosophy "raw steel" narrative, generic Contact CTA).
+       * All of those were written for the agent-wallet positioning we've
+       * since pivoted away from. Replaced with a single Launch Plan CTA
+       * that closes the page cleanly.
+       */}
 
-        <ol className="flex flex-col gap-5">
-          {/* Step 1 */}
-          <li className="rounded-3xl bg-white/4 border border-white/8 p-7 flex gap-6">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">1</div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Create an account &amp; deposit USDC</h3>
-              <p className="text-[13px] text-white/45 leading-relaxed mb-3">
-                Sign up with just an email. For testing, use Sandbox tokens and skip the deposit entirely — the full flow works without a single real USDC.
-              </p>
-              <Link href="/register" className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/80 hover:text-[#fffd43]">
-                Register <IconArrowRight />
-              </Link>
-            </div>
-          </li>
-
-          {/* Step 2 */}
-          <li className="rounded-3xl bg-white/4 border border-white/8 p-7 flex gap-6">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">2</div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Sign a permit</h3>
-              <p className="text-[13px] text-white/45 leading-relaxed mb-3">
-                From the My Permits page, pick the target service, USDC limit, and expiry. Toggle Sandbox mode to keep your real balance untouched.
-              </p>
-              <div className="rounded-xl bg-black/40 border border-white/8 px-4 py-3 font-mono text-[12px] text-[#fffd43] leading-relaxed overflow-x-auto">
-                <div className="text-white/40">$ # or via REST:</div>
-                <div>curl -X POST https://lemoncake.xyz/api/tokens \</div>
-                <div className="pl-4">-H &quot;Authorization: Bearer $BUYER_JWT&quot; \</div>
-                <div className="pl-4">-d &apos;{'{'}&quot;serviceId&quot;:&quot;svc_xxx&quot;,&quot;limitUsdc&quot;:&quot;2.00&quot;,&quot;sandbox&quot;:true{'}'}&apos;</div>
-              </div>
-            </div>
-          </li>
-
-          {/* Step 3 */}
-          <li className="rounded-3xl bg-white/4 border border-white/8 p-7 flex gap-6">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">3</div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Hand it to your agent</h3>
-              <p className="text-[13px] text-white/45 leading-relaxed mb-4">
-                One line in whichever framework you use. The agent autonomously picks APIs, pays, and completes the task.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
-                  <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Claude / Cursor</p>
-                  <code className="text-[12px] font-mono text-[#fffd43] break-all">npx -y agent-payment-mcp</code>
-                </div>
-                <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
-                  <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Eliza v2</p>
-                  <code className="text-[12px] font-mono text-[#fffd43] break-all">plugins: [lemonCakePlugin]</code>
-                </div>
-                <div className="rounded-xl bg-black/40 border border-white/8 px-3.5 py-3">
-                  <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-1.5">Any framework</p>
-                  <code className="text-[12px] font-mono text-[#fffd43] break-all">POST /api/proxy/:id/*</code>
-                </div>
-              </div>
-            </div>
-          </li>
-
-          {/* Step 4 */}
-          <li className="rounded-3xl bg-gradient-to-br from-[#fffd43]/10 to-transparent border border-[#fffd43]/20 p-7 flex gap-6">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#fffd43] text-[#1a0f00] font-black text-lg flex items-center justify-center">✓</div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white mb-1.5">Done — just watch it run</h3>
-              <p className="text-[13px] text-white/55 leading-relaxed">
-                Charges, balance, and token usage stream into the dashboard in real time.<br />
-                If the agent goes rogue, hit Kill Switch — one click, instant stop.
-              </p>
-            </div>
-          </li>
-        </ol>
-
-        <div className="mt-10 text-center">
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 px-7 py-3 bg-[#fffd43] text-[#1a0f00] font-semibold rounded-xl hover:bg-[#fffd43]/90 transition-colors text-sm"
-          >
-            Start for free <IconArrowRight />
-          </Link>
-          <p className="mt-3 text-[12px] text-white/30">
-            No credit card. With Sandbox mode, no USDC either.
+      {/* ── Closing CTA ── */}
+      <div className="bg-[#fffd43] w-full">
+        <section className="max-w-4xl mx-auto px-6 pt-20 pb-24 text-center">
+          <p className="text-[11px] font-bold text-[#1a0f00]/55 uppercase tracking-widest mb-4">
+            Launch Plan · Private Beta
           </p>
-        </div>
-      </section>
-
-      {/* ── Mission ── */}
-      <section className="max-w-4xl mx-auto px-6 py-28 text-center">
-        <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-6">Mission</p>
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
-          Give your agent<br />a safe wallet.
-        </h2>
-        <p className="text-base md:text-lg text-white/45 max-w-2xl mx-auto leading-relaxed">
-          Every external API an AI agent touches demands billing, auth, idempotency, and balance accounting. LemonCake hands your agent a &quot;wallet with a cap&quot; via a ERC-2612 permit. Cross the cap, and it stops. Agents get spending power without going feral.
-        </p>
-      </section>
-
-      {/* ── Buyer / Seller 2-column ── */}
-      <div id="use-cases" className="bg-white w-full mt-28">
-        <section className="max-w-6xl mx-auto px-6 py-28">
-          <p className="text-center text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Use Cases</p>
-          <h2 className="text-center text-3xl md:text-4xl font-black text-gray-900 mb-16 leading-tight">
-            Buyers and sellers<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c8b800] to-[#a89400]">on one trusted network</span>
+          <h2 className="text-4xl md:text-5xl font-black text-[#1a0f00] mb-5 leading-tight">
+            Turn your AI API into<br />
+            <span className="text-black">a paid API today.</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Buyer */}
-            <div className="rounded-3xl bg-gray-50 border border-gray-200 p-8">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-500">
-                  <IconZap />
-                </div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">BUYER / AGENT OPERATOR</p>
-              </div>
-              <h3 className="text-xl font-black text-gray-900 mb-2">Focus only on making your AI smarter</h3>
-              <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-                Hand a permit to your agent. Payments, balance, idempotency — all handled by LemonCake. You only worry about the agent&apos;s logic.
-              </p>
-              <ul className="flex flex-col gap-3">
-                {buyerFeatures.map(f => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13px] text-gray-600">
-                    <span className="text-emerald-500 mt-0.5"><IconCheck /></span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* Seller */}
-            <div className="rounded-3xl bg-gray-50 border border-gray-200 p-8">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-[#fffd43]/20 border border-[#c8b800]/30 flex items-center justify-center text-[#a89400]">
-                  <IconStore />
-                </div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">SELLER / API PROVIDER</p>
-              </div>
-              <h3 className="text-xl font-black text-gray-900 mb-2">Sell to AI. Open a new revenue stream.</h3>
-              <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-                Register your existing API on LemonCake and the world&apos;s AI agents become your new customers. Late nights, holidays — agents never stop using your service.
-              </p>
-              <ul className="flex flex-col gap-3">
-                {sellerFeatures.map(f => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13px] text-gray-600">
-                    <span className="text-emerald-500 mt-0.5"><IconCheck /></span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* ── The Infrastructure ── */}
-      <section id="infrastructure" className="max-w-6xl mx-auto px-6 py-28">
-        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-20">How It Works</p>
-        <div className="flex flex-col gap-28">
-          {whyItems.map(({ eyebrow, title, body, stats, flipped }) => (
-            <div
-              key={eyebrow}
-              className={`flex flex-col md:flex-row items-center gap-12 ${flipped ? "md:flex-row-reverse" : ""}`}
+          <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
+            No monthly fee. Pay 3% only when your API earns.
+            Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/start/free"
+              className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-sm"
             >
-              {/* Text side */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-[#fffd43]/80 uppercase tracking-widest mb-3">{eyebrow}</p>
-                <h3 className="text-2xl md:text-3xl font-black text-white mb-4 leading-tight whitespace-pre-line">{title}</h3>
-                <p className="text-[14px] text-white/45 leading-relaxed max-w-md">{body}</p>
-              </div>
-              {/* Stats side */}
-              <div className="flex-shrink-0 w-full md:w-72">
-                <div className="rounded-3xl bg-white/4 border border-white/8 p-8 flex gap-8 justify-center md:justify-start">
-                  {stats.map(({ num, label }) => (
-                    <div key={label}>
-                      <p className="text-3xl font-black text-white mb-1">{num}</p>
-                      <p className="text-[11px] text-white/40 leading-tight">{label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Philosophy ── */}
-      <section className="px-6 pt-28 pb-40 text-center">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-6">Our Philosophy</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-8">
-            Raw steel, transformed into<br />
-            <span className="text-[#fffd43]">a single bite of lemon cake.</span>
-          </h2>
-          <div className="text-left max-w-2xl mx-auto space-y-5 text-[15px] text-white/50 leading-relaxed">
-            <p>
-              Building M2M payment infrastructure used to mean handling cold, indigestible &quot;raw steel.&quot; Idempotency guarantees, balance accounting, KYA/KYC tiers, USDC smart contracts — rebuilding all of that from scratch is not where agent developers should be spending their time.
-            </p>
-            <p>
-              We hid all that sour complexity behind the platform.
-            </p>
-            <p className="text-white/80 font-medium">
-              What developers and agents touch is a single, elegantly simple endpoint. Like a delicious lemon cake — born from a complex combination of ingredients, consumed in a single perfect bite.
-            </p>
+              Start for free <IconArrowRight />
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-7 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+            >
+              See full pricing →
+            </Link>
+            <Link
+              href="/docs"
+              className="inline-flex items-center gap-2 px-7 py-3 bg-transparent text-[#1a0f00]/65 font-semibold hover:text-[#1a0f00] transition-colors text-sm"
+            >
+              View docs →
+            </Link>
           </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <div className="bg-white w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 text-center">
-          <div className="rounded-3xl bg-gray-50 border border-gray-200 px-8 py-16">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Ready to Power AI Transactions?</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">
-              Focus only on making<br />your AI smarter.
-            </h2>
-            <p className="text-[14px] text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
-              Payments, balance, and idempotency — all handled by LemonCake.<br />Reach out for onboarding support, technical consultation, or a demo.
-            </p>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <ContactButton className="inline-flex items-center gap-2 px-7 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-700 transition-colors text-sm">
-                Open contact form
-              </ContactButton>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-7 py-3 bg-gray-100 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm"
-              >
-                Log in
-              </Link>
-            </div>
-          </div>
+          <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
+            No credit card. Manual onboarding (~24h) during Private Beta.
+          </p>
         </section>
       </div>
+
 
       {/* ── Footer ── */}
       <footer className="border-t border-white/8 py-12">

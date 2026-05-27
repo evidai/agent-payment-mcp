@@ -140,23 +140,22 @@ export default function TradePage() {
       <section className="bg-[#fffd43] w-full">
         <div className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
           <div className="inline-block px-3 py-1 mb-6 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-            4 MCPs · Non-custodial · ERC-2612 caps
+            Built with LemonCake · Open source MCPs · MIT
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-[#1a0f00] mb-5 leading-[1.08]">
-            The AI Agent<br/>
-            <span className="text-black">Trading Stack</span>
+            Built with<br/>
+            <span className="text-black">LemonCake.</span>
           </h1>
           <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Drop these MCPs into Claude / Cursor / Cline and the agent can swap,
-            trade perps, or paper-test strategies. Spending is capped on-chain —
-            even a hallucinating agent can't overspend.
+            Four production MCP servers that use the LemonCake SDK in real life.
+            Reference integrations for the AI API Gatekeeper — fork them, install them, learn from the source.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/v2?utm_source=trade&utm_medium=hero&utm_campaign=trade_launch"
+              href="/start/free?utm_source=trade&utm_medium=hero&utm_campaign=trade_launch"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
-              Sign permit ($25/day cap, 90 days) →
+              Build your own → /start/free
             </Link>
             <a
               href="#products"
