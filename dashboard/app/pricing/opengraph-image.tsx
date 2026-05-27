@@ -59,7 +59,7 @@ export default async function OG() {
           }}
         >
           <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#fffd43", display: "flex" }} />
-          MPP-compatible · Non-custodial · USDC on Base
+          Launch Plan · Private Beta · Open core
         </div>
 
         {/* H1 */}
@@ -67,18 +67,19 @@ export default async function OG() {
           style={{
             display:    "flex",
             flexDirection: "column",
-            fontSize:   80,
+            fontSize:   78,
             fontWeight: 900,
             lineHeight: 1.04,
             letterSpacing: -2,
             marginBottom: 28,
           }}
         >
-          <div style={{ display: "flex" }}>Transparent pricing.</div>
-          <div style={{ display: "flex", color: "#fffd43" }}>Free up to 1k tx / month.</div>
+          <div style={{ display: "flex" }}>No monthly fee.</div>
+          <div style={{ display: "flex", color: "#fffd43" }}>Pay 5% only when</div>
+          <div style={{ display: "flex", color: "#fffd43" }}>your AI API earns.</div>
         </div>
 
-        {/* tier strip — 3 mini cards */}
+        {/* tier strip — 3 honest cells */}
         <div
           style={{
             display: "flex",
@@ -87,9 +88,9 @@ export default async function OG() {
           }}
         >
           {[
-            { name: "Free",       price: "$0",    sub: "1k tx / mo",         featured: false },
-            { name: "Pro",        price: "$50",   sub: "+ $0.005 / tx",      featured: true  },
-            { name: "Enterprise", price: "$500+", sub: "KYA bundle · SLA",   featured: false },
+            { name: "Plan",          price: "Launch",   sub: "single plan, no tiers",        featured: false },
+            { name: "Monthly fee",   price: "$0",       sub: "no setup, no fixed tx fee",    featured: true  },
+            { name: "Free quota",    price: "3,000",    sub: "API calls / month included",   featured: false },
           ].map((t) => (
             <div
               key={t.name}
@@ -167,11 +168,11 @@ export default async function OG() {
               fontSize: 16,
             }}
           >
-            <span>vs Coinbase $0.001/tx</span>
+            <span>no setup fee</span>
             <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>
-            <span>vs Crossmint $0.05/MAW</span>
+            <span>no fixed tx fee</span>
             <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>
-            <span style={{ color: "rgba(255,253,67,0.85)" }}>JP onramp included</span>
+            <span style={{ color: "rgba(255,253,67,0.85)" }}>Open core · MIT SDK</span>
           </div>
         </div>
       </div>

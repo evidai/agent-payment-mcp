@@ -9,10 +9,10 @@
 [![non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
 [![x402](https://img.shields.io/badge/x402-Bazaar_discoverable-blueviolet)](https://www.x402.org/)
 [![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
-[![pricing](https://img.shields.io/badge/pricing-free_1k_tx%2Fmo-fffd43)](https://lemoncake.xyz/pricing)
+[![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 [![MPP-compatible](https://img.shields.io/badge/MPP_%2F_Tempo-interop-blueviolet)](https://lemoncake.xyz/pricing)
 
-> 💰 **Free up to 1,000 tx / month** on the LemonCake facilitator — gas sponsored, no card. Stripe MPP / Tempo signed payments settle alongside x402 on Base/USDC. [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free.** [See pricing →](https://lemoncake.xyz/pricing)
 
 ---
 
@@ -115,8 +115,8 @@ Want to **monetize your MCP / HTTP API**? Self-service registration at [**lemonc
 
 - 1-minute signup (name / email / Base wallet address — no KYC)
 - Get a `serviceId` instantly
-- **First 1,000 calls / month free** (LemonCake absorbs)
-- Above: $0.001/call (you set the price, 100% to you)
+- **No monthly fee, 5% only when your API earns** (Launch Plan)
+- Pricing: you set the price, LemonCake takes 5% Monetization fee on revenue
 - USDC settles **directly to your wallet** on every call
 
 Add billing in 3 lines:

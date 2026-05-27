@@ -7,9 +7,9 @@
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 [![FSA Q1–Q11](https://img.shields.io/badge/Japan_FSA-Q1--Q11_inquiry_completed-success)](https://lemoncake.xyz/security)
 [![Non-custodial](https://img.shields.io/badge/architecture-non--custodial-blueviolet)](https://lemoncake.xyz/start/v2)
-[![pricing](https://img.shields.io/badge/pricing-free_1k_tx%2Fmo-fffd43)](https://lemoncake.xyz/pricing)
+[![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 
-> 💰 **Free up to 1,000 tx / month** on the LemonCake facilitator (gas sponsored). MPP / Tempo interop. [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free. MPP / Tempo interop.** [See pricing →](https://lemoncake.xyz/pricing)
 >
 > **Pro tier ($50/mo):** set `LEMONCAKE_STOCK_FEE_USD=0.005` to apply the Pro per-swap fee (default flat $0.10). The env var override is built-in; no code change required.
 

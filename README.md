@@ -2,12 +2,12 @@
 
 # LemonCake
 
-**Turn any AI API into a paid API in minutes.** `Private Beta · Open core`
+**The safe monetization layer for AI APIs.** `Private Beta · Open core`
 
-> The permission + billing layer between AI agents and your endpoints.
-> Drop in a URL rewrite or one line of SDK code. Spend-limited Pay Tokens included.
+> Turn any AI API into a paid API in minutes. No monthly fee — pay 5% only when your API earns.
+> Start free with 3,000 API calls. Gateway, Pay Token, spend limits, metering, dashboard all included.
 >
-> *Not a payments company (Stripe owns it). Not a SaaS billing platform (Orb/Metronome own it). Not a wallet (Privy/Dynamic own it). LemonCake = AI API Gatekeeper.*
+> *Not a payments company (Stripe owns it). Not a SaaS billing platform (Orb/Metronome own it). Not a wallet (Privy/Dynamic own it). LemonCake = the safe monetization layer for AI APIs.*
 
 [![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
 [![Open core](https://img.shields.io/badge/model-open--core-brightgreen.svg)](#-open-core-what-is-open-what-is-hosted)

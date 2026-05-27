@@ -49,7 +49,7 @@ export default function StartFreePage() {
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
           <p className="font-bold">
-            🍋 Free tier · 1,000 tx / month · Gas sponsored on Base · No card
+            🍋 Launch Plan · No monthly fee · 5% only when your API earns · No card
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function StartFreePage() {
               className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none"
             />
             <span className="mt-1 block text-[11px] text-gray-500">
-              Free tier caps at 1,000. Over that auto-routes to $0.005/tx. No surprise rate-limiting.
+              First 3,000 API calls free regardless of revenue. After that, your account stays on — overage policy lands later, won't apply retroactively.
             </span>
           </label>
 
@@ -117,9 +117,9 @@ export default function StartFreePage() {
         {/* What you get */}
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: "💸", title: "1,000 tx free",   desc: "Gas sponsored by us. No card on file." },
-            { icon: "⚡", title: "MPP / Tempo",     desc: "Accept Stripe MPP-signed payments alongside x402." },
-            { icon: "🇯🇵", title: "JP onramp",      desc: "Only facilitator with JPY → USDC → Base. Stripe can&apos;t serve JP." },
+            { icon: "💸", title: "3,000 calls free",  desc: "First 3,000 API calls per month included. No setup fee, no monthly fee." },
+            { icon: "📈", title: "5% only when earning", desc: "We charge only when your API generates revenue. No fixed transaction fee." },
+            { icon: "🇯🇵", title: "JP onramp",      desc: "Only safe monetization layer with JPY → USDC → Base. Stripe can&apos;t serve JP." },
           ].map((v) => (
             <div key={v.title} className="rounded-2xl border border-gray-200 bg-white p-5">
               <div className="text-2xl">{v.icon}</div>
@@ -131,10 +131,9 @@ export default function StartFreePage() {
 
         {/* Alternative paths */}
         <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50/40 p-5 text-sm text-gray-700">
-          <p className="font-bold text-gray-900">Already at the &gt; 1k tx / mo scale?</p>
+          <p className="font-bold text-gray-900">High-volume already?</p>
           <p className="mt-1.5 leading-relaxed">
-            Skip the manual provisioning. The <Link href="/start/v2" className="text-amber-700 underline-offset-2 hover:underline font-semibold">Pro tier signup at /start/v2</Link> issues an ERC-2612 permit on the spot.
-            Pricing: $50/mo + $0.005/tx. See full breakdown at <Link href="/pricing" className="text-amber-700 underline-offset-2 hover:underline">lemoncake.xyz/pricing</Link>.
+            The Launch Plan covers you — no tier upgrade required. The <Link href="/start/v2" className="text-amber-700 underline-offset-2 hover:underline font-semibold">on-chain permit flow at /start/v2</Link> handles ERC-2612 signing if you want to skip manual provisioning. See <Link href="/pricing" className="text-amber-700 underline-offset-2 hover:underline">lemoncake.xyz/pricing</Link> for the full breakdown.
           </p>
         </div>
 

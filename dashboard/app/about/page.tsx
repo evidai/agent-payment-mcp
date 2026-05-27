@@ -309,8 +309,13 @@ export default function AboutPage() {
            * 新 hero は SDK と「3 行で課金追加」を主役に。
            */}
           <div className="flex-1 text-center md:text-left order-2 md:order-1">
-            <div className="inline-block px-3 py-1 mb-5 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-              AI API Gatekeeper · オープンコア · 月 1,000 tx 無料
+            <div className="inline-flex items-center gap-2 mb-5 flex-wrap">
+              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+                AI API のための安全な収益化レイヤー · オープンコア
+              </span>
+              <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
+                Private Beta
+              </span>
             </div>
             {/*
              * Hero hierarchy (re-revised 2026-05-27, Gatekeeper pivot):
@@ -331,9 +336,13 @@ export default function AboutPage() {
             <p className="text-xl md:text-2xl font-bold text-[#1a0f00]/85 mb-5 leading-tight">
               AI エージェントが、そのまま払える。API が、そのまま稼げる。
             </p>
-            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              LemonCake は AI エージェントと API の間に立つ <strong>権限 + 課金レイヤー</strong>。
-              URL を 1 行差し替えるか、SDK を 3 行入れるだけ。spend-limited な Pay Token 同梱。
+            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
+              <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 5%。</strong><br />
+              最初の 3,000 API calls 無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
+            </p>
+            <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
+              <strong>今出荷中:</strong> SDK (lc.charge / lc.protect) — MIT、npm 公開済。<br />
+              <strong>Q3 2026:</strong> hosted Gateway、Pay Token issuance、Margin dashboard。design partner は early access。
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link

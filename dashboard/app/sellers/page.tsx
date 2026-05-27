@@ -32,7 +32,8 @@ export default function SellersPage() {
           </h1>
           <p className="mt-5 text-base sm:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto">
             <code className="bg-gray-900 text-amber-300 px-1.5 py-0.5 rounded text-sm">lc.charge({"{ price: 0.02 }"})</code> でツール呼び出しごとに課金。
-            <strong className="text-gray-900">月 1,000 tx まで無料</strong>、Stripe より <strong className="text-gray-900">60x 安い手数料</strong>、Stripe Connect 不要、グローバル対応。
+            <strong className="text-gray-900">月額無料、API が売れた時だけ 5%。</strong>
+            最初の 3,000 calls 無料、固定手数料なし、Stripe Connect 不要、グローバル対応。
           </p>
         </div>
 

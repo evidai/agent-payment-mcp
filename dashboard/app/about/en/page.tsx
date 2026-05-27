@@ -187,9 +187,9 @@ export default function AboutPageEn() {
        */}
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 mb-6">
+          <div className="inline-flex items-center gap-2 mb-6 flex-wrap justify-center">
             <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-              AI API Gatekeeper · Open core · 1k tx/mo free
+              The safe monetization layer for AI APIs · Open core
             </span>
             <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
               Private Beta
@@ -202,8 +202,8 @@ export default function AboutPageEn() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-4 leading-relaxed">
-            LemonCake is the permission + billing layer between AI agents and your endpoints.<br className="hidden md:block" />
-            Drop in a URL rewrite or one line of SDK code. Spend-limited pay tokens included.
+            No monthly fee. Pay 5% only when your AI API earns.<br className="hidden md:block" />
+            Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
           </p>
           <p className="text-[12px] text-[#1a0f00]/45 mb-10 leading-relaxed max-w-xl mx-auto">
             <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br className="hidden md:block" />
