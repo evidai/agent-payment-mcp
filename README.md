@@ -4,7 +4,7 @@
 
 **The safe monetization layer for AI APIs.** `Private Beta · Open core`
 
-> Turn any AI API into a paid API in minutes. No monthly fee — pay 5% only when your API earns.
+> Turn any AI API into a paid API in minutes. No monthly fee — pay 3% only when your API earns.
 > Start free with 3,000 API calls. Gateway, Pay Token, spend limits, metering, dashboard all included.
 >
 > *Not a payments company (Stripe owns it). Not a SaaS billing platform (Orb/Metronome own it). Not a wallet (Privy/Dynamic own it). LemonCake = the safe monetization layer for AI APIs.*

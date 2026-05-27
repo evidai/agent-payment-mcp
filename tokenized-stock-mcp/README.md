@@ -10,7 +10,7 @@
 [![Non-custodial](https://img.shields.io/badge/architecture-non--custodial-blueviolet)](https://lemoncake.xyz/start/v2)
 [![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 
-> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free. MPP / Tempo interop.** [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 3% only when your API earns. 3,000 calls free. MPP / Tempo interop.** [See pricing →](https://lemoncake.xyz/pricing)
 >
 > **Pro tier ($50/mo):** set `LEMONCAKE_STOCK_FEE_USD=0.005` to apply the Pro per-trade fee (default flat $0.10). The env var override is built-in; no code change required.
 

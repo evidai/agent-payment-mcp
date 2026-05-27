@@ -75,7 +75,7 @@ export default async function OG() {
           }}
         >
           <div style={{ display: "flex" }}>No monthly fee.</div>
-          <div style={{ display: "flex", color: "#fffd43" }}>Pay 5% only when</div>
+          <div style={{ display: "flex", color: "#fffd43" }}>Pay 3% only when</div>
           <div style={{ display: "flex", color: "#fffd43" }}>your AI API earns.</div>
         </div>
 

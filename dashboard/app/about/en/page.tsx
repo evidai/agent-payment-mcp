@@ -202,7 +202,7 @@ export default function AboutPageEn() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-4 leading-relaxed">
-            No monthly fee. Pay 5% only when your AI API earns.<br className="hidden md:block" />
+            No monthly fee. Pay 3% only when your AI API earns.<br className="hidden md:block" />
             Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
           </p>
           <p className="text-[12px] text-[#1a0f00]/45 mb-10 leading-relaxed max-w-xl mx-auto">

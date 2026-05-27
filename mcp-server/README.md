@@ -12,7 +12,7 @@
 [![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 [![MPP-compatible](https://img.shields.io/badge/MPP_%2F_Tempo-interop-blueviolet)](https://lemoncake.xyz/pricing)
 
-> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free.** [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 3% only when your API earns. 3,000 calls free.** [See pricing →](https://lemoncake.xyz/pricing)
 
 ---
 
@@ -115,8 +115,8 @@ Want to **monetize your MCP / HTTP API**? Self-service registration at [**lemonc
 
 - 1-minute signup (name / email / Base wallet address — no KYC)
 - Get a `serviceId` instantly
-- **No monthly fee, 5% only when your API earns** (Launch Plan)
-- Pricing: you set the price, LemonCake takes 5% Monetization fee on revenue
+- **No monthly fee, 3% only when your API earns** (Launch Plan)
+- Pricing: you set the price, LemonCake takes 3% Monetization fee on revenue
 - USDC settles **directly to your wallet** on every call
 
 Add billing in 3 lines:

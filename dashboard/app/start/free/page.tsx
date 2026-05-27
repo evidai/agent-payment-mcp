@@ -49,7 +49,7 @@ export default function StartFreePage() {
         {/* Banner */}
         <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-100/60 p-4 text-sm text-amber-900">
           <p className="font-bold">
-            🍋 Launch Plan · No monthly fee · 5% only when your API earns · No card
+            🍋 Launch Plan · No monthly fee · 3% only when your API earns · No card
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export default function StartFreePage() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { icon: "💸", title: "3,000 calls free",  desc: "First 3,000 API calls per month included. No setup fee, no monthly fee." },
-            { icon: "📈", title: "5% only when earning", desc: "We charge only when your API generates revenue. No fixed transaction fee." },
+            { icon: "📈", title: "3% only when earning", desc: "We charge only when your API generates revenue. No fixed transaction fee." },
             { icon: "🇯🇵", title: "JP onramp",      desc: "Only safe monetization layer with JPY → USDC → Base. Stripe can&apos;t serve JP." },
           ].map((v) => (
             <div key={v.title} className="rounded-2xl border border-gray-200 bg-white p-5">

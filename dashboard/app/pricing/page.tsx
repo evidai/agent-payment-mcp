@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ContactButton from "../about/ContactButton";
 
 // ── Metadata ────────────────────────────────────────────────────────────────
-// Rewritten 2026-05-27 to "Launch Plan" — no subscription, 5% only when the
+// Rewritten 2026-05-27 to "Launch Plan" — no subscription, 3% only when the
 // seller's API earns. Reasoning:
 //   1. The previous 4-tier (Free / Pro $50 / Enterprise $500 / NRE $2k) was
 //      vaporware-adjacent — we don't actually have the metered Pro tier infra.
@@ -11,15 +11,15 @@ import ContactButton from "../about/ContactButton";
 //      not sure they'll use.
 //   3. Success-based fee is the strongest possible incentive alignment with
 //      sellers; same play as Stripe's "pay-per-tx" vs Stripe Atlas's subs.
-//   4. We can deliver the 5%-on-revenue model today using existing facilitator
+//   4. We can deliver the 3%-on-revenue model today using existing facilitator
 //      logic. No new backend required to be honest about the pricing.
 
 export const metadata: Metadata = {
-  title: "Pricing — LemonCake Launch Plan (no monthly fee, 5% only when you earn)",
-  description: "Turn any AI API into a paid API in minutes. $0 / month. 3,000 API calls free. 5% Monetization fee only when your API earns. No fixed transaction fees.",
+  title: "Pricing — LemonCake Launch Plan (no monthly fee, 3% only when you earn)",
+  description: "Turn any AI API into a paid API in minutes. $0 / month. 3,000 API calls free. 3% Monetization fee only when your API earns. No fixed transaction fees.",
   alternates: { canonical: "https://lemoncake.xyz/pricing" },
   openGraph: {
-    title: "LemonCake pricing — no monthly fee, pay 5% only when your AI API earns",
+    title: "LemonCake pricing — no monthly fee, pay 3% only when your AI API earns",
     description: "Start free with 3,000 API calls. No setup fee, no fixed transaction fee.",
     url: "https://lemoncake.xyz/pricing",
     type: "website",
@@ -80,7 +80,7 @@ export default function PricingPage() {
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-5 leading-[1.04]">
           No monthly fee.<br />
-          <span className="text-[#1a0f00]/70">Pay 5% only when your<br />AI API earns.</span>
+          <span className="text-[#1a0f00]/70">Pay 3% only when your<br />AI API earns.</span>
         </h1>
         <p className="text-lg text-[#1a0f00]/55 max-w-2xl mx-auto mb-2 leading-relaxed">
           Start free with 3,000 API calls.
@@ -122,7 +122,7 @@ export default function PricingPage() {
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-2">Monetization fee</p>
-                <p className="text-2xl font-black mb-1">5%</p>
+                <p className="text-2xl font-black mb-1">3%</p>
                 <p className="text-[12px] text-[#1a0f00]/55">only when your API earns revenue</p>
               </div>
             </div>
@@ -163,7 +163,7 @@ export default function PricingPage() {
         {/* Trust line below the card */}
         <p className="text-center mt-8 text-[12px] text-[#1a0f00]/50 leading-relaxed">
           Aligned incentive: we only make money when you make money.<br />
-          5% is a bundle price — gateway + Pay Token + metering + dashboard, not just payments.
+          3% is a bundle price — gateway + Pay Token + metering + dashboard, not just payments. Cheaper than Lemon Squeezy (5%) and Gumroad (10%), pricier than Stripe alone (~0.7%) because we bundle the auth + metering Stripe doesn&apos;t.
         </p>
       </section>
 
@@ -187,14 +187,14 @@ export default function PricingPage() {
                 label: "Month 4 — First buyers",
                 calls: "2,400 API calls",
                 revenue: "$48 (480 paid at $0.10)",
-                fee:   "$2.40",
+                fee:   "$1.44",
                 tone:  "good",
               },
               {
                 label: "Month 9 — Growing",
                 calls: "12,000 API calls",
                 revenue: "$240 (2,400 paid at $0.10)",
-                fee:   "$12.00",
+                fee:   "$7.20",
                 tone:  "great",
               },
             ].map(({ label, calls, revenue, fee, tone }) => (
@@ -207,7 +207,7 @@ export default function PricingPage() {
             ))}
           </div>
           <p className="mt-6 text-center text-[11px] text-[#1a0f00]/40">
-            Numbers are illustrative. Your unit price and call volume are entirely up to you — we just take 5% of what you earn.
+            Numbers are illustrative. Your unit price and call volume are entirely up to you — we just take 3% of what you earn.
           </p>
         </div>
       </section>
@@ -228,11 +228,11 @@ export default function PricingPage() {
             },
             {
               q: "What is the fee?",
-              a: "LemonCake charges a 5% Monetization fee on successful API revenue. That's it — no setup fee, no monthly fee, no fixed per-transaction fee.",
+              a: "LemonCake charges a 3% Monetization fee on successful API revenue. That's it — no setup fee, no monthly fee, no fixed per-transaction fee.",
             },
             {
               q: "Are there fixed transaction fees (like Stripe's $0.30)?",
-              a: "No. Sub-cent micro-payments work natively because there's no fixed floor — only the 5% revenue share. This is why LemonCake fits AI APIs that bill $0.001 - $0.05 per call.",
+              a: "No. Sub-cent micro-payments work natively because there's no fixed floor — only the 3% revenue share. This is why LemonCake fits AI APIs that bill $0.001 - $0.05 per call.",
             },
             {
               q: "What is included for free?",
@@ -243,8 +243,8 @@ export default function PricingPage() {
               a: "Today, nothing changes — keep going. We may introduce an overage fee for high-volume free traffic in the future, but it won't apply retroactively to any account on the Launch Plan.",
             },
             {
-              q: "Why 5% — that sounds higher than Stripe?",
-              a: "Stripe charges ~0.7% for payments only. LemonCake's 5% bundles permission control (Pay Token), gateway, metering, dashboard, and settlement — closer to comparing Stripe + Orb + a custom auth layer. The bundle is meaningfully cheaper than buying the parts separately, and we don't take a cut until your API actually earns.",
+              q: "Why 3% — that sounds higher than Stripe?",
+              a: "Stripe charges ~0.7% for pure payments. LemonCake's 3% bundles permission control (Pay Token), gateway, metering, dashboard, and settlement — closer to comparing Stripe + Orb + a custom auth layer combined. Versus other monetization platforms: Lemon Squeezy is 5%, Gumroad is 10%. We chose 3% to sit visibly under both while still funding the bundle properly. And we don't take a cut until your API actually earns.",
             },
             {
               q: "How is 'revenue' measured?",
@@ -271,7 +271,7 @@ export default function PricingPage() {
           <div className="flex flex-col gap-4">
             {[
               { q: "月額費用はかかりますか?", a: "かかりません。Launch Plan では月額無料で始められます。" },
-              { q: "いつ費用が発生しますか?", a: "AI API に売上が発生した時だけ、5% の Monetization fee が発生します。" },
+              { q: "いつ費用が発生しますか?", a: "AI API に売上が発生した時だけ、3% の Monetization fee が発生します。" },
               { q: "固定手数料はありますか?", a: "ありません。小額 API 課金に対応しやすいよう、固定取引手数料は設けていません。" },
               { q: "無料でどこまで使えますか?", a: "最初の 3,000 API calls、Basic Gateway、Pay Token、利用上限、レート制限、使用量計測、基本ダッシュボードが利用できます。" },
             ].map(({ q, a }) => (

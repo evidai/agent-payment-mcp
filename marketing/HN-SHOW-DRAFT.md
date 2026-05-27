@@ -105,7 +105,7 @@ What I'd love feedback on:
 - For solo founders: when did you call it on a product that wasn't converting? Any heuristic that worked?
 
 Links:
-- Launch Plan (no monthly fee, 3,000 calls free, 5% only when your API earns): https://lemoncake.xyz/pricing?utm_source=hn&utm_medium=social&utm_campaign=show-hn-2026-05-27
+- Launch Plan (no monthly fee, 3,000 calls free, 3% only when your API earns): https://lemoncake.xyz/pricing?utm_source=hn&utm_medium=social&utm_campaign=show-hn-2026-05-27
 - GitHub: https://github.com/evidai/agent-payment-mcp
 - The docs page is built around code snippets, not crypto primitives — if you're allergic to web3-feel landing pages, this one tries hard not to be that.
 ```

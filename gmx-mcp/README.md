@@ -8,7 +8,7 @@
 [![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 [![MPP-compatible](https://img.shields.io/badge/MPP_%2F_Tempo-interop-blueviolet)](https://lemoncake.xyz/pricing)
 
-> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free. Stripe MPP / Tempo signed payments settle on Base/USDC.** [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 3% only when your API earns. 3,000 calls free. Stripe MPP / Tempo signed payments settle on Base/USDC.** [See pricing →](https://lemoncake.xyz/pricing)
 
 ```bash
 npx -y gmx-mcp

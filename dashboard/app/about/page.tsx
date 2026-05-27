@@ -337,7 +337,7 @@ export default function AboutPage() {
               AI エージェントが、そのまま払える。API が、そのまま稼げる。
             </p>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
-              <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 5%。</strong><br />
+              <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 3%。</strong><br />
               最初の 3,000 API calls 無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">

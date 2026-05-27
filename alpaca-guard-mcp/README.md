@@ -10,7 +10,7 @@
 [![Non-custodial v2](https://img.shields.io/badge/v2_non--custodial-preview-blueviolet)](https://lemoncake.xyz/start/v2)
 [![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
 
-> 💰 **No monthly fee. Pay 5% only when your API earns. 3,000 calls free. MPP / Tempo interop.** [See pricing →](https://lemoncake.xyz/pricing)
+> 💰 **No monthly fee. Pay 3% only when your API earns. 3,000 calls free. MPP / Tempo interop.** [See pricing →](https://lemoncake.xyz/pricing)
 
 > 🍋 **Part of the LemonCake suite.** Japan FSA Q1–Q11 inquiry completed
 > (2026-05); pure SDK / non-custodial distribution model confirmed
