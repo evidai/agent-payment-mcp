@@ -69,6 +69,24 @@ create table if not exists lc_blocked (
 );
 create index if not exists lc_blocked_owner_idx on lc_blocked(owner_id, at desc);
 
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 0a: email magic-link auth (Stripe Connect prereq)
+-- ───────────────────────────────────────────────────────────────────────
+
+alter table lc_owners add column if not exists email text;
+alter table lc_owners add column if not exists email_verified_at timestamptz;
+create unique index if not exists lc_owners_email_unq on lc_owners(email) where email is not null;
+
+create table if not exists lc_magic_links (
+  token         text primary key,
+  email         text not null,
+  prev_owner_id text references lc_owners(id) on delete set null,
+  expires_at    timestamptz not null,
+  used_at       timestamptz,
+  created_at    timestamptz not null default now()
+);
+create index if not exists lc_magic_links_email_idx on lc_magic_links(email);
+
 -- We bypass RLS on the server using SUPABASE_SERVICE_KEY. If you want to
 -- expose anon-key reads from the browser later, add RLS policies that
 -- match owner_id against a header / auth claim. For now, server-only.

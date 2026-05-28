@@ -374,14 +374,47 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
   endpoints: Endpoint[]; activeTokensCount: number; runs: TestRun[]; blocked: BlockedReq[];
   totalRevenue: number; setActivePane: (p: Pane) => void;
 }) {
-  // Read the anonymous owner cookie so users can copy / back it up before
-  // clearing browser data wipes out their workspace identity.
+  // Read the anonymous owner cookie so users can copy / back it up.
   const [ownerId, setOwnerId] = useState<string>("");
+  // Fetched profile (incl. email if claimed). Refetched whenever the
+  // dropdown re-opens so a magic-link sign-in is reflected immediately.
+  type Me = { id: string; email: string | null; email_verified_at: string | null };
+  const [me, setMe] = useState<Me | null>(null);
   useEffect(() => {
     if (typeof document === "undefined") return;
     const m = document.cookie.match(/(?:^|;\s*)lc_owner=([^;]+)/);
     setOwnerId(m ? decodeURIComponent(m[1]) : "");
+    if (menuOpen) {
+      fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null));
+    }
   }, [menuOpen]);
+
+  // Claim flow
+  const [emailInput, setEmailInput] = useState("");
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimResult, setClaimResult] = useState<{ ok: true; sent: boolean; previewUrl: string | null } | { ok: false; error: string } | null>(null);
+  async function submitClaim() {
+    setClaimBusy(true);
+    setClaimResult(null);
+    try {
+      const r = await fetch("/api/lc/auth/request-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput.trim() }),
+      });
+      const j = await r.json();
+      if (!r.ok) setClaimResult({ ok: false, error: j.error || "request_failed" });
+      else setClaimResult({ ok: true, sent: !!j.sent, previewUrl: j.previewUrl ?? null });
+    } catch {
+      setClaimResult({ ok: false, error: "network_error" });
+    } finally {
+      setClaimBusy(false);
+    }
+  }
+  function signOut() {
+    document.cookie = "lc_owner=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    window.location.reload();
+  }
   return (
     <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -405,9 +438,11 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
             {menuOpen && (
               <>
                 <button type="button" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-30 cursor-default" aria-hidden tabIndex={-1} />
-                <div className="absolute top-full right-0 mt-2 w-[280px] rounded-xl bg-white border border-[#1a0f00]/12 shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-4 z-40">
+                <div className="absolute top-full right-0 mt-2 w-[320px] rounded-xl bg-white border border-[#1a0f00]/12 shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-4 z-40">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Workspace</p>
-                  <p className="text-[12.5px] font-bold mb-3 leading-tight">Anonymous · Private Beta</p>
+                  <p className="text-[12.5px] font-bold mb-3 leading-tight">
+                    {me?.email ? me.email : "Anonymous · Private Beta"}
+                  </p>
                   <dl className="text-[11.5px] space-y-1.5 mb-3">
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Endpoints</dt><dd className="font-mono font-semibold">{endpoints.length}</dd></div>
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Active Pay Tokens</dt><dd className="font-mono font-semibold">{activeTokensCount}</dd></div>
@@ -415,24 +450,71 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Blocked</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
                     <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Earned (net)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(totalRevenue * 0.97)}</dd></div>
                   </dl>
-                  {ownerId && (
-                    <div className="mb-3 rounded-lg bg-[#fafaf7] border border-[#1a0f00]/8 p-2.5">
-                      <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Owner ID</p>
-                      <div className="flex items-center justify-between gap-2">
-                        <code className="font-mono text-[11px] text-[#1a0f00]/80 truncate">{ownerId}</code>
+
+                  {/* Email claim flow OR signed-in state */}
+                  {me?.email ? (
+                    <div className="mb-3 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/25 p-2.5">
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
+                        <button type="button" onClick={signOut} className="text-[10.5px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
+                      </div>
+                      <p className="text-[11.5px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
+                      <p className="mt-1 text-[10px] text-[#1a0f00]/50">Workspace persists across browsers. Stripe Connect onboarding (next phase) uses this email.</p>
+                    </div>
+                  ) : (
+                    <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">Claim with email</p>
+                      <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
+                        Add an email to recover this workspace from another browser and to enable Stripe Connect payouts (next phase).
+                      </p>
+                      {claimResult?.ok && (claimResult.sent ? (
+                        <p className="text-[11px] text-[#16A34A] mb-2">✓ Check your inbox for the magic link.</p>
+                      ) : (
+                        <div className="mb-2">
+                          <p className="text-[10.5px] text-[#1a0f00]/65 mb-1">Link generated (email backend not configured yet):</p>
+                          {claimResult.previewUrl && (
+                            <div className="flex items-center gap-1.5">
+                              <a href={claimResult.previewUrl} className="flex-1 text-[10px] text-[#1a0f00] underline break-all">Open link</a>
+                              <button type="button" onClick={() => navigator.clipboard?.writeText(claimResult.previewUrl!)} className="text-[10px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {claimResult && !claimResult.ok && (
+                        <p className="text-[11px] text-[#DC2626] mb-2">Error: {claimResult.error}</p>
+                      )}
+                      <div className="flex gap-1.5">
+                        <input
+                          type="email"
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="you@example.com"
+                          className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-[#1a0f00]/15 rounded text-[11.5px] focus:outline-none focus:border-[#1a0f00]/55"
+                          onKeyDown={(e) => { if (e.key === "Enter") submitClaim(); }}
+                        />
                         <button
                           type="button"
-                          onClick={() => navigator.clipboard?.writeText(ownerId)}
-                          className="flex-shrink-0 text-[10.5px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline underline-offset-2"
+                          onClick={submitClaim}
+                          disabled={claimBusy || !emailInput.trim()}
+                          className="flex-shrink-0 px-2.5 py-1.5 bg-[#1a0f00] text-white font-bold text-[11px] rounded hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50"
                         >
-                          Copy
+                          {claimBusy ? "…" : "Send"}
                         </button>
                       </div>
-                      <p className="mt-1.5 text-[10px] text-[#1a0f00]/50 leading-snug">Save this if you clear cookies / switch browsers — it&apos;s how Postgres knows your endpoints are yours.</p>
                     </div>
                   )}
-                  <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed mb-2">Real auth (email / wallet) lands Q3 2026.</p>
-                  <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">Talk to us about earlier access →</a>
+
+                  {ownerId && (
+                    <details className="mb-3">
+                      <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 hover:text-[#1a0f00]/65">Owner ID</summary>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <code className="font-mono text-[10.5px] text-[#1a0f00]/75 truncate">{ownerId}</code>
+                        <button type="button" onClick={() => navigator.clipboard?.writeText(ownerId)} className="flex-shrink-0 text-[10px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+                      </div>
+                    </details>
+                  )}
+
+                  <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">Talk to us →</a>
                 </div>
               </>
             )}
