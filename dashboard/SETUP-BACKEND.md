@@ -1,58 +1,62 @@
-# LemonCake backend setup (Supabase) — 10 minutes
+# LemonCake backend setup — ~5 minutes
 
-This wires `/app` and the real `/g/[shortId]` gateway to a Postgres
-database so endpoints, Pay Tokens, paid calls, and blocked attempts
-persist server-side instead of in localStorage.
+Wires `/app` and the real `/g/[shortId]` gateway to Postgres so every
+endpoint, Pay Token, paid call, and block persists server-side.
 
-## 1. Create a Supabase project
+Two paths:
 
-1. Go to https://supabase.com → sign in → **New project**
-2. Name: `lemoncake` (or anything). Region: closest to your users.
-3. Set a database password — **save it in 1Password**.
-4. Wait ~2 min for provisioning.
+- **A. Vercel Marketplace** (recommended, 5 min, no separate signup)
+- **B. Standalone Supabase / Neon** (10 min, separate signup)
 
-## 2. Run the schema
+Either way you end up with the same outcome: `POSTGRES_URL` set in Vercel,
+schema run, JWT secret added.
 
-1. Project dashboard → left sidebar → **Database → SQL Editor**
-2. **New query** → paste the entire contents of `dashboard/db/schema.sql`
-3. Hit **Run**. You should see "Success. No rows returned."
+## A. Vercel Marketplace — Supabase or Neon
 
-## 3. Grab the keys
+1. https://vercel.com → your project → **Storage** tab → **Create Database**
+2. Pick **Supabase** (or Neon — both are Postgres, both work)
+3. Walk through the wizard:
+   - Region: Tokyo (closest to JP users; pick whatever's closest to you)
+   - Prefix: `NEXT_PUBLIC_` (default)
+   - Environments: Production + Preview + Development
+4. Vercel auto-injects `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, plus the
+   Supabase/Neon-specific keys.
+5. Open the database dashboard from Vercel ("Open in Supabase" / "Open in
+   Neon"), go to **SQL Editor**, paste the contents of
+   `dashboard/db/schema.sql`, hit **Run**. Idempotent — safe to re-run.
+6. Add one more env in Vercel for JWT signing:
 
-1. Left sidebar → **Project Settings → API**
-2. Copy the **Project URL** (looks like `https://xxxxx.supabase.co`)
-3. Copy the **`service_role` secret** (NOT the anon key — service_role bypasses RLS, used server-side only)
+   ```sh
+   vercel env add LC_JWT_SECRET production
+   # paste output of: openssl rand -hex 32
+   # then add to preview + development too
+   ```
 
-## 4. Set Vercel env vars
+7. Push (or `vercel --prod`) — Vercel auto-redeploys with the new env.
 
-```
-vercel env add SUPABASE_URL          # paste Project URL
-vercel env add SUPABASE_SERVICE_KEY  # paste service_role secret
-vercel env add LC_JWT_SECRET         # paste any 32+ char random string
-```
+## B. Standalone Supabase
 
-For `LC_JWT_SECRET`, generate one:
+1. https://supabase.com → New project → save the DB password.
+2. **Project Settings → API**, copy the **Project URL** and the
+   **service_role secret**.
+3. **SQL Editor → New query**, paste `dashboard/db/schema.sql`, Run.
+4. Vercel env vars:
 
-```sh
-openssl rand -hex 32
-```
+   ```sh
+   vercel env add POSTGRES_URL               # use the connection string
+                                              # from Supabase → Settings → Database
+                                              # (the pooled URL, port 6543)
+   vercel env add LC_JWT_SECRET              # openssl rand -hex 32
+   ```
 
-Add to all three environments (Production / Preview / Development) when prompted.
+5. Redeploy.
 
-## 5. Redeploy
+## Verify
 
-```sh
-vercel --prod
-```
+Visit https://www.lemoncake.xyz/app.
 
-Or just push a commit — Vercel auto-redeploys.
-
-## 6. Verify
-
-Visit https://www.lemoncake.xyz/app. It should detect the backend automatically:
-- The form's **Create Gateway Endpoint** button writes to Postgres.
-- Pay Tokens are signed as real JWTs.
-- The gateway URL (e.g. `https://www.lemoncake.xyz/g/abc12345`) **actually proxies** to your origin and decrements the token's budget.
-- localStorage data from before the upgrade stays in your browser as a local fallback — nothing breaks.
-
-If env vars are missing, `/app` falls back to localStorage simulation mode with a banner saying so.
+- If `/api/lc/health` returns `{ ready: true }`, the UI loads the real
+  dashboard. Create an endpoint, issue a Pay Token, send a real request
+  to `/g/<shortId>` — every action persists in Postgres.
+- If env vars are missing, `/app` falls back to a setup banner pointing
+  here.

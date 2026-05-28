@@ -1,74 +1,76 @@
 /**
- * LemonCake backend helpers — Supabase client, owner ID, Pay Token JWT,
- * short ID generator.
+ * LemonCake backend helpers — direct Postgres (via Vercel-injected
+ * POSTGRES_URL), owner-cookie identity, Pay Token JWT signing/verification,
+ * short-ID generator.
  *
- * Why this lives in app/lib: keeps API routes lean and lets the gateway
- * proxy share the same primitives.
+ * We use the `postgres` library directly instead of @supabase/supabase-js
+ * because Vercel's Supabase Marketplace integration doesn't expose the
+ * service_role key (security default). POSTGRES_URL is auto-injected and
+ * gives us full DB access, so we skip the Supabase REST layer entirely.
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import postgres, { type Sql } from "postgres";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 
 /* ──────────────── env ──────────────── */
 
-// Vercel's Supabase Marketplace integration uses *_SERVICE_ROLE_KEY and
-// NEXT_PUBLIC_SUPABASE_URL. We accept either, so it just works regardless
-// of whether the user wired it manually or through the integration UI.
-function supabaseUrl(): string | undefined {
-  return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-}
-function supabaseKey(): string | undefined {
-  return process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+function pgUrl(): string | undefined {
+  return process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
 }
 
 export function backendEnvReady(): boolean {
-  return !!(supabaseUrl() && supabaseKey() && process.env.LC_JWT_SECRET);
+  return !!(pgUrl() && process.env.LC_JWT_SECRET);
 }
 
-/* ──────────────── supabase ──────────────── */
+/* ──────────────── postgres connection (singleton) ──────────────── */
 
-let _client: SupabaseClient | null = null;
+// Module-scope singleton so warm Vercel functions reuse the pool.
+let _sql: Sql | null = null;
 
-export function sb(): SupabaseClient {
-  const url = supabaseUrl();
-  const key = supabaseKey();
-  if (!url || !key || !process.env.LC_JWT_SECRET) {
-    throw new Error("Supabase env not configured. See dashboard/SETUP-BACKEND.md.");
+export function sql(): Sql {
+  const url = pgUrl();
+  if (!url || !process.env.LC_JWT_SECRET) {
+    throw new Error("Backend env not configured. See dashboard/SETUP-BACKEND.md.");
   }
-  if (!_client) {
-    _client = createClient(url, key, { auth: { persistSession: false } });
+  if (!_sql) {
+    _sql = postgres(url, {
+      prepare: false,      // Vercel's pooled connections (pgbouncer) don't support prepared statements
+      max: 4,              // serverless cap
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+    });
   }
-  return _client;
+  return _sql;
 }
 
 /* ──────────────── owner ID (cookie) ──────────────── */
 
 const OWNER_COOKIE = "lc_owner";
 
-// Read the owner cookie. Returns null if missing.
 export async function readOwnerId(): Promise<string | null> {
   const c = await cookies();
   return c.get(OWNER_COOKIE)?.value ?? null;
 }
 
-// Read or create + set the owner cookie + lazily create the owner row.
-// Returns the owner ID. Must be called from a route handler that can set cookies.
+/** Read or create + set the owner cookie + upsert the owner row. */
 export async function ensureOwnerId(): Promise<string> {
   const c = await cookies();
   let id = c.get(OWNER_COOKIE)?.value;
   if (!id) {
     id = `o_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
     c.set(OWNER_COOKIE, id, {
-      httpOnly: false,            // readable by client for "current owner" display
+      httpOnly: false,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365,  // 1 year
+      maxAge: 60 * 60 * 24 * 365,
       path: "/",
     });
   }
-  // Lazy upsert
-  await sb().from("lc_owners").upsert({ id }, { onConflict: "id" });
+  await sql()`
+    insert into lc_owners (id) values (${id})
+    on conflict (id) do nothing
+  `;
   return id;
 }
 
@@ -81,12 +83,9 @@ function jwtKey(): Uint8Array {
 }
 
 export type PayTokenClaims = {
-  /** Pay Token ID — also the DB primary key. */
-  jti: string;
-  /** Endpoint ID this token can call. */
-  sub: string;
-  /** Owner ID who issued the token (for traceability). */
-  own: string;
+  jti: string;     // Pay Token ID (DB pk)
+  sub: string;     // endpoint ID
+  own: string;     // owner ID
 };
 
 export async function signPayToken(claims: PayTokenClaims, expiresAt: number): Promise<string> {
@@ -103,20 +102,14 @@ export async function verifyPayToken(jwt: string): Promise<PayTokenClaims | null
   try {
     const { payload } = await jwtVerify(jwt, jwtKey(), { algorithms: [ALG] });
     if (!payload.jti || !payload.sub || !payload.own) return null;
-    return {
-      jti: String(payload.jti),
-      sub: String(payload.sub),
-      own: String(payload.own),
-    };
+    return { jti: String(payload.jti), sub: String(payload.sub), own: String(payload.own) };
   } catch {
     return null;
   }
 }
 
-/* ──────────────── short id (gateway URL slug) ──────────────── */
+/* ──────────────── short id ──────────────── */
 
-// Crockford base32, no ambiguous chars. 8 chars = 40 bits, plenty for an
-// owner's lifetime worth of endpoints with collision retry.
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 export function shortId(): string {
@@ -136,24 +129,24 @@ export type EndpointRow = {
   slug: string;
   original_url: string;
   upstream_auth: string | null;
-  price_per_call: number;
-  token_budget: number;
+  price_per_call: string;     // postgres NUMERIC is returned as string
+  token_budget: string;
   rate_limit: number;
   status: "live" | "paused";
-  created_at: string;
+  created_at: Date;
 };
 
 export type PayTokenRow = {
   id: string;
   endpoint_id: string;
   owner_id: string;
-  budget: number;
-  spent: number;
+  budget: string;
+  spent: string;
   max_calls: number;
   calls_used: number;
-  expires_at: string;
+  expires_at: Date;
   status: "active" | "expired" | "exhausted" | "revoked";
-  issued_at: string;
+  issued_at: Date;
 };
 
 export type TestRunRow = {
@@ -161,12 +154,12 @@ export type TestRunRow = {
   endpoint_id: string;
   pay_token_id: string;
   owner_id: string;
-  gross: number;
-  fee: number;
-  net: number;
+  gross: string;
+  fee: string;
+  net: string;
   upstream_status: number | null;
   upstream_ms: number | null;
-  at: string;
+  at: Date;
 };
 
 export type BlockedRow = {
@@ -175,6 +168,6 @@ export type BlockedRow = {
   pay_token_id: string | null;
   owner_id: string;
   reason: "rate_limit_exceeded" | "spend_cap_exceeded" | "token_expired" | "token_revoked" | "endpoint_paused" | "upstream_error";
-  attempted: number;
-  at: string;
+  attempted: string;
+  at: Date;
 };

@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server";
-import { backendEnvReady, ensureOwnerId, sb, shortId, type EndpointRow } from "@/lib/lc-backend";
+import { backendEnvReady, ensureOwnerId, sql, shortId, type EndpointRow } from "@/lib/lc-backend";
 
 export const dynamic = "force-dynamic";
 
-function notReady() {
-  return NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
-}
+const notReady = () => NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
 
-/* GET — list this owner's endpoints */
 export async function GET() {
   if (!backendEnvReady()) return notReady();
   const ownerId = await ensureOwnerId();
-  const { data, error } = await sb()
-    .from("lc_endpoints")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ endpoints: data as EndpointRow[] });
+  const rows = await sql()<EndpointRow[]>`
+    select * from lc_endpoints
+    where owner_id = ${ownerId}
+    order by created_at desc
+  `;
+  return NextResponse.json({ endpoints: rows });
 }
 
-/* POST — create a new endpoint */
 type CreateBody = {
   name?: string;
   slug?: string;
@@ -57,46 +52,33 @@ export async function POST(req: Request) {
   if (!(rateLimit > 0)) return NextResponse.json({ error: "invalid_rate_limit" }, { status: 400 });
 
   // Auto-resolve slug conflict within this owner
-  const existing = await sb()
-    .from("lc_endpoints")
-    .select("slug")
-    .eq("owner_id", ownerId);
-  if (existing.error) return NextResponse.json({ error: existing.error.message }, { status: 500 });
-  const used = new Set((existing.data ?? []).map((r: { slug: string }) => r.slug));
+  const used = await sql()<{ slug: string }[]>`
+    select slug from lc_endpoints where owner_id = ${ownerId}
+  `;
+  const usedSet = new Set(used.map((r) => r.slug));
   let slug = slugCandidate;
-  if (used.has(slug)) {
+  if (usedSet.has(slug)) {
     let i = 2;
-    while (used.has(`${slugCandidate}-${i}`)) i++;
+    while (usedSet.has(`${slugCandidate}-${i}`)) i++;
     slug = `${slugCandidate}-${i}`;
   }
 
-  // Short ID for gateway URL — retry on collision (vanishingly rare)
+  // short_id with collision retry
   let sid = shortId();
   for (let attempt = 0; attempt < 5; attempt++) {
-    const { count } = await sb().from("lc_endpoints").select("id", { count: "exact", head: true }).eq("short_id", sid);
-    if (!count) break;
+    const existing = await sql()<{ id: string }[]>`
+      select id from lc_endpoints where short_id = ${sid} limit 1
+    `;
+    if (existing.length === 0) break;
     sid = shortId();
   }
 
-  const insert = {
-    short_id: sid,
-    owner_id: ownerId,
-    name,
-    slug,
-    original_url: originalUrl,
-    upstream_auth: body.upstreamAuth?.trim() || null,
-    price_per_call: pricePerCall,
-    token_budget: tokenBudget,
-    rate_limit: rateLimit,
-    status: "live" as const,
-  };
+  const upstreamAuth = body.upstreamAuth?.trim() || null;
 
-  const { data, error } = await sb()
-    .from("lc_endpoints")
-    .insert(insert)
-    .select()
-    .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({ endpoint: data as EndpointRow }, { status: 201 });
+  const [row] = await sql()<EndpointRow[]>`
+    insert into lc_endpoints (short_id, owner_id, name, slug, original_url, upstream_auth, price_per_call, token_budget, rate_limit, status)
+    values (${sid}, ${ownerId}, ${name}, ${slug}, ${originalUrl}, ${upstreamAuth}, ${pricePerCall}, ${tokenBudget}, ${rateLimit}, 'live')
+    returning *
+  `;
+  return NextResponse.json({ endpoint: row }, { status: 201 });
 }
