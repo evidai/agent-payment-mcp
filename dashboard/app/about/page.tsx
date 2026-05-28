@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ContactButton from "./ContactButton";
-import AuthedRedirect from "./AuthedRedirect";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
@@ -252,7 +251,6 @@ export default function AboutPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <AuthedRedirect />
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">

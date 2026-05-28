@@ -271,7 +271,7 @@ export default function FreeeIntegrationPage() {
           <br />
           <Link href="/legal/terms" className="underline">利用規約</Link>
           {" / "}
-          <Link href="/legal/dify-plugin" className="underline">プライバシーポリシー</Link>
+          <Link href="/privacy" className="underline">プライバシーポリシー</Link>
         </div>
       </div>
     </main>

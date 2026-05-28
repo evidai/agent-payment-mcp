@@ -35,7 +35,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/security`,                      lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/privacy`,                       lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
     { url: `${BASE}/legal/terms`,                   lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
-    { url: `${BASE}/legal/dify-plugin`,             lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
     { url: `${BASE}/support`,                       lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 }

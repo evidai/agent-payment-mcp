@@ -202,16 +202,9 @@ export default function TermsPage() {
 
         <hr className="border-black/10 my-12" />
 
-        <p className="text-sm opacity-60">
-          English speakers: a summary of these Terms is available at{" "}
-          <Link href="/legal/terms-en" className="underline">lemoncake.xyz/legal/terms-en</Link>.
-          The Japanese text above is the controlling version.
-        </p>
-
         <nav className="mt-12 text-sm font-medium flex gap-6">
-          <Link href="/legal/dify-plugin" className="hover:underline">Dify Plugin Policy →</Link>
           <Link href="/about" className="hover:underline">About →</Link>
-          <Link href="/" className="hover:underline">Home →</Link>
+          <Link href="/pricing" className="hover:underline">Pricing →</Link>
         </nav>
       </div>
     </main>
