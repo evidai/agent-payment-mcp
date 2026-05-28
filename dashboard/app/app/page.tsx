@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode, type SVGProp
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
-type Pane = "add" | "apis" | "paytoken" | "test" | "revenue" | "blocked";
+type Pane = "add" | "apis" | "paytoken" | "test" | "revenue" | "blocked" | "account";
 
 type Endpoint = {
   id: string;
@@ -154,6 +154,7 @@ const Icon = {
   Trash:   (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 7h16M9 7V4h6v3M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" /></svg>),
   Pause:   (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 4v16M15 4v16" /></svg>),
   Refresh: (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5" /></svg>),
+  Bank:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 10 12 4l9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18" /></svg>),
 };
 
 /* ────────────────────────────  sidebar  ──────────────────────────── */
@@ -169,6 +170,9 @@ const SIDEBAR: { heading: string; items: NavItem[] }[] = [
   { heading: "Monitor", items: [
     { label: "Usage Ledger",     icon: "Dollar", pane: "revenue" },
     { label: "Blocked Requests", icon: "Shield", pane: "blocked" },
+  ]},
+  { heading: "Account", items: [
+    { label: "Sign-in & Payouts", icon: "Bank", pane: "account" },
   ]},
 ];
 
@@ -293,8 +297,17 @@ function RealDashboard() {
   const totalRevenue = runs.reduce((a, r) => a + r.gross, 0);
   const counts: Record<Pane, number | null> = {
     add: null, apis: endpoints.length, paytoken: activeTokens.length,
-    test: runs.length, revenue: null, blocked: blocked.length,
+    test: runs.length, revenue: null, blocked: blocked.length, account: null,
   };
+
+  // Returning from Stripe-hosted onboarding lands on /app?stripe=return|refresh.
+  // Jump straight to the Account pane so the user sees their updated status
+  // (AccountPane refreshes from Stripe + clears the query param on mount).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URL(window.location.href).searchParams.get("stripe");
+    if (sp === "return" || sp === "refresh") setActivePane("account");
+  }, []);
 
   /* Mutations — all hit the API, then refetch */
   const api = {
@@ -348,6 +361,7 @@ function RealDashboard() {
               {activePane === "test"     && <TestPane endpoints={endpoints} tokens={tokens} jwtById={jwtById} runs={runs} api={api} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
               {activePane === "revenue"  && <RevenuePane endpoints={endpoints} runs={runs} />}
               {activePane === "blocked"  && <BlockedPane blocked={blocked} endpoints={endpoints} api={api} />}
+              {activePane === "account"  && <AccountPane />}
             </>
           )}
 
@@ -374,103 +388,19 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
   endpoints: Endpoint[]; activeTokensCount: number; runs: TestRun[]; blocked: BlockedReq[];
   totalRevenue: number; setActivePane: (p: Pane) => void;
 }) {
-  // Read the anonymous owner cookie so users can copy / back it up.
-  const [ownerId, setOwnerId] = useState<string>("");
   // Fetched profile (incl. email if claimed). Refetched whenever the
   // dropdown re-opens so a magic-link sign-in is reflected immediately.
+  // The actionable account flows (email claim, Stripe Connect, owner ID)
+  // now live in the sidebar → Account pane; the dropdown is a quick peek
+  // + a shortcut into that pane.
   type Me = { id: string; email: string | null; email_verified_at: string | null };
   const [me, setMe] = useState<Me | null>(null);
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const m = document.cookie.match(/(?:^|;\s*)lc_owner=([^;]+)/);
-    setOwnerId(m ? decodeURIComponent(m[1]) : "");
     if (menuOpen) {
       fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null));
     }
   }, [menuOpen]);
 
-  // Claim flow
-  const [emailInput, setEmailInput] = useState("");
-  const [claimBusy, setClaimBusy] = useState(false);
-  const [claimResult, setClaimResult] = useState<{ ok: true; sent: boolean; previewUrl: string | null } | { ok: false; error: string } | null>(null);
-  async function submitClaim() {
-    setClaimBusy(true);
-    setClaimResult(null);
-    try {
-      const r = await fetch("/api/lc/auth/request-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailInput.trim() }),
-      });
-      const j = await r.json();
-      if (!r.ok) setClaimResult({ ok: false, error: j.error || "request_failed" });
-      else setClaimResult({ ok: true, sent: !!j.sent, previewUrl: j.previewUrl ?? null });
-    } catch {
-      setClaimResult({ ok: false, error: "network_error" });
-    } finally {
-      setClaimBusy(false);
-    }
-  }
-  function signOut() {
-    document.cookie = "lc_owner=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-    window.location.reload();
-  }
-
-  // ─── Stripe Connect state ─────────────────────────────────────────
-  type StripeStatus = {
-    connected: boolean;
-    accountId: string | null;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-    detailsSubmitted: boolean;
-    country: string | null;
-  };
-  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
-  const [stripeBusy, setStripeBusy] = useState(false);
-  const [stripeErr, setStripeErr] = useState<string | null>(null);
-
-  async function fetchStripeStatus() {
-    try {
-      const r = await fetch("/api/lc/stripe/status");
-      const j = await r.json();
-      if (r.ok) setStripeStatus(j);
-    } catch { /* ignore */ }
-  }
-  // Refresh whenever the dropdown opens for a signed-in user.
-  useEffect(() => {
-    if (menuOpen && me?.email) fetchStripeStatus();
-  }, [menuOpen, me?.email]);
-  // Also refresh once on initial load if URL has ?stripe=return (came back
-  // from hosted onboarding) — gives the user immediate feedback.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("stripe") === "return") {
-      fetchStripeStatus();
-      // Clean the query param so a reload doesn't keep re-triggering.
-      url.searchParams.delete("stripe");
-      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
-    }
-  }, []);
-
-  async function startStripeConnect() {
-    setStripeBusy(true);
-    setStripeErr(null);
-    try {
-      const r = await fetch("/api/lc/stripe/connect", { method: "POST" });
-      const j = await r.json();
-      if (!r.ok || !j.onboardingUrl) {
-        setStripeErr(j.message || j.error || "connect_failed");
-        return;
-      }
-      // Redirect into Stripe's hosted onboarding form.
-      window.location.href = j.onboardingUrl;
-    } catch {
-      setStripeErr("network_error");
-    } finally {
-      setStripeBusy(false);
-    }
-  }
   return (
     <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -507,116 +437,15 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
                     <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Earned (net)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(totalRevenue * 0.97)}</dd></div>
                   </dl>
 
-                  {/* Email claim flow OR signed-in state */}
-                  {me?.email ? (
-                    <>
-                      <div className="mb-3 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/25 p-2.5">
-                        <div className="flex items-baseline justify-between gap-2 mb-1">
-                          <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
-                          <button type="button" onClick={signOut} className="text-[10.5px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
-                        </div>
-                        <p className="text-[11.5px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
-                      </div>
-
-                      {/* Stripe Connect status / action */}
-                      {stripeStatus && (
-                        stripeStatus.chargesEnabled ? (
-                          <div className="mb-3 rounded-lg bg-[#635BFF]/8 border border-[#635BFF]/25 p-2.5">
-                            <div className="flex items-baseline justify-between gap-2 mb-1">
-                              <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#635BFF]">Stripe connected</p>
-                              <span className="text-[9.5px] font-mono text-[#1a0f00]/50">{stripeStatus.country ?? "—"}</span>
-                            </div>
-                            <code className="block font-mono text-[10.5px] text-[#1a0f00]/75 break-all">{stripeStatus.accountId}</code>
-                            <p className="mt-1 text-[10px] text-[#1a0f00]/55">Buyers can now prepay credits to this seller. Payouts settle on Stripe&apos;s schedule.</p>
-                          </div>
-                        ) : stripeStatus.connected ? (
-                          <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1">Stripe onboarding incomplete</p>
-                            <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
-                              Account created, but KYC / bank details still pending. Resume to accept payments.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={startStripeConnect}
-                              disabled={stripeBusy}
-                              className="w-full px-2.5 py-1.5 bg-[#1a0f00] text-white font-bold text-[11px] rounded hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50"
-                            >
-                              {stripeBusy ? "Opening Stripe…" : "Resume Stripe onboarding →"}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1">Accept buyer payments</p>
-                            <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
-                              Connect Stripe so buyers can prepay credits to your account. LemonCake takes 3%, the rest goes straight to your Stripe balance.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={startStripeConnect}
-                              disabled={stripeBusy}
-                              className="w-full px-2.5 py-1.5 bg-[#635BFF] text-white font-bold text-[11px] rounded hover:bg-[#7A73FF] transition-colors disabled:opacity-50"
-                            >
-                              {stripeBusy ? "Opening Stripe…" : "Connect Stripe →"}
-                            </button>
-                          </div>
-                        )
-                      )}
-                      {stripeErr && (
-                        <p className="mb-3 text-[10.5px] text-[#DC2626]">Stripe error: {stripeErr}</p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">Claim with email</p>
-                      <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
-                        Add an email to recover this workspace from another browser and to enable Stripe Connect payouts (next phase).
-                      </p>
-                      {claimResult?.ok && (claimResult.sent ? (
-                        <p className="text-[11px] text-[#16A34A] mb-2">✓ Check your inbox for the magic link.</p>
-                      ) : (
-                        <div className="mb-2">
-                          <p className="text-[10.5px] text-[#1a0f00]/65 mb-1">Link generated (email backend not configured yet):</p>
-                          {claimResult.previewUrl && (
-                            <div className="flex items-center gap-1.5">
-                              <a href={claimResult.previewUrl} className="flex-1 text-[10px] text-[#1a0f00] underline break-all">Open link</a>
-                              <button type="button" onClick={() => navigator.clipboard?.writeText(claimResult.previewUrl!)} className="text-[10px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {claimResult && !claimResult.ok && (
-                        <p className="text-[11px] text-[#DC2626] mb-2">Error: {claimResult.error}</p>
-                      )}
-                      <div className="flex gap-1.5">
-                        <input
-                          type="email"
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          placeholder="you@example.com"
-                          className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-[#1a0f00]/15 rounded text-[11.5px] focus:outline-none focus:border-[#1a0f00]/55"
-                          onKeyDown={(e) => { if (e.key === "Enter") submitClaim(); }}
-                        />
-                        <button
-                          type="button"
-                          onClick={submitClaim}
-                          disabled={claimBusy || !emailInput.trim()}
-                          className="flex-shrink-0 px-2.5 py-1.5 bg-[#1a0f00] text-white font-bold text-[11px] rounded hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50"
-                        >
-                          {claimBusy ? "…" : "Send"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {ownerId && (
-                    <details className="mb-3">
-                      <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 hover:text-[#1a0f00]/65">Owner ID</summary>
-                      <div className="mt-1.5 flex items-center justify-between gap-2">
-                        <code className="font-mono text-[10.5px] text-[#1a0f00]/75 truncate">{ownerId}</code>
-                        <button type="button" onClick={() => navigator.clipboard?.writeText(ownerId)} className="flex-shrink-0 text-[10px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
-                      </div>
-                    </details>
-                  )}
+                  {/* Sign-in, Stripe Connect and Owner ID now live in the
+                      sidebar → Account pane. Keep a one-tap shortcut here. */}
+                  <button
+                    type="button"
+                    onClick={() => { setActivePane("account"); setMenuOpen(false); }}
+                    className="w-full mb-3 px-2.5 py-2 bg-[#1a0f00] text-white font-bold text-[11.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors"
+                  >
+                    {me?.email ? "Manage account & payouts →" : "Sign in & connect Stripe →"}
+                  </button>
 
                   <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">Talk to us →</a>
                 </div>
@@ -675,6 +504,184 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
 }
 
 /* ────────────────────────────  panes  ──────────────────────────── */
+
+function AccountPane() {
+  // ── Identity: anonymous owner cookie + claimed email ──
+  const [ownerId, setOwnerId] = useState<string>("");
+  type Me = { id: string; email: string | null; email_verified_at: string | null };
+  const [me, setMe] = useState<Me | null>(null);
+  const [meLoaded, setMeLoaded] = useState(false);
+  const loadMe = useCallback(() => {
+    fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null)).finally(() => setMeLoaded(true));
+  }, []);
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      const m = document.cookie.match(/(?:^|;\s*)lc_owner=([^;]+)/);
+      setOwnerId(m ? decodeURIComponent(m[1]) : "");
+    }
+    loadMe();
+  }, [loadMe]);
+
+  // ── Email claim flow ──
+  const [emailInput, setEmailInput] = useState("");
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimResult, setClaimResult] = useState<{ ok: true; sent: boolean; previewUrl: string | null } | { ok: false; error: string } | null>(null);
+  async function submitClaim() {
+    setClaimBusy(true);
+    setClaimResult(null);
+    try {
+      const r = await fetch("/api/lc/auth/request-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.trim() }) });
+      const j = await r.json();
+      if (!r.ok) setClaimResult({ ok: false, error: j.error || "request_failed" });
+      else setClaimResult({ ok: true, sent: !!j.sent, previewUrl: j.previewUrl ?? null });
+    } catch {
+      setClaimResult({ ok: false, error: "network_error" });
+    } finally {
+      setClaimBusy(false);
+    }
+  }
+  function signOut() {
+    document.cookie = "lc_owner=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    window.location.reload();
+  }
+
+  // ── Stripe Connect ──
+  type StripeStatus = { connected: boolean; accountId: string | null; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean; country: string | null };
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [stripeErr, setStripeErr] = useState<string | null>(null);
+  const fetchStripeStatus = useCallback(async () => {
+    try { const r = await fetch("/api/lc/stripe/status"); const j = await r.json(); if (r.ok) setStripeStatus(j); } catch { /* ignore */ }
+  }, []);
+  useEffect(() => { if (me?.email) fetchStripeStatus(); }, [me?.email, fetchStripeStatus]);
+  // Returning from hosted onboarding lands on ?stripe=return|refresh — refresh
+  // status so KYC completion shows immediately, then clean the query param.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const sp = url.searchParams.get("stripe");
+    if (sp === "return" || sp === "refresh") {
+      fetchStripeStatus();
+      url.searchParams.delete("stripe");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+  }, [fetchStripeStatus]);
+  async function startStripeConnect() {
+    setStripeBusy(true);
+    setStripeErr(null);
+    try {
+      const r = await fetch("/api/lc/stripe/connect", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok || !j.onboardingUrl) { setStripeErr(j.message || j.error || "connect_failed"); return; }
+      window.location.href = j.onboardingUrl;
+    } catch {
+      setStripeErr("network_error");
+    } finally {
+      setStripeBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <PaneHeading eyebrow="Account" title="Sign-in & payouts" subtitle="Claim this workspace with an email so you can recover it from any browser, then connect Stripe to accept buyer payments. LemonCake takes 3%; the rest settles straight to your Stripe balance." />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Card 1 — workspace identity */}
+        <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-3">Workspace</p>
+          {!meLoaded ? (
+            <p className="text-[12px] text-[#1a0f00]/40">Loading…</p>
+          ) : me?.email ? (
+            <div className="rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-4">
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
+                <button type="button" onClick={signOut} className="text-[11px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
+              </div>
+              <p className="text-[14px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
+              <p className="mt-1 text-[11px] text-[#1a0f00]/55">Recoverable from any browser via a magic link to this address.</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">
+                Right now this workspace only lives in this browser&apos;s cookie. Add an email to lock it to you — required before connecting Stripe.
+              </p>
+              {claimResult?.ok && (claimResult.sent ? (
+                <p className="text-[12px] text-[#16A34A] mb-3">✓ Check your inbox for the magic link.</p>
+              ) : (
+                <div className="mb-3 rounded-lg bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-3">
+                  <p className="text-[11.5px] text-[#1a0f00]/65 mb-1.5">Email delivery isn&apos;t wired up yet — use this one-time link to finish signing in:</p>
+                  {claimResult.previewUrl && (
+                    <div className="flex items-center gap-2">
+                      <a href={claimResult.previewUrl} className="flex-1 text-[11px] text-[#1a0f00] underline break-all">Open sign-in link</a>
+                      <button type="button" onClick={() => navigator.clipboard?.writeText(claimResult.previewUrl!)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {claimResult && !claimResult.ok && (
+                <p className="text-[12px] text-[#DC2626] mb-3">Error: {claimResult.error}</p>
+              )}
+              <div className="flex gap-2">
+                <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="you@example.com" onKeyDown={(e) => { if (e.key === "Enter") submitClaim(); }} className="flex-1 min-w-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" />
+                <button type="button" onClick={submitClaim} disabled={claimBusy || !emailInput.trim()} className="flex-shrink-0 px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{claimBusy ? "…" : "Send link"}</button>
+              </div>
+            </div>
+          )}
+
+          {ownerId && (
+            <details className="mt-4">
+              <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 hover:text-[#1a0f00]/65">Owner ID</summary>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <code className="font-mono text-[11px] text-[#1a0f00]/75 truncate">{ownerId}</code>
+                <button type="button" onClick={() => navigator.clipboard?.writeText(ownerId)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+              </div>
+            </details>
+          )}
+        </section>
+
+        {/* Card 2 — Stripe Connect */}
+        <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon.Bank className="w-4 h-4 text-[#635BFF]" />
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45">Accept buyer payments</p>
+          </div>
+
+          {!me?.email ? (
+            <div className="rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-4 flex items-start gap-2.5">
+              <Icon.Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/40" />
+              <p className="text-[12.5px] text-[#1a0f00]/65 leading-relaxed">Claim this workspace with an email first (left). Stripe needs a stable identity that survives a cookie wipe.</p>
+            </div>
+          ) : (
+            <>
+              {stripeStatus?.chargesEnabled ? (
+                <div className="rounded-xl bg-[#635BFF]/8 border border-[#635BFF]/25 p-4">
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#635BFF]">Stripe connected</p>
+                    <span className="text-[10px] font-mono text-[#1a0f00]/50">{stripeStatus.country ?? "—"}</span>
+                  </div>
+                  <code className="block font-mono text-[11.5px] text-[#1a0f00]/75 break-all mb-1">{stripeStatus.accountId}</code>
+                  <p className="text-[11.5px] text-[#1a0f00]/55">Buyers can prepay credits to your account. Payouts settle on Stripe&apos;s schedule.</p>
+                </div>
+              ) : stripeStatus?.connected ? (
+                <div className="rounded-xl bg-[#fffd43]/15 border border-[#1a0f00]/10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1.5">Onboarding incomplete</p>
+                  <p className="text-[12px] text-[#1a0f00]/65 leading-relaxed mb-3">Account created, but KYC / bank details are still pending. Resume to start accepting payments.</p>
+                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{stripeBusy ? "Opening Stripe…" : "Resume Stripe onboarding →"}</button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">Connect a Stripe account so buyers can prepay credits. LemonCake never holds funds — 97% lands in your Stripe balance, we keep a 3% platform fee.</p>
+                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#635BFF] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#7A73FF] transition-colors disabled:opacity-50">{stripeBusy ? "Opening Stripe…" : "Connect Stripe →"}</button>
+                </div>
+              )}
+              {stripeErr && <p className="mt-3 text-[12px] text-[#DC2626] break-words">Stripe error: {stripeErr}</p>}
+            </>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
 
 function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; api: Api }) {
   // Empty by default — the placeholder shows the example. The user types
