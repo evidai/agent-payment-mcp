@@ -20,6 +20,10 @@ import { NextResponse } from "next/server";
 import { backendEnvReady, sql, verifyPayToken, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
 
 export const dynamic = "force-dynamic";
+// Pin gateway functions to Tokyo so they sit next to the Supabase DB
+// (we picked hnd1 there too). Cuts the per-call DB round-trip latency
+// from ~120ms (transpacific) to ~10ms.
+export const preferredRegion = "hnd1";
 
 type Ctx = { params: Promise<{ shortId: string }> };
 
@@ -31,29 +35,45 @@ const STRIP_HEADERS = new Set([
   "cookie",        // never leak buyer's cookies upstream
 ]);
 
-const jsonErr = (status: number, code: string, extra?: Record<string, unknown>) =>
-  NextResponse.json({ error: code, ...extra }, { status });
+// CORS — gateway is meant to be called by buyer agents running anywhere,
+// including in-browser. Allow any origin, expose our trace headers.
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": req.headers.get("access-control-request-headers") || "Authorization, Content-Type",
+    "Access-Control-Allow-Credentials": "false",
+    "Access-Control-Expose-Headers": "x-lemoncake-charge, x-lemoncake-upstream-ms",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
+
+function jsonErr(req: Request, status: number, code: string, extra?: Record<string, unknown>) {
+  return NextResponse.json({ error: code, ...extra }, { status, headers: corsHeaders(req) });
+}
 
 async function handle(req: Request, { params }: Ctx) {
-  if (!backendEnvReady()) return jsonErr(503, "backend_not_configured");
+  if (!backendEnvReady()) return jsonErr(req, 503, "backend_not_configured");
 
   const { shortId } = await params;
 
   const auth = req.headers.get("authorization") ?? "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
-  if (!m) return jsonErr(401, "missing_pay_token");
+  if (!m) return jsonErr(req, 401, "missing_pay_token");
   const jwt = m[1].trim();
 
   const claims = await verifyPayToken(jwt);
-  if (!claims) return jsonErr(401, "invalid_pay_token");
+  if (!claims) return jsonErr(req, 401, "invalid_pay_token");
 
   const eps = await sql()<EndpointRow[]>`
     select * from lc_endpoints where short_id = ${shortId} limit 1
   `;
-  if (eps.length === 0) return jsonErr(404, "endpoint_not_found");
+  if (eps.length === 0) return jsonErr(req, 404, "endpoint_not_found");
   const ep = eps[0];
 
-  if (claims.sub !== ep.id) return jsonErr(403, "token_endpoint_mismatch");
+  if (claims.sub !== ep.id) return jsonErr(req, 403, "token_endpoint_mismatch");
 
   const charge = Number(ep.price_per_call);
 
@@ -62,13 +82,13 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${claims.jti}, ${ep.owner_id}, 'endpoint_paused', ${charge})
     `;
-    return jsonErr(503, "endpoint_paused");
+    return jsonErr(req, 503, "endpoint_paused");
   }
 
   const tokens = await sql()<PayTokenRow[]>`
     select * from lc_pay_tokens where id = ${claims.jti} limit 1
   `;
-  if (tokens.length === 0) return jsonErr(401, "pay_token_not_found");
+  if (tokens.length === 0) return jsonErr(req, 401, "pay_token_not_found");
   const tok = tokens[0];
 
   if (tok.status === "revoked") {
@@ -76,7 +96,7 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_revoked', ${charge})
     `;
-    return jsonErr(403, "token_revoked");
+    return jsonErr(req, 403, "token_revoked");
   }
   if (new Date(tok.expires_at).getTime() < Date.now() || tok.status === "expired") {
     if (tok.status !== "expired") {
@@ -86,7 +106,7 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_expired', ${charge})
     `;
-    return jsonErr(401, "token_expired");
+    return jsonErr(req, 401, "token_expired");
   }
   if (tok.calls_used >= tok.max_calls) {
     if (tok.status !== "exhausted") {
@@ -96,14 +116,14 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
     `;
-    return jsonErr(402, "token_exhausted");
+    return jsonErr(req, 402, "token_exhausted");
   }
   if (Number(tok.spent) + charge > Number(tok.budget)) {
     await sql()`
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
     `;
-    return jsonErr(402, "spend_cap_exceeded");
+    return jsonErr(req, 402, "spend_cap_exceeded");
   }
 
   // Rate limit: paid calls for this endpoint in the last 60s
@@ -117,7 +137,7 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'rate_limit_exceeded', ${charge})
     `;
-    return jsonErr(429, "rate_limit_exceeded");
+    return jsonErr(req, 429, "rate_limit_exceeded");
   }
 
   // Build upstream request
@@ -150,7 +170,7 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'upstream_error', ${charge})
     `;
-    return jsonErr(502, "upstream_unreachable", {
+    return jsonErr(req, 502, "upstream_unreachable", {
       detail: err instanceof Error ? err.message : "unknown",
     });
   }
@@ -181,15 +201,19 @@ async function handle(req: Request, { params }: Ctx) {
     ]);
   }
 
-  // Pipe response back to buyer
+  // Pipe response back to buyer (with CORS so browser-side agents work)
   const outHeaders = new Headers();
   upstreamRes.headers.forEach((v, k) => {
     const lk = k.toLowerCase();
     if (lk === "content-length" || lk === "transfer-encoding" || lk === "connection") return;
+    // Don't echo upstream's own ACAO — we set our own below to keep
+    // the gateway's CORS policy consistent regardless of origin behaviour.
+    if (lk.startsWith("access-control-")) return;
     outHeaders.set(k, v);
   });
   outHeaders.set("x-lemoncake-charge", String(charge));
   outHeaders.set("x-lemoncake-upstream-ms", String(ms));
+  for (const [k, v] of Object.entries(corsHeaders(req))) outHeaders.set(k, v);
 
   return new Response(upstreamRes.body, {
     status: upstreamRes.status,
@@ -197,9 +221,14 @@ async function handle(req: Request, { params }: Ctx) {
   });
 }
 
+/** Preflight — return CORS headers immediately, no DB / auth required. */
+async function preflight(req: Request) {
+  return new Response(null, { status: 204, headers: corsHeaders(req) });
+}
+
 export const GET     = handle;
 export const POST    = handle;
 export const PUT     = handle;
 export const PATCH   = handle;
 export const DELETE  = handle;
-export const OPTIONS = handle;
+export const OPTIONS = preflight;

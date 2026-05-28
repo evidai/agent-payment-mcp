@@ -3,6 +3,8 @@ import { backendEnvReady, ensureOwnerId, sql, type PayTokenRow } from "@/lib/lc-
 
 export const dynamic = "force-dynamic";
 
+export const preferredRegion = "hnd1";
+
 const notReady = () => NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
 
 type Ctx = { params: Promise<{ id: string }> };

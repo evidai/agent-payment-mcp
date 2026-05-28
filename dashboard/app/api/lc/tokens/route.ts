@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { backendEnvReady, ensureOwnerId, sql, signPayToken, type PayTokenRow } from "@/lib/lc-backend";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "hnd1";
 
 const notReady = () => NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
 

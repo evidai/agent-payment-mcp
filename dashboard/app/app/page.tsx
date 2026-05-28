@@ -252,7 +252,20 @@ function RealDashboard() {
   const [blocked,   setBlocked]   = useState<BlockedReq[]>([]);
   // Track JWTs only in memory (they're only returned on issue; the server
   // stores hashes-equivalents in DB but the buyer needs the full JWT).
-  const [jwtById,   setJwtById]   = useState<Record<string, string>>({});
+  // JWTs are only returned once on issue. Persist to localStorage so a
+  // page reload doesn't break the "Send request" loop. Server-side state
+  // (token row + budget) lives in Postgres; the JWT itself is the bearer
+  // ticket the buyer needs and we never get it back from the API again.
+  const [jwtById, setJwtById] = useState<Record<string, string>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("lc:jwts");
+      if (raw) setJwtById(JSON.parse(raw));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("lc:jwts", JSON.stringify(jwtById)); } catch {}
+  }, [jwtById]);
   const [loaded,    setLoaded]    = useState(false);
 
   const refetchAll = useCallback(async () => {
@@ -364,6 +377,14 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
   endpoints: Endpoint[]; activeTokensCount: number; runs: TestRun[]; blocked: BlockedReq[];
   totalRevenue: number; setActivePane: (p: Pane) => void;
 }) {
+  // Read the anonymous owner cookie so users can copy / back it up before
+  // clearing browser data wipes out their workspace identity.
+  const [ownerId, setOwnerId] = useState<string>("");
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const m = document.cookie.match(/(?:^|;\s*)lc_owner=([^;]+)/);
+    setOwnerId(m ? decodeURIComponent(m[1]) : "");
+  }, [menuOpen]);
   return (
     <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -397,7 +418,23 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Blocked</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
                     <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Earned (net)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(totalRevenue * 0.97)}</dd></div>
                   </dl>
-                  <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed mb-2">Your workspace is identified by a browser cookie. Real auth lands Q3 2026.</p>
+                  {ownerId && (
+                    <div className="mb-3 rounded-lg bg-[#fafaf7] border border-[#1a0f00]/8 p-2.5">
+                      <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Owner ID</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <code className="font-mono text-[11px] text-[#1a0f00]/80 truncate">{ownerId}</code>
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard?.writeText(ownerId)}
+                          className="flex-shrink-0 text-[10.5px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline underline-offset-2"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-[#1a0f00]/50 leading-snug">Save this if you clear cookies / switch browsers — it&apos;s how Postgres knows your endpoints are yours.</p>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-[#1a0f00]/55 leading-relaxed mb-2">Real auth (email / wallet) lands Q3 2026.</p>
                   <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">Talk to us about earlier access →</a>
                 </div>
               </>
@@ -796,6 +833,52 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
   const [lastResult, setLastResult] = useState<{ kind: "ok"; status: number; ms: number; bodyPreview: string } | { kind: "blocked"; status: number; reason: string } | { kind: "error"; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Verify origin (bypasses the gateway entirely)
+  type VerifyResult =
+    | { kind: "ok"; status: number; ms: number; contentType: string; bodyPreview: string }
+    | { kind: "error"; message: string; hint?: string };
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
+
+  async function verifyOrigin() {
+    const t = tokens.find((p) => p.id === tokenId);
+    if (!t) return;
+    const e = endpoints.find((x) => x.id === t.endpointId);
+    if (!e) return;
+    setVerifyBusy(true);
+    setVerifyResult(null);
+    const headers: Record<string, string> = {};
+    if (e.upstreamAuth) {
+      const idx = e.upstreamAuth.indexOf(":");
+      if (idx > 0) headers[e.upstreamAuth.slice(0, idx).trim()] = e.upstreamAuth.slice(idx + 1).trim();
+    }
+    const t0 = performance.now();
+    try {
+      const res = await fetch(e.originalUrl, { method: "GET", headers, mode: "cors" });
+      const ms = Math.round(performance.now() - t0);
+      const text = await res.text();
+      setVerifyResult({
+        kind: "ok",
+        status: res.status,
+        ms,
+        contentType: res.headers.get("content-type") ?? "(none)",
+        bodyPreview: text.slice(0, 400),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const looksLikeCors = /failed to fetch|networkerror|load failed/i.test(message);
+      setVerifyResult({
+        kind: "error",
+        message,
+        hint: looksLikeCors
+          ? "Probably CORS / DNS. Browser-to-origin needs Access-Control-Allow-Origin from your upstream. The production gateway is server-to-server and is not affected."
+          : undefined,
+      });
+    } finally {
+      setVerifyBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (activeTokens.length > 0 && !activeTokens.find((t) => t.id === tokenId)) setTokenId(activeTokens[0].id);
   }, [activeTokens, tokenId]);
@@ -885,8 +968,42 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
           )}
 
           <button type="button" onClick={send} disabled={busy || !jwt} className="mt-4 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">
-            {busy ? "Calling gateway…" : "Send request"} <span className="text-[10px] font-normal text-white/55 ml-1">real network</span>
+            {busy ? "Calling gateway…" : "Send request"} <span className="text-[10px] font-normal text-white/55 ml-1">via gateway</span>
           </button>
+
+          {/* Verify origin — bypass gateway, hit upstream directly */}
+          {ep && (
+            <div className="mt-6 pt-5 border-t border-[#1a0f00]/8">
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-[12px] font-bold">Verify origin reachable</p>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#1a0f00]/55">bypasses gateway</span>
+              </div>
+              <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug mb-3">
+                Browser-side GET to <code className="font-mono">{ep.originalUrl}</code>{ep.upstreamAuth ? <> with your stored <code className="font-mono">{maskAuth(ep.upstreamAuth)}</code></> : null}. Confirms URL + upstream auth actually reach origin. No Pay Token decrement.
+              </p>
+              <button type="button" onClick={verifyOrigin} disabled={verifyBusy} className="w-full py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[12px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors disabled:opacity-60">
+                {verifyBusy ? "Calling origin…" : "GET upstream now"}
+              </button>
+              {verifyResult?.kind === "ok" && (
+                <div className={`mt-3 rounded-lg border p-3 ${verifyResult.status < 400 ? "bg-[#16A34A]/8 border-[#16A34A]/30" : "bg-[#DC2626]/8 border-[#DC2626]/30"}`}>
+                  <div className="flex items-baseline justify-between mb-2">
+                    <p className={`text-[12.5px] font-bold ${verifyResult.status < 400 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{verifyResult.status} {verifyResult.status < 400 ? "OK" : "from origin"}</p>
+                    <p className="text-[10.5px] font-mono text-[#1a0f00]/55">{verifyResult.ms}ms · {verifyResult.contentType}</p>
+                  </div>
+                  {verifyResult.bodyPreview ? (
+                    <pre className="font-mono text-[10.5px] text-[#1a0f00]/75 whitespace-pre-wrap break-all max-h-32 overflow-auto bg-white/50 border border-[#1a0f00]/8 rounded p-2">{verifyResult.bodyPreview}{verifyResult.bodyPreview.length === 400 ? "…" : ""}</pre>
+                  ) : <p className="text-[10.5px] text-[#1a0f00]/45 italic">(empty body)</p>}
+                </div>
+              )}
+              {verifyResult?.kind === "error" && (
+                <div className="mt-3 rounded-lg bg-[#DC2626]/8 border border-[#DC2626]/30 p-3">
+                  <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">Network error</p>
+                  <p className="text-[11px] font-mono text-[#1a0f00]/75 break-all">{verifyResult.message}</p>
+                  {verifyResult.hint && <p className="mt-2 text-[10.5px] text-[#1a0f00]/65 leading-snug">{verifyResult.hint}</p>}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
