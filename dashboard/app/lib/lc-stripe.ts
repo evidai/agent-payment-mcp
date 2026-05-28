@@ -19,8 +19,12 @@ export function stripe(): Stripe {
     throw new Error("STRIPE_SECRET_KEY not configured. See dashboard/SETUP-BACKEND.md.");
   }
   if (!_stripe) {
+    // No explicit apiVersion: stripe-node pins its own default (the SDK's
+    // built-in version), which is what the TS types require. Pinning an
+    // arbitrary older string isn't type-supported by this SDK and our
+    // Connect calls (accounts.create / accountLinks.create / retrieve) are
+    // version-stable, so the SDK default is safe.
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2025-09-30.clover" as Stripe.LatestApiVersion,
       typescript: true,
       appInfo: {
         name: "LemonCake",
