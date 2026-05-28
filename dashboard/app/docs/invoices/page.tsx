@@ -46,7 +46,7 @@ export default function InvoicesDocPage() {
         <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">セットアップ</h2>
         <ol className="text-sm text-gray-700 leading-relaxed pl-5 list-decimal space-y-1.5">
           <li>Pro プラン以上に加入</li>
-          <li><Link href="/sellers" className="text-amber-700">/sellers</Link> 設定で <strong>T+13 桁登録番号</strong>を入力</li>
+          <li><Link href="/app" className="text-amber-700">/sellers</Link> 設定で <strong>T+13 桁登録番号</strong>を入力</li>
           <li>ダッシュボード → /publish/invoices で「自動発行を有効化」トグル ON</li>
           <li>毎月 1 日 09:00 JST に前月分が自動生成され、Buyer のメールアドレス宛に PDF が送信される</li>
         </ol>

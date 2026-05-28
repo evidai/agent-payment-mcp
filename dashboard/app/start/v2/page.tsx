@@ -920,7 +920,7 @@ export default function StartV2Page() {
                     <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">How to paste MCP config</p>
                     <p className="mt-0.5 text-[10px] text-gray-500">Steps for Claude / Cursor / Cline</p>
                   </a>
-                  <a href="/sellers" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
+                  <a href="/app" className="group rounded-xl border border-gray-200 bg-white p-4 hover:border-amber-300 hover:bg-amber-50/30 transition">
                     <div className="text-2xl mb-1">🏪</div>
                     <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700">Sell your API here</p>
                     <p className="mt-0.5 text-[10px] text-gray-500">1-min registration at /sellers</p>

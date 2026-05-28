@@ -353,7 +353,7 @@ export default function AboutPage() {
                 ドキュメント →
               </Link>
               <Link
-                href="/sellers"
+                href="/app"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-transparent text-[#1a0f00]/70 font-semibold hover:text-[#1a0f00] transition-colors text-sm"
               >
                 API 提供者向け →

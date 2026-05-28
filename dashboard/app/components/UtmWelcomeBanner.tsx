@@ -43,7 +43,7 @@ const KNOWN_SOURCES: Record<string, SourceConfig> = {
     label:   "From Discord",
     emoji:   "💬",
     message: "Welcome from Discord! 3 lines to monetize your MCP server.",
-    cta:     { label: "/sellers →", href: "/sellers" },
+    cta:     { label: "Open app →", href: "/app" },
   },
   producthunt: {
     label:   "From PH",
@@ -54,8 +54,8 @@ const KNOWN_SOURCES: Record<string, SourceConfig> = {
   outreach: {
     label:   "Direct invite",
     emoji:   "🤝",
-    message: "ご招待ありがとうございます。あなたの MCP に 3 行で組み込めます。",
-    cta:     { label: "/sellers で 1 分登録 →", href: "/sellers" },
+    message: "ご招待ありがとうございます。あなたの API を 60 秒で paid endpoint 化できます。",
+    cta:     { label: "Open app →", href: "/app" },
   },
   newsletter: {
     label:   "From newsletter",
