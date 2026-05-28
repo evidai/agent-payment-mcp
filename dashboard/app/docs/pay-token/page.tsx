@@ -201,7 +201,7 @@ export default function PayTokenPage() {
         {/* ── Try it ── */}
         <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Try it</h2>
         <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1.5">
-          <li>Issue a Pay Token from a seller account at <Link href="/start/free" className="text-amber-700 underline-offset-2 hover:underline">/start/free</Link></li>
+          <li>Issue a Pay Token from a seller account at <Link href="/app" className="text-amber-700 underline-offset-2 hover:underline">/start/free</Link></li>
           <li>Verify one in your code: <code className="text-xs bg-gray-100 px-1 rounded">npm i @lemon-cake/mcp-sdk@latest</code></li>
           <li>Working example MCP server: <a href="https://github.com/evidai/agent-payment-mcp/tree/main/examples/mcp-monetization-starter" className="text-amber-700 underline-offset-2 hover:underline">examples/mcp-monetization-starter</a></li>
           <li>Spec questions: <a href="mailto:contact@aievid.com?subject=Pay%20Token%20spec%20feedback" className="text-amber-700 underline-offset-2 hover:underline">contact@aievid.com</a></li>

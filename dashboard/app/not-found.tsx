@@ -23,7 +23,7 @@ export default function NotFound() {
           <div className="flex items-center gap-5 text-[13px] text-[#1a0f00]/60">
             <Link href="/pricing"    className="hover:text-[#1a0f00] transition-colors">Pricing</Link>
             <Link href="/docs"       className="hover:text-[#1a0f00] transition-colors">Docs</Link>
-            <Link href="/start/free" className="font-semibold text-[#1a0f00]">Start free →</Link>
+            <Link href="/app" className="font-semibold text-[#1a0f00]">Start free →</Link>
           </div>
         </div>
       </nav>
@@ -52,7 +52,7 @@ export default function NotFound() {
               Read docs
             </Link>
             <Link
-              href="/start/free"
+              href="/app"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold rounded-xl hover:bg-white/85 transition-colors text-[13px]"
             >
               Start for free →

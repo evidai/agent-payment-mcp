@@ -206,7 +206,7 @@ export default function AboutPageEn() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/free"
+              href="/app"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
             >
               Start building <IconArrowRight />
@@ -628,7 +628,7 @@ export default function AboutPageEn() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/free"
+              href="/app"
               className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-sm"
             >
               Start for free <IconArrowRight />

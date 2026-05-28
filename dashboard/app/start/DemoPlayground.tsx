@@ -208,7 +208,7 @@ export function DemoPlayground() {
         )}
 
         <p className="text-[11px] text-white/30 leading-relaxed">
-          This widget hits the same upstream as the published MCP server — no signup, no permit, $0 charged. Switch to a real service ($0.005/call typical) by setting <code className="font-mono">LEMON_CAKE_PERMIT</code> after <a href="/start/free" className="text-[#fffd43]/70 hover:underline">creating an account</a>.
+          This widget hits the same upstream as the published MCP server — no signup, no permit, $0 charged. Switch to a real service ($0.005/call typical) by setting <code className="font-mono">LEMON_CAKE_PERMIT</code> after <a href="/app" className="text-[#fffd43]/70 hover:underline">creating an account</a>.
         </p>
       </div>
     </div>

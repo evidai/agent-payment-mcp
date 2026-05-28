@@ -341,7 +341,7 @@ export default function AboutPage() {
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link
-                href="/start/free"
+                href="/app"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
               >
                 無料で始める <IconArrowRight />
@@ -611,7 +611,7 @@ export default function AboutPage() {
               <p className="text-[13px] text-white/45 leading-relaxed mb-3">
                 メールアドレスで即登録。テスト用に Sandbox トークンを使えば実 USDC なしでも最後まで試せます。
               </p>
-              <Link href="/start/free" className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/80 hover:text-[#fffd43]">
+              <Link href="/app" className="inline-flex items-center gap-1.5 text-[13px] text-[#fffd43]/80 hover:text-[#fffd43]">
                 無料で始める <IconArrowRight />
               </Link>
             </div>
@@ -674,7 +674,7 @@ export default function AboutPage() {
 
         <div className="mt-10 text-center">
           <Link
-            href="/start/free"
+            href="/app"
             className="inline-flex items-center gap-2 px-7 py-3 bg-[#fffd43] text-[#1a0f00] font-semibold rounded-xl hover:bg-[#fffd43]/90 transition-colors text-sm"
           >
             無料で始める <IconArrowRight />

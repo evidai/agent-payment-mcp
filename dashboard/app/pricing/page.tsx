@@ -59,7 +59,7 @@ export default function PricingPage() {
               Dashboard
             </Link>
             <Link
-              href="/start/free"
+              href="/app"
               className="text-[13px] font-semibold px-4 py-1.5 bg-[#1a0f00] text-[#fffd43] rounded-lg hover:bg-[#1a0f00]/85 transition-colors"
             >
               Start for free
@@ -149,7 +149,7 @@ export default function PricingPage() {
 
             {/* CTA */}
             <Link
-              href="/start/free"
+              href="/app"
               className="block w-full text-center px-6 py-3.5 bg-[#1a0f00] text-[#fffd43] rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-[14px] font-bold"
             >
               Start for free →
@@ -295,7 +295,7 @@ export default function PricingPage() {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/start/free"
+              href="/app"
               className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-[14px]"
             >
               Start for free <IconArrow />

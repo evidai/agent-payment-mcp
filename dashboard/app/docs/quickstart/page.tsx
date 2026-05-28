@@ -74,7 +74,7 @@ server.tool(
         <ol className="text-sm text-gray-700 leading-relaxed list-decimal pl-5 space-y-2">
           <li>
             Grab a seller key at{" "}
-            <Link href="/start/free" className="text-amber-700 underline-offset-2 hover:underline font-semibold">/start/free</Link>
+            <Link href="/app" className="text-amber-700 underline-offset-2 hover:underline font-semibold">/start/free</Link>
             {" "}(3 fields, no card, manual provisioning within 24h while inbound is small).
           </li>
           <li>Export the key as an env var:
