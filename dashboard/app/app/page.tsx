@@ -157,6 +157,16 @@ function maskAuth(h: string): string {
   return h.replace(/([A-Za-z0-9_\-.]{12,})/g, (m) => `${m.slice(0, 4)}…${m.slice(-4)}`);
 }
 
+// Split a raw header line ("Authorization: Bearer sk-...") into [name, value].
+function parseHeaderLine(line: string): [string, string] | null {
+  const idx = line.indexOf(":");
+  if (idx <= 0) return null;
+  const name  = line.slice(0, idx).trim();
+  const value = line.slice(idx + 1).trim();
+  if (!name || !value) return null;
+  return [name, value];
+}
+
 function useLocalState<T>(key: string, initial: T): [T, (next: T | ((prev: T) => T)) => void] {
   const [value, setValue] = useState<T>(initial);
   const [hydrated, setHydrated] = useState(false);
@@ -968,6 +978,55 @@ function TestPane({
     }
   }, [activeTokens, tokenId]);
 
+  // Real upstream verification — actually fetches the origin URL with the
+  // configured upstream auth header. Doesn't decrement any Pay Token.
+  type VerifyResult =
+    | { kind: "loading" }
+    | { kind: "ok"; status: number; ms: number; contentType: string; bodyPreview: string }
+    | { kind: "error"; message: string; hint?: string };
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+
+  async function verifyOrigin() {
+    const t = payTokens.find((p) => p.id === tokenId);
+    if (!t) return;
+    const ep = endpoints.find((e) => e.id === t.endpointId);
+    if (!ep) return;
+
+    setVerifyResult({ kind: "loading" });
+
+    const headers: Record<string, string> = {};
+    if (ep.upstreamAuth) {
+      const parsed = parseHeaderLine(ep.upstreamAuth);
+      if (parsed) headers[parsed[0]] = parsed[1];
+    }
+
+    const t0 = performance.now();
+    try {
+      const res = await fetch(ep.originalUrl, { method: "GET", headers, mode: "cors" });
+      const ms  = Math.round(performance.now() - t0);
+      const ct  = res.headers.get("content-type") ?? "(none)";
+      const txt = await res.text();
+      setVerifyResult({
+        kind: "ok",
+        status: res.status,
+        ms,
+        contentType: ct,
+        bodyPreview: txt.slice(0, 400),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown network error";
+      // Most browser-side failures here are CORS. Give an honest hint.
+      const looksLikeCors = /failed to fetch|networkerror|load failed/i.test(message);
+      setVerifyResult({
+        kind: "error",
+        message,
+        hint: looksLikeCors
+          ? "Likely a CORS / network reachability issue. Browser-to-origin calls need Access-Control-Allow-Origin. Production gateway uses server-to-server and is not affected."
+          : undefined,
+      });
+    }
+  }
+
   if (endpoints.length === 0) {
     return (
       <>
@@ -1087,8 +1146,60 @@ function TestPane({
           )}
 
           <button type="button" onClick={send} className="mt-4 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors">
-            Send request
+            Send request <span className="text-[10px] font-normal text-white/55 ml-1">simulated</span>
           </button>
+
+          {/* Verify origin — actually fetches the origin URL */}
+          {ep && (
+            <div className="mt-6 pt-5 border-t border-[#1a0f00]/8">
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-[12px] font-bold">Verify origin reachable</p>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#16A34A]">real network</span>
+              </div>
+              <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug mb-3">
+                Browser-side GET to <code className="font-mono">{ep.originalUrl}</code>{ep.upstreamAuth ? <> with your stored <code className="font-mono">{maskAuth(ep.upstreamAuth)}</code></> : null}. Confirms URL + auth actually reach origin. No Pay Token decrement.
+              </p>
+              <button
+                type="button"
+                onClick={verifyOrigin}
+                disabled={verifyResult?.kind === "loading"}
+                className="w-full py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[12px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors disabled:opacity-60"
+              >
+                {verifyResult?.kind === "loading" ? "Calling origin…" : "GET upstream now"}
+              </button>
+
+              {verifyResult?.kind === "ok" && (
+                <div className={`mt-3 rounded-lg border p-3 ${
+                  verifyResult.status < 400
+                    ? "bg-[#16A34A]/8 border-[#16A34A]/30"
+                    : "bg-[#DC2626]/8 border-[#DC2626]/30"
+                }`}>
+                  <div className="flex items-baseline justify-between mb-2">
+                    <p className={`text-[12.5px] font-bold ${verifyResult.status < 400 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
+                      {verifyResult.status} {verifyResult.status < 400 ? "OK" : "from origin"}
+                    </p>
+                    <p className="text-[10.5px] font-mono text-[#1a0f00]/55">{verifyResult.ms}ms · {verifyResult.contentType}</p>
+                  </div>
+                  {verifyResult.bodyPreview ? (
+                    <pre className="font-mono text-[10.5px] text-[#1a0f00]/75 whitespace-pre-wrap break-all max-h-32 overflow-auto bg-white/50 border border-[#1a0f00]/8 rounded p-2">
+                      {verifyResult.bodyPreview}{verifyResult.bodyPreview.length === 400 ? "…" : ""}
+                    </pre>
+                  ) : (
+                    <p className="text-[10.5px] text-[#1a0f00]/45 italic">(empty body)</p>
+                  )}
+                </div>
+              )}
+              {verifyResult?.kind === "error" && (
+                <div className="mt-3 rounded-lg bg-[#DC2626]/8 border border-[#DC2626]/30 p-3">
+                  <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">Network error</p>
+                  <p className="text-[11px] font-mono text-[#1a0f00]/75 break-all">{verifyResult.message}</p>
+                  {verifyResult.hint && (
+                    <p className="mt-2 text-[10.5px] text-[#1a0f00]/65 leading-snug">{verifyResult.hint}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
