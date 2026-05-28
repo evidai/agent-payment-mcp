@@ -706,18 +706,19 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
                 <span className="pr-3.5 text-[12.5px] text-[#1a0f00]/45 font-mono whitespace-nowrap">requests / min</span>
               </div>
             </Field>
-            <details className="group">
-              <summary className="cursor-pointer list-none flex items-center gap-2 text-[12px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] transition-colors py-1">
-                <Icon.ChevDn className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
-                <span>Advanced settings</span>
-                <span className="text-[10px] font-mono font-normal text-[#1a0f00]/40">upstream auth</span>
-              </summary>
-              <div className="mt-3 pl-5 border-l-2 border-[#1a0f00]/8">
-                <Field label="Upstream auth" hint="optional" hintBelow="If your origin needs auth, we attach this header to every forwarded request. Stored server-side, never shown to buyers.">
-                  <input type="text" value={upstreamAuth} onChange={(e) => setUpstreamAuth(e.target.value)} placeholder="Authorization: Bearer sk-..." className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
-                </Field>
-              </div>
-            </details>
+            <Field
+              label="Upstream auth"
+              hint="optional for open APIs"
+              hintBelow="If your origin requires auth (e.g. OpenAI, Anthropic, internal services), paste the full header here. Stored server-side, never shown to buyers."
+            >
+              <input
+                type="text"
+                value={upstreamAuth}
+                onChange={(e) => setUpstreamAuth(e.target.value)}
+                placeholder="Authorization: Bearer sk-..."
+                className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
+              />
+            </Field>
           </div>
 
           {err && <p className="mt-4 text-[12px] text-[#DC2626] bg-[#DC2626]/8 border border-[#DC2626]/25 rounded-lg px-3 py-2">{err}</p>}
