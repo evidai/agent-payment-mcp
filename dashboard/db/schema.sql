@@ -87,6 +87,17 @@ create table if not exists lc_magic_links (
 );
 create index if not exists lc_magic_links_email_idx on lc_magic_links(email);
 
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 1: Stripe Connect Express
+-- ───────────────────────────────────────────────────────────────────────
+
+alter table lc_owners add column if not exists stripe_account_id text;
+alter table lc_owners add column if not exists stripe_charges_enabled boolean not null default false;
+alter table lc_owners add column if not exists stripe_payouts_enabled boolean not null default false;
+alter table lc_owners add column if not exists stripe_details_submitted boolean not null default false;
+alter table lc_owners add column if not exists stripe_country text;
+create unique index if not exists lc_owners_stripe_account_unq on lc_owners(stripe_account_id) where stripe_account_id is not null;
+
 -- We bypass RLS on the server using SUPABASE_SERVICE_KEY. If you want to
 -- expose anon-key reads from the browser later, add RLS policies that
 -- match owner_id against a header / auth claim. For now, server-only.

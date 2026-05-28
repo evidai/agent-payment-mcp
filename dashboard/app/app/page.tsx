@@ -415,6 +415,62 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
     document.cookie = "lc_owner=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     window.location.reload();
   }
+
+  // ─── Stripe Connect state ─────────────────────────────────────────
+  type StripeStatus = {
+    connected: boolean;
+    accountId: string | null;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    country: string | null;
+  };
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [stripeErr, setStripeErr] = useState<string | null>(null);
+
+  async function fetchStripeStatus() {
+    try {
+      const r = await fetch("/api/lc/stripe/status");
+      const j = await r.json();
+      if (r.ok) setStripeStatus(j);
+    } catch { /* ignore */ }
+  }
+  // Refresh whenever the dropdown opens for a signed-in user.
+  useEffect(() => {
+    if (menuOpen && me?.email) fetchStripeStatus();
+  }, [menuOpen, me?.email]);
+  // Also refresh once on initial load if URL has ?stripe=return (came back
+  // from hosted onboarding) — gives the user immediate feedback.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("stripe") === "return") {
+      fetchStripeStatus();
+      // Clean the query param so a reload doesn't keep re-triggering.
+      url.searchParams.delete("stripe");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+  }, []);
+
+  async function startStripeConnect() {
+    setStripeBusy(true);
+    setStripeErr(null);
+    try {
+      const r = await fetch("/api/lc/stripe/connect", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok || !j.onboardingUrl) {
+        setStripeErr(j.error || "connect_failed");
+        return;
+      }
+      // Redirect into Stripe's hosted onboarding form.
+      window.location.href = j.onboardingUrl;
+    } catch {
+      setStripeErr("network_error");
+    } finally {
+      setStripeBusy(false);
+    }
+  }
   return (
     <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -453,14 +509,62 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
 
                   {/* Email claim flow OR signed-in state */}
                   {me?.email ? (
-                    <div className="mb-3 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/25 p-2.5">
-                      <div className="flex items-baseline justify-between gap-2 mb-1">
-                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
-                        <button type="button" onClick={signOut} className="text-[10.5px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
+                    <>
+                      <div className="mb-3 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/25 p-2.5">
+                        <div className="flex items-baseline justify-between gap-2 mb-1">
+                          <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
+                          <button type="button" onClick={signOut} className="text-[10.5px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
+                        </div>
+                        <p className="text-[11.5px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
                       </div>
-                      <p className="text-[11.5px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
-                      <p className="mt-1 text-[10px] text-[#1a0f00]/50">Workspace persists across browsers. Stripe Connect onboarding (next phase) uses this email.</p>
-                    </div>
+
+                      {/* Stripe Connect status / action */}
+                      {stripeStatus && (
+                        stripeStatus.chargesEnabled ? (
+                          <div className="mb-3 rounded-lg bg-[#635BFF]/8 border border-[#635BFF]/25 p-2.5">
+                            <div className="flex items-baseline justify-between gap-2 mb-1">
+                              <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#635BFF]">Stripe connected</p>
+                              <span className="text-[9.5px] font-mono text-[#1a0f00]/50">{stripeStatus.country ?? "—"}</span>
+                            </div>
+                            <code className="block font-mono text-[10.5px] text-[#1a0f00]/75 break-all">{stripeStatus.accountId}</code>
+                            <p className="mt-1 text-[10px] text-[#1a0f00]/55">Buyers can now prepay credits to this seller. Payouts settle on Stripe&apos;s schedule.</p>
+                          </div>
+                        ) : stripeStatus.connected ? (
+                          <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1">Stripe onboarding incomplete</p>
+                            <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
+                              Account created, but KYC / bank details still pending. Resume to accept payments.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={startStripeConnect}
+                              disabled={stripeBusy}
+                              className="w-full px-2.5 py-1.5 bg-[#1a0f00] text-white font-bold text-[11px] rounded hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50"
+                            >
+                              {stripeBusy ? "Opening Stripe…" : "Resume Stripe onboarding →"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1">Accept buyer payments</p>
+                            <p className="text-[10.5px] text-[#1a0f00]/65 leading-snug mb-2">
+                              Connect Stripe so buyers can prepay credits to your account. LemonCake takes 3%, the rest goes straight to your Stripe balance.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={startStripeConnect}
+                              disabled={stripeBusy}
+                              className="w-full px-2.5 py-1.5 bg-[#635BFF] text-white font-bold text-[11px] rounded hover:bg-[#7A73FF] transition-colors disabled:opacity-50"
+                            >
+                              {stripeBusy ? "Opening Stripe…" : "Connect Stripe →"}
+                            </button>
+                          </div>
+                        )
+                      )}
+                      {stripeErr && (
+                        <p className="mb-3 text-[10.5px] text-[#DC2626]">Stripe error: {stripeErr}</p>
+                      )}
+                    </>
                   ) : (
                     <div className="mb-3 rounded-lg bg-[#fffd43]/15 border border-[#1a0f00]/10 p-2.5">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">Claim with email</p>
