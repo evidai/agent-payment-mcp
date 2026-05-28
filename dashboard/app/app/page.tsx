@@ -579,12 +579,13 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
               <Field label="Token budget limit" hintBelow="Max amount each Pay Token can spend"><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
             </div>
             <Field label="Rate limit" hintBelow="Max requests allowed per minute, per endpoint">
-              <div className="grid grid-cols-[1fr_160px] gap-2">
-                <input type="number" step="10" min="1" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
-                <div className="relative">
-                  <select disabled className="w-full appearance-none px-3.5 py-2.5 pr-9 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] text-[#1a0f00]/85"><option>requests / min</option></select>
-                  <Icon.ChevDn className="w-4 h-4 text-[#1a0f00]/45 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+              <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-xl focus-within:border-[#1a0f00]/55 transition-colors">
+                <input
+                  type="number" step="10" min="1" value={rateLimit}
+                  onChange={(e) => setRateLimit(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-transparent text-[13.5px] focus:outline-none"
+                />
+                <span className="pr-3.5 text-[12.5px] text-[#1a0f00]/45 font-mono whitespace-nowrap">requests / min</span>
               </div>
             </Field>
             <details className="group">
