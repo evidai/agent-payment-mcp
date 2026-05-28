@@ -167,7 +167,7 @@ const SIDEBAR: { heading: string; items: NavItem[] }[] = [
     { label: "Test Request", icon: "Play", pane: "test" },
   ]},
   { heading: "Monitor", items: [
-    { label: "Revenue",          icon: "Dollar", pane: "revenue" },
+    { label: "Usage Ledger",     icon: "Dollar", pane: "revenue" },
     { label: "Blocked Requests", icon: "Shield", pane: "blocked" },
   ]},
 ];
@@ -550,13 +550,19 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
     <>
       <PaneHeading
         eyebrow={endpoints.length === 0 ? "Welcome" : "New endpoint"}
-        title={endpoints.length === 0 ? "Create your first paid API" : "Create another paid endpoint"}
-        subtitle="Enter your existing API URL, set a price, and get a paid LemonCake Gateway endpoint."
+        title={endpoints.length === 0 ? "Create your first paid-access API" : "Create another paid-access endpoint"}
+        subtitle="Turn any HTTP API into a protected endpoint with price rules, Pay Tokens, spend caps, and real-time usage logs."
       />
 
-      <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#1a0f00]/12">
-        <Icon.Lemon className="w-4 h-4 text-[#1a0f00]/55" />
-        <span className="text-[12px] font-medium text-[#1a0f00]/80">No monthly fee. 3% only when your API earns.</span>
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#1a0f00]/12">
+          <Icon.Lemon className="w-4 h-4 text-[#1a0f00]/55" />
+          <span className="text-[12px] font-medium text-[#1a0f00]/80">Metering, Pay Tokens, and usage ledger are live</span>
+        </div>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1a0f00]/4 border border-[#1a0f00]/8">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/40" />
+          <span className="text-[11.5px] text-[#1a0f00]/65"><span className="font-semibold">Settlement:</span> Preview ledger only · Stripe/x402 next</span>
+        </div>
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
@@ -581,54 +587,194 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
                 </div>
               </div>
             </Field>
-            <Field label="Upstream auth" hint="optional" hintBelow="If your origin needs auth, we attach this header to every forwarded request. Stored server-side, never shown to buyers.">
-              <input type="text" value={upstreamAuth} onChange={(e) => setUpstreamAuth(e.target.value)} placeholder="Authorization: Bearer sk-..." className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
-            </Field>
+            <details className="group">
+              <summary className="cursor-pointer list-none flex items-center gap-2 text-[12px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] transition-colors py-1">
+                <Icon.ChevDn className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                <span>Advanced settings</span>
+                <span className="text-[10px] font-mono font-normal text-[#1a0f00]/40">upstream auth</span>
+              </summary>
+              <div className="mt-3 pl-5 border-l-2 border-[#1a0f00]/8">
+                <Field label="Upstream auth" hint="optional" hintBelow="If your origin needs auth, we attach this header to every forwarded request. Stored server-side, never shown to buyers.">
+                  <input type="text" value={upstreamAuth} onChange={(e) => setUpstreamAuth(e.target.value)} placeholder="Authorization: Bearer sk-..." className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
+                </Field>
+              </div>
+            </details>
           </div>
 
           {err && <p className="mt-4 text-[12px] text-[#DC2626] bg-[#DC2626]/8 border border-[#DC2626]/25 rounded-lg px-3 py-2">{err}</p>}
 
           <button type="button" onClick={create} disabled={busy} className="mt-6 w-full inline-flex items-center justify-center gap-2 py-3 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[14px] rounded-xl transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)] disabled:opacity-60 disabled:cursor-not-allowed">
             <Icon.Bolt className="w-4 h-4" />
-            {busy ? "Creating…" : "Create Gateway Endpoint"}
+            {busy ? "Creating…" : "Create Paid-Access Endpoint"}
           </button>
         </div>
 
-        <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 self-start">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Live preview</p>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Ready to go</span>
-          </div>
-          <div className="space-y-4">
-            <UrlBox label="Original API" url={apiUrl || "—"} />
-            <UrlBox label="LemonCake Gateway" url={previewUrl} tint hint={`Server assigns a short ID (e.g. /g/k7m3xq8v) on create. Slug will be "${previewSlug}"${slugConflict ? ` (auto-renamed from "${rawSlug}")` : ""}.`} />
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Revenue estimate</p>
-                <div className="relative">
-                  <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
-                    <option value={1000}>1,000 calls / month</option>
-                    <option value={10000}>10,000 calls / month</option>
-                    <option value={100000}>100,000 calls / month</option>
-                  </select>
-                  <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1.5">
-                <RevRow k="Est. revenue" v={fmtUsd(estRev)} />
-                <RevRow k="LemonCake fee (3%)" v={`-${fmtUsd(estFee)}`} muted />
-                <div className="h-px bg-[#1a0f00]/8 my-1.5" />
-                <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/55">
-              <Icon.Lock className="w-3 h-3" />
-              <span>Only successful, paid requests are charged.</span>
-            </div>
-          </div>
-        </aside>
+        <PreviewPanel
+          apiUrl={apiUrl}
+          previewUrl={previewUrl}
+          previewSlug={previewSlug}
+          slugConflict={slugConflict}
+          rawSlug={rawSlug}
+          pricePerCall={priceNum}
+          tokenBudget={budgetNum}
+          rateLimit={rateNum}
+          estCalls={estCalls}
+          setEstCalls={setEstCalls}
+          estRev={estRev}
+          estFee={estFee}
+          estNet={estNet}
+        />
+      </section>
+
+      {/* What happens after you create this endpoint */}
+      <section className="mt-6 rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">After you create this endpoint</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <PostCreateStep n={1} title="Issue a Pay Token" desc="Hand the JWT to your buyer / agent — it carries the budget + expiry." />
+          <PostCreateStep n={2} title="Send a test request" desc="Hit /g/<shortId> with the JWT. See latency, fee, response in real time." />
+          <PostCreateStep n={3} title="Watch the ledger" desc="Every paid call lands in Postgres. Block + spend cap enforce automatically." />
+        </div>
       </section>
     </>
+  );
+}
+
+function PostCreateStep({ n, title, desc }: { n: number; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1a0f00]/8 text-[11px] font-black text-[#1a0f00]/75">{n}</span>
+      <div className="min-w-0">
+        <p className="text-[12.5px] font-bold leading-tight">{title}</p>
+        <p className="text-[11px] text-[#1a0f00]/55 leading-snug mt-0.5">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Right-side preview with Endpoint / Pay Token / Test Call tabs ─── */
+
+type PreviewTab = "endpoint" | "paytoken" | "test";
+
+function PreviewPanel({
+  apiUrl, previewUrl, previewSlug, slugConflict, rawSlug,
+  pricePerCall, tokenBudget, rateLimit,
+  estCalls, setEstCalls, estRev, estFee, estNet,
+}: {
+  apiUrl: string;
+  previewUrl: string;
+  previewSlug: string;
+  slugConflict: boolean;
+  rawSlug: string;
+  pricePerCall: number;
+  tokenBudget: number;
+  rateLimit: number;
+  estCalls: 1000 | 10000 | 100000;
+  setEstCalls: (n: 1000 | 10000 | 100000) => void;
+  estRev: number;
+  estFee: number;
+  estNet: number;
+}) {
+  const [tab, setTab] = useState<PreviewTab>("endpoint");
+  return (
+    <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 self-start">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Live preview</p>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Ready to go</span>
+      </div>
+
+      {/* Tab strip */}
+      <div className="flex items-center gap-1 mb-4 border-b border-[#1a0f00]/8">
+        {([
+          ["endpoint", "Endpoint"],
+          ["paytoken", "Pay Token"],
+          ["test",     "Test Call"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors -mb-px border-b-2 ${
+              tab === id
+                ? "border-[#1a0f00] text-[#1a0f00]"
+                : "border-transparent text-[#1a0f00]/45 hover:text-[#1a0f00]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "endpoint" && (
+        <div className="space-y-4">
+          <UrlBox label="Original API" url={apiUrl || "—"} />
+          <UrlBox label="LemonCake Gateway" url={previewUrl} tint hint={`Server assigns a short ID (e.g. /g/k7m3xq8v) on create. Slug will be "${previewSlug}"${slugConflict ? ` (auto-renamed from "${rawSlug}")` : ""}.`} />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Ledger estimate</p>
+              <div className="relative">
+                <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
+                  <option value={1000}>1,000 calls / month</option>
+                  <option value={10000}>10,000 calls / month</option>
+                  <option value={100000}>100,000 calls / month</option>
+                </select>
+                <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+            <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1.5">
+              <RevRow k="Gross" v={fmtUsd(estRev)} />
+              <RevRow k="LemonCake fee (3%, after free 3k)" v={`-${fmtUsd(estFee)}`} muted />
+              <div className="h-px bg-[#1a0f00]/8 my-1.5" />
+              <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
+            </div>
+            <p className="mt-2 text-[10px] text-[#1a0f00]/50 leading-snug">Ledger amount. Stripe / x402 settlement comes next.</p>
+          </div>
+        </div>
+      )}
+
+      {tab === "paytoken" && (
+        <div className="space-y-3">
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Pay Token rule (default)</p>
+          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1.5">
+            <RevRow k="Budget" v={fmtUsd(tokenBudget)} />
+            <RevRow k="Rate limit" v={`${rateLimit} req/min`} />
+            <RevRow k="Per-call price" v={fmtUsd(pricePerCall)} />
+          </div>
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 pt-2">Buyer-facing format</p>
+          <div className="rounded-lg bg-[#1a0f00] text-white p-3 text-[11px] font-mono leading-relaxed">
+            Authorization: Bearer eyJhbGciOiJIUzI1NiI…
+          </div>
+          <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug">
+            HS256-signed JWT, jti = DB primary key. Revocable instantly. Spend / call / expiry enforced server-side on every gateway hit.
+          </p>
+        </div>
+      )}
+
+      {tab === "test" && (
+        <div className="space-y-3">
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">cURL the gateway</p>
+          <div className="rounded-lg bg-[#1a0f00] text-white p-3 text-[10.5px] font-mono leading-relaxed">
+            curl -X POST {previewUrl} \<br />
+            &nbsp;&nbsp;-H &quot;Authorization: Bearer &lt;jwt&gt;&quot;
+          </div>
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 pt-2">Expected response headers</p>
+          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1 font-mono text-[11px]">
+            <RevRow k="HTTP" v="200 OK" />
+            <RevRow k="x-lemoncake-charge" v={fmtUsd(pricePerCall)} />
+            <RevRow k="x-lemoncake-upstream-ms" v="~17" muted />
+          </div>
+          <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug">
+            On block: 402 / 429 / 401 with JSON{" "}
+            <code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>.
+            Pay Token is refunded if upstream returns 5xx.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4 pt-3 border-t border-[#1a0f00]/8 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/55">
+        <Icon.Lock className="w-3 h-3" />
+        <span>Only successful, paid requests are charged.</span>
+      </div>
+    </aside>
   );
 }
 
@@ -1088,7 +1234,7 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
 
   return (
     <>
-      <PaneHeading eyebrow="Revenue" title="What you've earned" subtitle="All numbers are read directly from Postgres — every charge is a real paid request that went through the gateway." />
+      <PaneHeading eyebrow="Usage Ledger" title="What your APIs have earned" subtitle="All numbers are read directly from Postgres — every charge is a real paid request that went through the gateway. Ledger only for now; Stripe / x402 settlement layer next." />
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <BigStat label="Gross" v={fmtUsd(gross)} sub={`${runs.length} paid ${runs.length === 1 ? "call" : "calls"}`} />
         <BigStat label="LemonCake fee (3%)" v={fmtUsd(fee)} sub="What we collect" muted />
