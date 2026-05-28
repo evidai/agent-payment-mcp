@@ -491,8 +491,11 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
 /* ────────────────────────────  panes  ──────────────────────────── */
 
 function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pane) => void; api: Api }) {
-  const [apiName,      setApiName]      = useState("AI Search API");
-  const [apiUrl,       setApiUrl]       = useState("https://api.example.com/search");
+  // Empty by default — the placeholder shows the example. The user types
+  // their own. (Pricing / budget / rate keep real defaults since those are
+  // sensible starting values, not example labels.)
+  const [apiName,      setApiName]      = useState("");
+  const [apiUrl,       setApiUrl]       = useState("");
   const [pricePerCall, setPricePerCall] = useState("0.01");
   const [tokenBudget,  setTokenBudget]  = useState("5.00");
   const [rateLimit,    setRateLimit]    = useState("60");
