@@ -173,6 +173,15 @@ export default function AppDashboard() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
+  // Cross-pane context: when a row in Gateway pane sends the user to Pay
+  // Token / Test Request, we want the destination pane to auto-select the
+  // endpoint they clicked from. Cleared when the user navigates via sidebar.
+  const [preselectEndpointId, setPreselectEndpointId] = useState<string | null>(null);
+  function goTo(p: Pane, opts?: { endpointId?: string }) {
+    setActivePane(p);
+    setPreselectEndpointId(opts?.endpointId ?? null);
+  }
+
   const [endpoints, setEndpoints] = useLocalState<Endpoint[]>("lc:endpoints", []);
   const [payTokens, setPayTokens] = useLocalState<PayToken[]>("lc:payTokens", []);
   const [testRuns,  setTestRuns]  = useLocalState<TestRun[]>("lc:testRuns",  []);
@@ -338,7 +347,7 @@ export default function AppDashboard() {
                   return (
                     <li key={item.label}>
                       {isPane ? (
-                        <button type="button" onClick={() => setActivePane(item.pane)} className={cls}>{inner}</button>
+                        <button type="button" onClick={() => goTo(item.pane)} className={cls}>{inner}</button>
                       ) : (
                         <Link href={item.href} className={cls}>{inner}</Link>
                       )}
@@ -387,10 +396,10 @@ export default function AppDashboard() {
             <div className="text-[12px] text-[#1a0f00]/40 py-12 text-center">Loading workspace…</div>
           ) : (
             <>
-              {activePane === "add"      && <AddPane endpoints={endpoints} setEndpoints={setEndpoints} goTo={setActivePane} />}
-              {activePane === "apis"     && <ApisPane endpoints={endpoints} setEndpoints={setEndpoints} payTokens={payTokens} setPayTokens={setPayTokens} testRuns={testRuns} setTestRuns={setTestRuns} blocked={blocked} setBlocked={setBlocked} goTo={setActivePane} />}
-              {activePane === "paytoken" && <PayTokenPane endpoints={endpoints} payTokens={payTokens} setPayTokens={setPayTokens} goTo={setActivePane} />}
-              {activePane === "test"     && <TestPane endpoints={endpoints} payTokens={payTokens} setPayTokens={setPayTokens} testRuns={testRuns} setTestRuns={setTestRuns} blocked={blocked} setBlocked={setBlocked} goTo={setActivePane} />}
+              {activePane === "add"      && <AddPane endpoints={endpoints} setEndpoints={setEndpoints} goTo={goTo} />}
+              {activePane === "apis"     && <ApisPane endpoints={endpoints} setEndpoints={setEndpoints} payTokens={payTokens} setPayTokens={setPayTokens} testRuns={testRuns} setTestRuns={setTestRuns} blocked={blocked} setBlocked={setBlocked} goTo={goTo} />}
+              {activePane === "paytoken" && <PayTokenPane endpoints={endpoints} payTokens={payTokens} setPayTokens={setPayTokens} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
+              {activePane === "test"     && <TestPane endpoints={endpoints} payTokens={payTokens} setPayTokens={setPayTokens} testRuns={testRuns} setTestRuns={setTestRuns} blocked={blocked} setBlocked={setBlocked} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
               {activePane === "revenue"  && <RevenuePane endpoints={endpoints} testRuns={testRuns} />}
               {activePane === "blocked"  && <BlockedPane blocked={blocked} endpoints={endpoints} setBlocked={setBlocked} />}
             </>
@@ -412,7 +421,7 @@ function AddPane({
 }: {
   endpoints: Endpoint[];
   setEndpoints: (n: Endpoint[] | ((p: Endpoint[]) => Endpoint[])) => void;
-  goTo: (p: Pane) => void;
+  goTo: (p: Pane, opts?: { endpointId?: string }) => void;
 }) {
   // Defaults are real values, not placeholder strings — click Create and
   // an endpoint actually lands. Edit any field to make it yours.
@@ -631,7 +640,7 @@ function ApisPane({
   setTestRuns: (n: TestRun[] | ((p: TestRun[]) => TestRun[])) => void;
   blocked: BlockedReq[];
   setBlocked: (n: BlockedReq[] | ((p: BlockedReq[]) => BlockedReq[])) => void;
-  goTo: (p: Pane) => void;
+  goTo: (p: Pane, opts?: { endpointId?: string }) => void;
 }) {
   function togglePause(id: string) {
     setEndpoints((prev) => prev.map((e) => e.id === id ? { ...e, status: e.status === "live" ? "paused" : "live" } : e));
@@ -708,8 +717,8 @@ function ApisPane({
                 <span><span className="font-semibold text-[#1a0f00]">{callsForThis}</span> paid {callsForThis === 1 ? "call" : "calls"}</span>
                 <span><span className="font-semibold text-[#16A34A]">{fmtUsd(earned)}</span> earned</span>
                 <div className="flex-1" />
-                <button type="button" onClick={() => goTo("paytoken")} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Issue Pay Token →</button>
-                <button type="button" onClick={() => goTo("test")} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Test request →</button>
+                <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Issue Pay Token →</button>
+                <button type="button" onClick={() => goTo("test", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Test request →</button>
               </div>
             </div>
           );
@@ -722,14 +731,22 @@ function ApisPane({
 /* ────────────────────────────  Pay Token pane  ──────────────────────────── */
 
 function PayTokenPane({
-  endpoints, payTokens, setPayTokens, goTo,
+  endpoints, payTokens, setPayTokens, goTo, preselectEndpointId,
 }: {
   endpoints: Endpoint[];
   payTokens: PayToken[];
   setPayTokens: (n: PayToken[] | ((p: PayToken[]) => PayToken[])) => void;
-  goTo: (p: Pane) => void;
+  goTo: (p: Pane, opts?: { endpointId?: string }) => void;
+  preselectEndpointId: string | null;
 }) {
-  const [endpointId, setEndpointId] = useState<string>(endpoints[0]?.id ?? "");
+  // Lazy init so the preselect from a Gateway-row click lands on the right
+  // endpoint without re-applying after the user changes the dropdown.
+  const [endpointId, setEndpointId] = useState<string>(() => {
+    if (preselectEndpointId && endpoints.some((e) => e.id === preselectEndpointId)) {
+      return preselectEndpointId;
+    }
+    return endpoints[0]?.id ?? "";
+  });
   const [budget,     setBudget]     = useState("5");
   const [expires,    setExpires]    = useState("24");
   const [maxCalls,   setMaxCalls]   = useState("100");
@@ -887,7 +904,7 @@ function PayTokenPane({
 /* ────────────────────────────  Test pane  ──────────────────────────── */
 
 function TestPane({
-  endpoints, payTokens, setPayTokens, testRuns, setTestRuns, blocked, setBlocked, goTo,
+  endpoints, payTokens, setPayTokens, testRuns, setTestRuns, blocked, setBlocked, goTo, preselectEndpointId,
 }: {
   endpoints: Endpoint[];
   payTokens: PayToken[];
@@ -896,10 +913,19 @@ function TestPane({
   setTestRuns: (n: TestRun[] | ((p: TestRun[]) => TestRun[])) => void;
   blocked: BlockedReq[];
   setBlocked: (n: BlockedReq[] | ((p: BlockedReq[]) => BlockedReq[])) => void;
-  goTo: (p: Pane) => void;
+  goTo: (p: Pane, opts?: { endpointId?: string }) => void;
+  preselectEndpointId: string | null;
 }) {
   const activeTokens = payTokens.filter(t => t.status === "active");
-  const [tokenId, setTokenId] = useState<string>(activeTokens[0]?.id ?? "");
+  // Lazy init: if a Gateway row sent us here for endpoint X, pick the first
+  // active token bound to X. Otherwise the most recent active token wins.
+  const [tokenId, setTokenId] = useState<string>(() => {
+    if (preselectEndpointId) {
+      const matching = activeTokens.find((t) => t.endpointId === preselectEndpointId);
+      if (matching) return matching.id;
+    }
+    return activeTokens[0]?.id ?? "";
+  });
   const [lastResult, setLastResult] = useState<{ kind: "ok"; run: TestRun } | { kind: "blocked"; b: BlockedReq } | null>(null);
 
   useEffect(() => {
@@ -920,7 +946,7 @@ function TestPane({
     return (
       <>
         <PaneHeading eyebrow="Test Request" title="Issue a Pay Token first" subtitle="The test console signs requests with a real Pay Token, so the fee & budget math is accurate." />
-        <EmptyState actionLabel="Go to Pay Token" onAction={() => goTo("paytoken")} />
+        <EmptyState actionLabel="Go to Pay Token" onAction={() => goTo("paytoken", preselectEndpointId ? { endpointId: preselectEndpointId } : undefined)} />
       </>
     );
   }
