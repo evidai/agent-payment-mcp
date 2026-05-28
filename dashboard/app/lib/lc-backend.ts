@@ -12,8 +12,18 @@ import { cookies } from "next/headers";
 
 /* ──────────────── env ──────────────── */
 
+// Vercel's Supabase Marketplace integration uses *_SERVICE_ROLE_KEY and
+// NEXT_PUBLIC_SUPABASE_URL. We accept either, so it just works regardless
+// of whether the user wired it manually or through the integration UI.
+function supabaseUrl(): string | undefined {
+  return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+function supabaseKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
 export function backendEnvReady(): boolean {
-  return !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY && process.env.LC_JWT_SECRET);
+  return !!(supabaseUrl() && supabaseKey() && process.env.LC_JWT_SECRET);
 }
 
 /* ──────────────── supabase ──────────────── */
@@ -21,15 +31,13 @@ export function backendEnvReady(): boolean {
 let _client: SupabaseClient | null = null;
 
 export function sb(): SupabaseClient {
-  if (!backendEnvReady()) {
+  const url = supabaseUrl();
+  const key = supabaseKey();
+  if (!url || !key || !process.env.LC_JWT_SECRET) {
     throw new Error("Supabase env not configured. See dashboard/SETUP-BACKEND.md.");
   }
   if (!_client) {
-    _client = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_KEY!,
-      { auth: { persistSession: false } },
-    );
+    _client = createClient(url, key, { auth: { persistSession: false } });
   }
   return _client;
 }
