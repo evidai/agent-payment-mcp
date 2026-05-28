@@ -1068,6 +1068,16 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
   const gross = runs.reduce((a, r) => a + r.gross, 0);
   const fee   = runs.reduce((a, r) => a + r.fee, 0);
   const net   = runs.reduce((a, r) => a + r.net, 0);
+
+  // Free-tier counter: paid calls in the current UTC month, capped display at 3,000
+  const FREE_TIER = 3000;
+  const monthStart = useMemo(() => {
+    const d = new Date(); d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0);
+    return d.getTime();
+  }, []);
+  const callsThisMonth = runs.filter((r) => r.at >= monthStart).length;
+  const freeRemaining = Math.max(0, FREE_TIER - callsThisMonth);
+  const freePct = Math.min(100, (callsThisMonth / FREE_TIER) * 100);
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (13 - i));
     const end = d.getTime() + 86400000;
@@ -1083,6 +1093,31 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
         <BigStat label="Gross" v={fmtUsd(gross)} sub={`${runs.length} paid ${runs.length === 1 ? "call" : "calls"}`} />
         <BigStat label="LemonCake fee (3%)" v={fmtUsd(fee)} sub="What we collect" muted />
         <BigStat label="You receive" v={fmtUsd(net)} sub="Settles to your wallet (Q3 2026)" highlight />
+      </section>
+
+      {/* Free-tier progress */}
+      <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 mb-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="text-[12px] font-bold">Free tier this month</p>
+          <p className="text-[11px] text-[#1a0f00]/55">
+            <span className="font-mono font-bold text-[#1a0f00]">{callsThisMonth.toLocaleString()}</span> / 3,000 calls
+            {freeRemaining > 0
+              ? <span className="ml-2 text-[#16A34A] font-semibold">{freeRemaining.toLocaleString()} free left</span>
+              : <span className="ml-2 text-[#1a0f00]/55">3% fee active</span>}
+          </p>
+        </div>
+        <div className="h-1.5 rounded-full bg-[#1a0f00]/8 overflow-hidden">
+          <div
+            className={`h-full transition-all ${freePct < 100 ? "bg-[#16A34A]" : "bg-[#1a0f00]/35"}`}
+            style={{ width: `${freePct}%` }}
+          />
+        </div>
+        <p className="mt-2 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+          {freeRemaining > 0
+            ? "LemonCake takes 0% on every paid call until you hit 3,000 this month. After that, the standard 3% kicks in."
+            : "You've used your 3,000 free calls this month. Calls 3,001+ are charged the standard 3%."}
+          {" "}Counter resets at the start of next UTC month.
+        </p>
       </section>
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 mb-6">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">Last 14 days · gross</p>

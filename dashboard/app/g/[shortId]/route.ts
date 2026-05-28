@@ -182,7 +182,21 @@ async function handle(req: Request, { params }: Ctx) {
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'upstream_error', ${charge})
     `;
   } else {
-    const fee = charge * 0.03;
+    // Free tier: first 3,000 paid calls per owner per UTC calendar month
+    // have fee = 0. Buyer still pays `charge` to the seller; LemonCake's cut
+    // just doesn't kick in until call 3,001.
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const usedRow = await sql()<{ count: string }[]>`
+      select count(*)::text as count from lc_test_runs
+      where owner_id = ${ep.owner_id} and at >= ${monthStart.toISOString()}
+    `;
+    const usedThisMonth = Number(usedRow[0]?.count ?? 0);
+    const FREE_TIER = 3000;
+    const inFreeTier = usedThisMonth < FREE_TIER;
+
+    const fee = inFreeTier ? 0 : charge * 0.03;
     const net = charge - fee;
     const newCalls = tok.calls_used + 1;
     const newSpent = Number(tok.spent) + charge;
