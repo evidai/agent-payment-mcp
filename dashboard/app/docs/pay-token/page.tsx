@@ -1,217 +1,331 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-
-// Pay Token JSON spec — the artifact LemonCake hopes will become a
-// portable standard. Published as a draft v0.1 so that:
-//   1. We can claim category-definer position (HN / Reddit / blog ammo).
-//   2. Other facilitators (Coinbase x402, MPP) can be marketed as
-//      "verify but don't issue" — we issue, they settle.
-//   3. Future Pro tier sellers know what they're paying us to mint.
-//
-// Spec is intentionally minimal. It will expand. Marked "draft v0.1"
-// in the page so we don't owe forward-compat to anyone yet.
+import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Pay Token spec — LemonCake Docs",
-  description: "Spend-limited Pay Token JSON spec for AI agent API access. Draft v0.1. The portable permission primitive between agents and APIs.",
-  alternates: { canonical: "https://lemoncake.xyz/docs/pay-token" },
+  description: "HS256-signed JWT a buyer attaches as Bearer auth to call a LemonCake paid-access gateway. Claims, lifecycle, server-side enforcement, issuance via /api/lc/tokens, revocation.",
+  alternates: { canonical: "https://www.lemoncake.xyz/docs/pay-token" },
   openGraph: {
-    title: "LemonCake Pay Token — spend-limited permission tokens for AI agents",
-    description: "JSON spec, draft v0.1. The permission primitive sitting between AI agents and your API.",
-    url: "https://lemoncake.xyz/docs/pay-token",
+    title: "Pay Token — LemonCake's signed permission ticket for paid APIs",
+    description: "HS256 JWT. Bearer-attached. Server-side enforcement of budget, calls, expiry, rate limit. Revocable.",
+    url: "https://www.lemoncake.xyz/docs/pay-token",
     type: "article",
   },
 };
 
 export default function PayTokenPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <article className="mx-auto max-w-2xl px-5 py-12 sm:py-16 prose prose-sm">
-        <Link href="/docs" className="text-xs text-amber-700 no-underline">← Docs</Link>
+    <main className="min-h-screen bg-[#fafaf7] text-[#1a0f00] font-sans antialiased">
+      <Header />
 
-        <div className="!mt-4 mb-4 flex items-center gap-2 flex-wrap">
-          <span className="inline-block text-[10px] font-mono uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded">Draft v0.1</span>
-          <span className="text-[11px] text-gray-500">Stabilizing in Q3 2026</span>
-        </div>
-
-        <h1 className="!mt-0 !mb-2 text-3xl font-bold text-gray-900">Pay Token spec</h1>
-        <p className="text-sm text-gray-500 !mt-0">
-          The permission primitive between an AI agent and your API. JSON, signable, scoped, expiring, and rate-limited at issuance time.
+      <article className="max-w-[860px] mx-auto px-6 py-12">
+        <p className="text-[11px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-2">Reference · Pay Token</p>
+        <h1 className="text-[36px] font-black leading-[1.1] tracking-tight mb-4">Pay Token spec</h1>
+        <p className="text-[14.5px] text-[#1a0f00]/65 leading-relaxed mb-10 max-w-[640px]">
+          The HS256-signed JWT a buyer (or their agent) attaches as <Hl>Authorization: Bearer</Hl> when calling
+          a LemonCake gateway URL. Server-side enforcement of budget, call count, expiry, and rate limit happens
+          on every paid request — see <Link href="/docs/gateway" className="underline">Gateway HTTP spec</Link>.
         </p>
 
-        {/* Honesty banner — what's spec vs what's shipped. Surface this loudly
-            because the page reads like it might already be running in prod,
-            and design partners deserve to know it's a forward-looking spec. */}
-        <div className="not-prose mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-bold mb-1">⚠ Status: spec only.</p>
-          <p className="leading-relaxed">
-            This page documents a <strong>forward-looking JSON spec</strong>. The reference issuance + verification implementation lands in <strong>Q3 2026</strong> as part of the hosted Gateway. Today the SDK (<code className="text-xs bg-amber-100 px-1 rounded">@lemon-cake/mcp-sdk@0.3.0</code>) ships a simpler pre-flight / charge flow that pre-dates this spec. Design partners get early access to the v0.5 reference impl when it lands.
-          </p>
-        </div>
+        <Section title="Why a Pay Token?">
+          <P>
+            An AI agent that calls a paid API has three bad options: share the operator&apos;s API key, hold a long-lived
+            wallet, or tunnel every call through the operator&apos;s server. All three are either insecure or
+            operationally expensive.
+          </P>
+          <P>
+            A Pay Token is the fourth option: the seller mints a <Hl>narrow, time-bound, spend-capped, rate-limited</Hl>{" "}
+            permission for a specific endpoint. The agent attaches the token. The gateway verifies the signature,
+            looks up server-side state, decrements the budget on success. The agent never sees the seller&apos;s
+            upstream credential.
+          </P>
+        </Section>
 
-        <hr className="my-8 border-gray-200" />
+        <Section title="The shape">
+          <P>A Pay Token is a standard JWT. Three encoded parts joined by dots:</P>
+          <Code>{`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+.eyJvd24iOiJvX2FiYzEyMyIsImp0aSI6InB0X2RlZjQ1NiIs
+InN1YiI6IjQwNjY0YjA2LWFmYjctNGFlMC1hZjFkLWFjZGUxNiIs
+ImlhdCI6MTcxNjgwMDAwMCwiZXhwIjoxNzE2ODg2NDAwfQ
+.GJoo3p6ZVGWEvMCvtMXBUa1Ov9YdXTQuZykIlHbNWJk`}</Code>
+          <P>Decoded:</P>
+          <Code>{`// header
+{ "alg": "HS256", "typ": "JWT" }
 
-        {/* ── Why this exists ── */}
-        <h2 className="text-xl font-bold mt-8 mb-3 text-gray-900">Why a Pay Token?</h2>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          Today an AI agent that calls a paid API has three bad options: (a) share the operator&apos;s API key, (b) hold a long-lived wallet private key, (c) tunnel every call through the operator&apos;s server. All three are either insecure or operationally expensive.
-        </p>
-        <p className="text-sm text-gray-700 leading-relaxed mt-3">
-          A Pay Token is a fourth option: the operator hands the agent a <em>narrow, time-bound, spend-capped, rate-limited</em> permission to call a specific API. The agent presents the Pay Token at the gateway; the gateway verifies and meters. The agent never sees the underlying credential or wallet key.
-        </p>
-        <p className="text-sm text-gray-700 leading-relaxed mt-3">
-          This is the same shape as <code className="text-xs bg-gray-100 px-1 rounded">macaroons</code>, <code className="text-xs bg-gray-100 px-1 rounded">biscuits</code>, or a permission-narrowed OAuth scope — but with <strong>spend semantics</strong> built in.
-        </p>
+// payload
+{
+  "jti": "pt_27788b295d72499fabf5f5d9",   // Pay Token ID (DB primary key)
+  "sub": "40664b06-afb7-4ae0-af1d-...",   // endpoint UUID this token can call
+  "own": "o_4e48c8bfc7934957",            // owner ID that issued the token
+  "iat": 1716800000,                       // issued at (epoch seconds)
+  "exp": 1716886400                        // expires at (epoch seconds)
+}
 
-        {/* ── The spec ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">The shape</h2>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`{
-  "v":              "0.1",                            // spec version
-  "iss":            "lc_seller_aBc123...",            // who minted it
-  "sub":            "agent:abc-uuid",                 // who it's for (optional)
-  "iat":            1716800000,                       // issued at (epoch s)
-  "exp":            1716803600,                       // expires at (epoch s)
-  "allowed_api":    "search-api",                     // scoped to one API
-  "allowed_paths":  ["/v1/search", "/v1/autocomplete"],// or a path allowlist
-  "allowed_methods":["GET", "POST"],                   // method allowlist
-  "max_spend":      5.00,                              // hard cap in USDC
-  "price_per_call": 0.01,                              // unit price (overrides server default)
-  "rate_limit":     "10/min",                          // rate window
-  "success_only":   true,                              // only charge on 2xx/3xx
-  "metadata":       { "purpose": "weekend research" },// opaque, echoed in logs
-  "nonce":          "n1Q9xS...",                       // anti-replay
-  "sig":            "0x..."                            // EIP-712 signature over the rest
-}`}</pre>
-        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-          The signature is over the canonical JSON form excluding the <code className="text-xs bg-gray-100 px-1 rounded">sig</code> field itself. Verifiers can use <code className="text-xs bg-gray-100 px-1 rounded">@lemon-cake/mcp-sdk</code>&apos;s <code className="text-xs bg-gray-100 px-1 rounded">verifyPayToken()</code> in &lt; 10 ms with no network call.
-        </p>
+// signature
+HMAC-SHA256(base64url(header) + "." + base64url(payload), LC_JWT_SECRET)`}</Code>
+        </Section>
 
-        {/* ── Field reference ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Field reference</h2>
-        <div className="not-prose my-5 overflow-x-auto">
-          <table className="w-full text-[12px] border border-gray-200 rounded-xl">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left py-2 px-3 text-gray-600 font-semibold">Field</th>
-                <th className="text-left py-2 px-3 text-gray-600 font-semibold">Type</th>
-                <th className="text-left py-2 px-3 text-gray-600 font-semibold">Required</th>
-                <th className="text-left py-2 px-3 text-gray-600 font-semibold">Meaning</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              {[
-                ["v",               "string",          "yes", "Spec version. Currently \"0.1\"."],
-                ["iss",              "string",          "yes", "Seller key prefix (lc_seller_…). Identifies who can verify the sig."],
-                ["sub",              "string",          "no",  "Optional agent identifier. Used for per-agent throttling and analytics."],
-                ["iat / exp",        "number (epoch s)", "yes", "Token validity window. Short windows (≤ 1h) are recommended for agents."],
-                ["allowed_api",      "string",          "yes", "Logical API name as registered with LemonCake (e.g. \"search-api\")."],
-                ["allowed_paths",    "string[]",        "no",  "Path allowlist. If omitted, all paths under allowed_api are allowed."],
-                ["allowed_methods",  "string[]",        "no",  "HTTP method allowlist. Defaults to [\"GET\", \"POST\"]."],
-                ["max_spend",        "number (USDC)",   "yes", "Hard cap on cumulative USDC chargeable through this token."],
-                ["price_per_call",   "number (USDC)",   "no",  "Override the server&apos;s default unit price. Cannot exceed it."],
-                ["rate_limit",       "string",          "no",  "Format: \"N/window\" where window ∈ {sec, min, hour, day}."],
-                ["success_only",     "boolean",         "no",  "If true, only charge on 2xx/3xx responses. Default true."],
-                ["metadata",         "object",          "no",  "Opaque key/value. Echoed in usage logs. Not signed by issuer for tampering."],
-                ["nonce",            "string",          "yes", "Random per-token. Replay protection — verifier remembers used nonces."],
-                ["sig",              "string (hex)",    "yes", "EIP-712 signature over the rest of the token."],
-              ].map(([f, t, r, m]) => (
-                <tr key={f as string} className="border-t border-gray-100">
-                  <td className="py-2 px-3 font-mono">{f}</td>
-                  <td className="py-2 px-3 text-gray-500">{t}</td>
-                  <td className={`py-2 px-3 ${r === "yes" ? "text-amber-700 font-semibold" : "text-gray-400"}`}>{r}</td>
-                  <td className="py-2 px-3" dangerouslySetInnerHTML={{ __html: m as string }} />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Section title="Claims">
+          <Table
+            cols={["Claim", "Type", "Required", "Meaning"]}
+            rows={[
+              ["jti", "string",         "yes", "Pay Token ID. Doubles as the primary key in lc_pay_tokens — the gateway uses it to look up live state."],
+              ["sub", "string (UUID)",  "yes", "Endpoint the token is scoped to. JWT.sub must match the endpoint resolved from the URL's shortId, otherwise 403 token_endpoint_mismatch."],
+              ["own", "string",         "yes", "Owner ID (lc_owner cookie) that minted the token. Used for traceability; the gateway doesn't compare it to anything on the request path."],
+              ["iat", "number (epoch s)", "yes", "Issued-at. Set by /api/lc/tokens on POST."],
+              ["exp", "number (epoch s)", "yes", "Expiry. After this, the gateway returns 401 token_expired and the row's status flips to expired."],
+            ]}
+          />
+          <P>
+            <Hl>jti</Hl>, <Hl>sub</Hl>, and <Hl>own</Hl> are the only application-meaningful claims.{" "}
+            <Hl>iat</Hl> / <Hl>exp</Hl> follow{" "}
+            <a href="https://datatracker.ietf.org/doc/html/rfc7519#section-4.1" className="underline" target="_blank" rel="noopener">RFC 7519</a>.
+          </P>
+        </Section>
 
-        {/* ── Examples ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Three scenarios</h2>
+        <Section title="Server-side state">
+          <P>
+            Spend cap, call cap, rate limit — the things that make a Pay Token <em>useful</em> — are{" "}
+            <strong>not in the JWT</strong>. They live in Postgres next to the token ID so the seller can revoke,
+            top up, or adjust without re-issuing the JWT to the buyer.
+          </P>
+          <Code>{`-- lc_pay_tokens
+id          text primary key,             -- = JWT.jti
+endpoint_id uuid references lc_endpoints, -- = JWT.sub
+owner_id    text references lc_owners,    -- = JWT.own
+budget      numeric(12, 6),               -- USD spend cap
+spent       numeric(12, 6) default 0,     -- decremented on each successful call
+max_calls   int,                          -- per-token call cap
+calls_used  int default 0,                -- incremented on each successful call
+expires_at  timestamptz,                  -- mirrors JWT.exp
+status      text   -- 'active' | 'expired' | 'exhausted' | 'revoked'
+issued_at   timestamptz default now()`}</Code>
+          <Table
+            cols={["Rule", "Source of truth", "When checked"]}
+            rows={[
+              ["JWT signature valid",     "LC_JWT_SECRET",                     "every gateway call"],
+              ["JWT not expired",         "JWT.exp",                            "every gateway call"],
+              ["Token status = active",   "lc_pay_tokens.status",               "every gateway call"],
+              ["Budget covers this call", "lc_pay_tokens.spent + endpoint.price_per_call ≤ budget", "every gateway call"],
+              ["Calls remaining",         "lc_pay_tokens.calls_used < max_calls", "every gateway call"],
+              ["Rate limit not breached", "count(lc_test_runs WHERE endpoint_id=? AND at >= now-60s) < endpoint.rate_limit", "every gateway call"],
+            ]}
+          />
+        </Section>
 
-        <h3 className="text-base font-bold mt-6 mb-2 text-gray-900">1. Weekend research agent</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          Operator hands a research agent a token for one weekend. Caps spend at $5, allows only the search-api, 10 calls per minute. If the agent loops infinitely, the worst case is $5.
-        </p>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`{
-  "allowed_api":    "search-api",
-  "exp":            <epoch + 60h>,
-  "max_spend":      5.00,
-  "price_per_call": 0.01,
-  "rate_limit":     "10/min",
-  "success_only":   true
-}`}</pre>
+        <Section title="Lifecycle">
+          <Code>{`active
+  │
+  │  POST /g/<shortId> with Bearer <jwt>
+  │  ──── decrement spent / increment calls_used ────►
+  │
+  ├── exp passed                     ──► status = "expired"  (401 token_expired)
+  ├── calls_used >= max_calls        ──► status = "exhausted" (402 token_exhausted)
+  ├── DELETE /api/lc/tokens/<jti>    ──► status = "revoked"   (403 token_revoked)
+  └── budget exceeded on next call   ──► 402 spend_cap_exceeded (status stays active until exhausted by call cap)
+`}</Code>
+          <P>
+            Status is a one-way ratchet — once flipped to <Hl>expired / exhausted / revoked</Hl>, the token never
+            comes back. Top-ups happen by issuing a fresh token, not by reactivating an old one.
+          </P>
+        </Section>
 
-        <h3 className="text-base font-bold mt-6 mb-2 text-gray-900">2. Long-running data enrichment</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          Pipeline that enriches one record at a time, sub-cent per call. 24h window, $50 cap, no rate limit (the pipeline self-throttles).
-        </p>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`{
-  "allowed_api":    "enrichment-api",
-  "exp":            <epoch + 24h>,
-  "max_spend":      50.00,
-  "price_per_call": 0.002,
-  "success_only":   true
-}`}</pre>
+        <Section title="Issue a Pay Token">
+          <P>Sellers mint tokens via the REST API or via the Pay Token pane on <Link href="/app" className="underline">/app</Link>.</P>
+          <Code>{`POST https://www.lemoncake.xyz/api/lc/tokens
+Content-Type: application/json
+Cookie: lc_owner=<your owner cookie>     // sent automatically from /app
 
-        <h3 className="text-base font-bold mt-6 mb-2 text-gray-900">3. Customer-facing demo</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          A prospect tries your agent on your site. Token caps everything tight so a curious user can&apos;t drain the demo budget.
-        </p>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`{
-  "allowed_api":    "voice-api",
-  "allowed_paths":  ["/v1/tts"],
-  "allowed_methods":["POST"],
-  "exp":            <epoch + 600>,
-  "max_spend":      0.10,
-  "rate_limit":     "5/min"
-}`}</pre>
+{
+  "endpointId":     "40664b06-afb7-4ae0-af1d-...",
+  "budget":         5.00,
+  "expiresInHours": 24,
+  "maxCalls":       100
+}`}</Code>
+          <Code>{`// 201 Created
+{
+  "token": {
+    "id":          "pt_27788b295d72499fabf5f5d9",
+    "endpoint_id": "40664b06-afb7-4ae0-af1d-...",
+    "budget":      "5.000000",
+    "spent":       "0.000000",
+    "max_calls":   100,
+    "calls_used":  0,
+    "expires_at":  "2026-05-29T05:18:42Z",
+    "status":      "active",
+    ...
+  },
+  "jwt": "eyJhbGciOiJIUzI1NiI…"      // give this to your buyer
+}`}</Code>
+          <P>
+            The <Hl>jwt</Hl> is only returned on issuance — the server never echoes it back later. Hand it to
+            your buyer (Slack DM, email, in-band over your own API), they attach it to gateway calls.
+          </P>
+          <P>
+            <strong>Budget guardrail:</strong> <Hl>budget</Hl> may not exceed 5× the endpoint&apos;s{" "}
+            <Hl>token_budget</Hl> setting, returning 400 <Hl>budget_exceeds_endpoint_cap</Hl> if it does. This
+            keeps a stolen seller cookie from minting an unlimited-spend token.
+          </P>
+        </Section>
 
-        {/* ── Where it sits ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Where Pay Token sits</h2>
-        <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed font-mono">{`
-   Agent operator    →   issues Pay Token   →    Agent
-                                                      ↓ (presents Pay Token in Authorization header)
-                                              LemonCake Gateway
-                                                      ↓
-                                          API Provider (charged USDC)
-`}</pre>
+        <Section title="Revoke a Pay Token">
+          <Code>{`DELETE https://www.lemoncake.xyz/api/lc/tokens/pt_27788b295d72499fabf5f5d9
+Cookie: lc_owner=<your owner cookie>`}</Code>
+          <P>
+            Takes effect on the very next gateway call (no cache). The JWT itself remains cryptographically valid —
+            the gateway rejects it because the DB row says <Hl>status = revoked</Hl>. This is intentional: we wanted
+            instant revocation, not waiting for short expiries to roll over.
+          </P>
+        </Section>
 
-        <p className="text-sm text-gray-700 leading-relaxed mt-3">
-          The Pay Token is the <em>off-chain</em> permission layer. The <em>on-chain</em> enforcement (ERC-2612 permit, the operator&apos;s actual USDC ceiling) sits one level lower. A Pay Token can never exceed what its issuer&apos;s permit allows; the spend cap on the Pay Token is a <em>narrower</em> ceiling drawn from a wider one.
-        </p>
+        <Section title="Why HS256 instead of EIP-712 / Ed25519?">
+          <P>
+            Pay Tokens are issued <em>and</em> verified by the same LemonCake gateway. There&apos;s no third party
+            that needs to verify the signature without trusting us. HS256 with a shared secret (<Hl>LC_JWT_SECRET</Hl>)
+            is the simplest thing that meets that bar.
+          </P>
+          <P>
+            When the day comes that a third-party verifier wants to check a Pay Token without calling LemonCake
+            (a Coinbase x402 facilitator wrapping ours, for example), we&apos;ll add a second alg (RS256 or
+            Ed25519) under the same <Hl>jti</Hl> identity — the JWT format already supports per-token alg negotiation
+            via the header.
+          </P>
+        </Section>
 
-        {/* ── Interop ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Interop with x402 and MPP</h2>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          A LemonCake Pay Token can be wrapped in an x402 challenge response (<code className="text-xs bg-gray-100 px-1 rounded">HTTP 402 Payment Required</code>) so any x402-aware client can pay through it. It can also be presented to a Stripe MPP facilitator if you want MPP-signed settlement instead of direct USDC.
-        </p>
-        <p className="text-sm text-gray-700 leading-relaxed mt-3">
-          The spec is deliberately small so other facilitators can issue or verify it without buying the whole LemonCake stack. We&apos;d rather be the inventor of a standard than the sole vendor.
-        </p>
+        <Section title="Buyer-side usage">
+          <P>The whole interaction from the buyer&apos;s side is two HTTP requests their server / agent already knows how to make:</P>
+          <Code>{`// Node.js
+const res = await fetch(\`https://www.lemoncake.xyz/g/\${shortId}\`, {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer " + PAY_TOKEN_JWT,
+    "Content-Type":  "application/json",
+  },
+  body: JSON.stringify({ query: "…" }),
+});
 
-        {/* ── Status / changelog ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Status &amp; changelog</h2>
-        <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1.5">
-          <li><strong className="text-gray-900">2026-05-27 — Draft v0.1.</strong> Published as a forward-looking spec. Fields, signing curve, replay protection are not yet frozen.</li>
-          <li><strong className="text-gray-900">Q3 2026 — v0.5 stable.</strong> Field set frozen. Reference implementations in TypeScript, Python, Go. Optional alignment with x402 payload schema.</li>
-          <li><strong className="text-gray-900">Q4 2026 — v1.0.</strong> Long-lived support promise. Spec versions thereafter only add fields, never remove.</li>
-        </ul>
+console.log(res.headers.get("x-lemoncake-charge"));     // "0.01"
+console.log(res.headers.get("x-lemoncake-upstream-ms")); // "17"`}</Code>
+          <P>
+            CORS is permissive — works from server, edge function, or browser. See{" "}
+            <Link href="/docs/gateway" className="underline">Gateway HTTP spec</Link> for the full error table.
+          </P>
+        </Section>
 
-        {/* ── Try it ── */}
-        <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">Try it</h2>
-        <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1.5">
-          <li>Issue a Pay Token from a seller account at <Link href="/app" className="text-amber-700 underline-offset-2 hover:underline">/start/free</Link></li>
-          <li>Verify one in your code: <code className="text-xs bg-gray-100 px-1 rounded">npm i @lemon-cake/mcp-sdk@latest</code></li>
-          <li>Working example MCP server: <a href="https://github.com/evidai/agent-payment-mcp/tree/main/examples/mcp-monetization-starter" className="text-amber-700 underline-offset-2 hover:underline">examples/mcp-monetization-starter</a></li>
-          <li>Spec questions: <a href="mailto:contact@aievid.com?subject=Pay%20Token%20spec%20feedback" className="text-amber-700 underline-offset-2 hover:underline">contact@aievid.com</a></li>
-        </ul>
+        <Section title="What's intentionally NOT in the token">
+          <P>
+            The original v0.1 draft of this spec carried <Hl>allowed_paths</Hl>, <Hl>allowed_methods</Hl>,{" "}
+            <Hl>price_per_call</Hl>, <Hl>rate_limit</Hl>, <Hl>metadata</Hl>, and <Hl>nonce</Hl> inside the JWT.
+            We dropped them all. Reasons:
+          </P>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li><strong>Server-side state is more flexible</strong> than a signed payload. The seller can adjust price or rate without re-issuing JWTs to every buyer.</li>
+            <li><strong>Replay defence comes from the DB</strong>, not a nonce. <Hl>spent</Hl> only goes up, so a replayed request that pushed past <Hl>budget</Hl> simply fails.</li>
+            <li><strong>Smaller tokens</strong> compress better in HTTP headers and survive a wider range of HTTP clients (some have header-size limits).</li>
+          </ul>
+          <P>
+            The current token is intentionally minimal — just enough for a verifier to look up the right row and
+            confirm the signature. Everything operational is in Postgres.
+          </P>
+        </Section>
 
-        <hr className="my-10 border-gray-200" />
-        <p className="text-xs text-gray-400">
-          Spec is in the public domain (CC0). The reference SDK is MIT. <Link href="/" className="underline hover:text-amber-700">lemoncake.xyz</Link>
-        </p>
+        <Section title="Future">
+          <P>Fields likely to grow into the spec as integrations demand:</P>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li><Hl>scope</Hl> — path / method allowlist enforced at the gateway, for sellers whose origin exposes multiple sensitive operations.</li>
+            <li><Hl>aud</Hl> — facilitator identifier so the same JWT can be honored by a non-LemonCake verifier (x402-compatible mode).</li>
+            <li>Alternative <Hl>alg</Hl> — RS256 / Ed25519 for cross-verifier scenarios where shared-secret HS256 isn&apos;t acceptable.</li>
+          </ul>
+          <P>
+            Anything we add will follow a single rule: <strong>never remove a field</strong>. Existing JWTs
+            keep verifying as long as the secret is rotated forward with overlap.
+          </P>
+        </Section>
+
+        <NextSteps />
       </article>
     </main>
+  );
+}
+
+/* ── building blocks (kept inline to keep the page self-contained) ── */
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
+      <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+        <Link href="/about/en" className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
+          <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
+        </Link>
+        <nav className="flex items-center gap-5 text-[13px]">
+          <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00]">Docs</Link>
+          <Link href="/pricing" className="text-[#1a0f00]/60 hover:text-[#1a0f00]">Pricing</Link>
+          <Link href="/app" className="font-semibold text-[#1a0f00]">Open app →</Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mb-10">
+      <h2 className="text-[20px] font-black tracking-tight mb-3">{title}</h2>
+      <div className="space-y-3 text-[14px] text-[#1a0f00]/80 leading-relaxed">{children}</div>
+    </section>
+  );
+}
+
+function P({ children }: { children: ReactNode }) {
+  return <p>{children}</p>;
+}
+
+function Code({ children }: { children: ReactNode }) {
+  return (
+    <pre className="rounded-xl bg-[#1a0f00] text-[#fafaf7] font-mono text-[12.5px] leading-relaxed p-4 overflow-x-auto">
+      {children}
+    </pre>
+  );
+}
+
+function Hl({ children }: { children: ReactNode }) {
+  return <code className="font-mono text-[12.5px] bg-[#1a0f00]/6 text-[#1a0f00] px-1.5 py-0.5 rounded">{children}</code>;
+}
+
+function Table({ cols, rows }: { cols: string[]; rows: string[][] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#1a0f00]/10">
+      <table className="w-full text-[13px]">
+        <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
+          <tr>{cols.map((c) => <th key={c} className="text-left px-3 py-2 font-semibold">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-b border-[#1a0f00]/6 last:border-0 align-top">
+              {r.map((cell, j) => (
+                <td key={j} className={`px-3 py-2 ${j === 0 ? "font-mono text-[12px] font-semibold whitespace-nowrap" : "text-[#1a0f00]/75"}`}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function NextSteps() {
+  return (
+    <section className="mt-12 rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Next</p>
+      <ul className="space-y-1.5 text-[13px]">
+        <li><Link href="/docs/gateway" className="font-semibold text-[#1a0f00] hover:underline">Gateway HTTP spec →</Link> What the buyer sends, what the gateway returns</li>
+        <li><Link href="/app" className="font-semibold text-[#1a0f00] hover:underline">Open /app →</Link> Issue your first Pay Token in 30 seconds</li>
+        <li><a href="mailto:contact@aievid.com?subject=Pay%20Token%20spec%20feedback" className="font-semibold text-[#1a0f00] hover:underline">Spec feedback →</a> contact@aievid.com</li>
+      </ul>
+    </section>
   );
 }
