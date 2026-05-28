@@ -59,6 +59,9 @@ type Endpoint = {
   rateLimit: number;       // req/min
   createdAt: number;
   status: "live" | "paused";
+  // Optional auth header the gateway attaches when forwarding to originalUrl.
+  // Stored verbatim (e.g. "Authorization: Bearer sk-..."). Buyers never see it.
+  upstreamAuth?: string;
 };
 
 type PayToken = {
@@ -146,6 +149,12 @@ function timeAgo(t: number): string {
 }
 function gatewayUrlOf(slug: string): string {
   return `https://gateway.lemoncake.xyz/${slug}`;
+}
+
+// Mask any 12+ char token-looking substring so we never echo full secrets
+// back on screen ("Bearer sk-abcdef12345678" → "Bearer sk-a…5678").
+function maskAuth(h: string): string {
+  return h.replace(/([A-Za-z0-9_\-.]{12,})/g, (m) => `${m.slice(0, 4)}…${m.slice(-4)}`);
 }
 
 function useLocalState<T>(key: string, initial: T): [T, (next: T | ((prev: T) => T)) => void] {
@@ -425,11 +434,12 @@ function AddPane({
 }) {
   // Defaults are real values, not placeholder strings — click Create and
   // an endpoint actually lands. Edit any field to make it yours.
-  const [apiName,      setApiName]      = useState("AI Search API");
-  const [apiUrl,       setApiUrl]       = useState("https://api.example.com/search");
-  const [pricePerCall, setPricePerCall] = useState("0.01");
-  const [tokenBudget,  setTokenBudget]  = useState("5.00");
-  const [rateLimit,    setRateLimit]    = useState("60");
+  const [apiName,       setApiName]       = useState("AI Search API");
+  const [apiUrl,        setApiUrl]        = useState("https://api.example.com/search");
+  const [pricePerCall,  setPricePerCall]  = useState("0.01");
+  const [tokenBudget,   setTokenBudget]   = useState("5.00");
+  const [rateLimit,     setRateLimit]     = useState("60");
+  const [upstreamAuth,  setUpstreamAuth]  = useState("");
   const [estCalls,     setEstCalls]     = useState<1000 | 10000 | 100000>(1000);
   const [err, setErr] = useState<string | null>(null);
 
@@ -471,6 +481,7 @@ function AddPane({
       rateLimit: rateNum,
       createdAt: Date.now(),
       status: "live",
+      upstreamAuth: upstreamAuth.trim() || undefined,
     };
     setEndpoints((prev) => [...prev, e]);
     goTo("apis");
@@ -533,6 +544,20 @@ function AddPane({
                   <Icon.ChevDn className="w-4 h-4 text-[#1a0f00]/45 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
+            </Field>
+
+            <Field
+              label="Upstream auth"
+              hint="optional"
+              hintBelow="If your origin API needs auth, we attach this header on every forwarded request. Stored server-side, never shown to buyers. Leave blank for open APIs."
+            >
+              <input
+                type="text"
+                value={upstreamAuth}
+                onChange={(e) => setUpstreamAuth(e.target.value)}
+                placeholder="Authorization: Bearer sk-..."
+                className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
+              />
             </Field>
           </div>
 
@@ -684,9 +709,17 @@ function ApisPane({
             <div key={e.id} className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-[15px] font-bold">{e.name}</h3>
                     <StatusPill status={e.status} />
+                    {e.upstreamAuth && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60 bg-[#1a0f00]/6 px-1.5 py-0.5 rounded"
+                        title={`Forwarded to origin: ${maskAuth(e.upstreamAuth)}`}
+                      >
+                        <Icon.Lock className="w-2.5 h-2.5" /> Auth
+                      </span>
+                    )}
                   </div>
                   <code className="block font-mono text-[11.5px] text-[#1a0f00]/75 break-all">{e.gatewayUrl}</code>
                   <p className="font-mono text-[10.5px] text-[#1a0f00]/40 mt-0.5">→ {e.originalUrl}</p>
@@ -705,11 +738,12 @@ function ApisPane({
                 </div>
               </div>
 
-              <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Stat label="Price"        v={fmtUsd(e.pricePerCall)} suf="/ call" />
-                <Stat label="Rate limit"   v={String(e.rateLimit)} suf="req/min" />
-                <Stat label="Spend cap"    v={fmtUsd(e.tokenBudget)} suf="/ token" />
-                <Stat label="Created"      v={timeAgo(e.createdAt)} />
+              <dl className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <Stat label="Price"         v={fmtUsd(e.pricePerCall)} suf="/ call" />
+                <Stat label="Rate limit"    v={String(e.rateLimit)} suf="req/min" />
+                <Stat label="Spend cap"     v={fmtUsd(e.tokenBudget)} suf="/ token" />
+                <Stat label="Upstream auth" v={e.upstreamAuth ? "Set" : "—"} suf={e.upstreamAuth ? "✓" : undefined} />
+                <Stat label="Created"       v={timeAgo(e.createdAt)} />
               </dl>
 
               <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-[#1a0f00]/65">
@@ -1037,10 +1071,19 @@ function TestPane({
           )}
 
           {ep && (
-            <div className="mt-4 rounded-lg bg-[#1a0f00] text-white p-3 text-[11px] font-mono leading-relaxed">
-              curl -X POST {ep.gatewayUrl} \<br />
-              &nbsp;&nbsp;-H &quot;Authorization: Bearer {tokenId}&quot;
-            </div>
+            <>
+              <div className="mt-4 rounded-lg bg-[#1a0f00] text-white p-3 text-[11px] font-mono leading-relaxed">
+                curl -X POST {ep.gatewayUrl} \<br />
+                &nbsp;&nbsp;-H &quot;Authorization: Bearer {tokenId}&quot;
+              </div>
+              <p className="mt-2 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+                {ep.upstreamAuth ? (
+                  <>Gateway forwards to <code className="font-mono">{ep.originalUrl}</code> with your stored <code className="font-mono">{maskAuth(ep.upstreamAuth)}</code>.</>
+                ) : (
+                  <>Gateway forwards to <code className="font-mono">{ep.originalUrl}</code> as-is. Set an upstream auth header on the endpoint if your origin requires it.</>
+                )}
+              </p>
+            </>
           )}
 
           <button type="button" onClick={send} className="mt-4 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors">
