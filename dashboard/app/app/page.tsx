@@ -163,7 +163,7 @@ const SIDEBAR: { heading: string; items: NavItem[] }[] = [
   { heading: "Setup", items: [
     { label: "Add API",      icon: "Plus", pane: "add" },
     { label: "Gateway",      icon: "Code", pane: "apis" },
-    { label: "Pay Token",    icon: "Key",  pane: "paytoken" },
+    { label: "Pay Tokens",   icon: "Key",  pane: "paytoken" },
     { label: "Test Request", icon: "Play", pane: "test" },
   ]},
   { heading: "Monitor", items: [
@@ -351,9 +351,6 @@ function RealDashboard() {
             </>
           )}
 
-          <p className="mt-12 text-center text-[11px] text-[#1a0f00]/40">
-            The safe monetization layer for AI APIs · Private Beta · Real backend
-          </p>
         </main>
       </div>
     </div>
@@ -475,18 +472,17 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
         </div>
       ))}
 
-      <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-4">
-        <p className="text-[12.5px] font-bold mb-2">Launch Plan</p>
-        <div className="flex items-baseline gap-1 mb-3">
-          <span className="text-[28px] font-black leading-none tracking-tight">$0</span>
-          <span className="text-[11px] text-[#1a0f00]/55">/ month</span>
+      <div className="rounded-xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-3">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Launch Plan</p>
+          <p className="text-[11px] font-bold text-[#1a0f00]/80"><span className="font-mono">$0</span>/mo</p>
         </div>
-        <ul className="space-y-1.5 text-[11.5px] mb-3">
-          {["3,000 API calls free", "3% only when you earn", "No fixed transaction fee"].map((line) => (
-            <li key={line} className="flex items-start gap-1.5"><span className="text-[#16A34A] font-bold">✓</span><span className="text-[#1a0f00]/75">{line}</span></li>
-          ))}
+        <ul className="space-y-1 text-[10.5px] text-[#1a0f00]/65 mb-2">
+          <li>3,000 API calls free</li>
+          <li>3% after, only when you earn</li>
+          <li>No fixed transaction fee</li>
         </ul>
-        <Link href="/pricing" className="text-[11px] font-semibold text-[#1a0f00] hover:underline inline-flex items-center gap-1">View details <span aria-hidden>→</span></Link>
+        <Link href="/pricing" className="text-[10.5px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] hover:underline">View pricing →</Link>
       </div>
     </aside>
   );
@@ -504,6 +500,36 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
   const [estCalls,     setEstCalls]     = useState<1000 | 10000 | 100000>(1000);
   const [busy,         setBusy]         = useState(false);
   const [err,          setErr]          = useState<string | null>(null);
+
+  // Verify origin (real browser-side GET against the URL the seller pasted)
+  type VerifyState =
+    | null
+    | { kind: "loading" }
+    | { kind: "ok"; status: number; ms: number }
+    | { kind: "fail"; status: number; ms: number }
+    | { kind: "error"; message: string };
+  const [verify, setVerify] = useState<VerifyState>(null);
+  async function verifyUrl() {
+    if (!/^https?:\/\//.test(apiUrl)) {
+      setVerify({ kind: "error", message: "Enter a full http(s) URL first." });
+      return;
+    }
+    setVerify({ kind: "loading" });
+    const headers: Record<string, string> = {};
+    if (upstreamAuth) {
+      const idx = upstreamAuth.indexOf(":");
+      if (idx > 0) headers[upstreamAuth.slice(0, idx).trim()] = upstreamAuth.slice(idx + 1).trim();
+    }
+    const t0 = performance.now();
+    try {
+      const res = await fetch(apiUrl, { method: "GET", headers, mode: "cors" });
+      const ms = Math.round(performance.now() - t0);
+      setVerify(res.ok ? { kind: "ok", status: res.status, ms } : { kind: "fail", status: res.status, ms });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Network error";
+      setVerify({ kind: "error", message });
+    }
+  }
 
   const rawSlug = slugifyName(apiName) || "your-api";
   let finalSlug = rawSlug;
@@ -554,15 +580,17 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
         subtitle="Turn any HTTP API into a protected endpoint with price rules, Pay Tokens, spend caps, and real-time usage logs."
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#1a0f00]/12">
-          <Icon.Lemon className="w-4 h-4 text-[#1a0f00]/55" />
-          <span className="text-[12px] font-medium text-[#1a0f00]/80">Metering, Pay Tokens, and usage ledger are live</span>
-        </div>
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1a0f00]/4 border border-[#1a0f00]/8">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/40" />
-          <span className="text-[11.5px] text-[#1a0f00]/65"><span className="font-semibold">Settlement:</span> Preview ledger only · Stripe/x402 next</span>
-        </div>
+      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {["Metering live", "Pay Tokens live", "Usage ledger live"].map((label) => (
+          <span key={label} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
+            <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#16A34A]/15 text-[#16A34A] text-[9px] font-black">✓</span>
+            {label}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/55">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/30" />
+          Settlement optional: Stripe / x402 next
+        </span>
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
@@ -571,11 +599,57 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
             <Field label="API name">
               <input type="text" value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder="AI Search API" className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
             </Field>
-            <Field label="Original API URL" hintBelow="We'll connect to this endpoint on every paid request.">
-              <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="https://api.example.com/search" className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
+            <Field label="Original API URL">
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="url"
+                  value={apiUrl}
+                  onChange={(e) => { setApiUrl(e.target.value); setVerify(null); }}
+                  placeholder="https://api.example.com/search"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={verifyUrl}
+                  disabled={verify?.kind === "loading"}
+                  className="flex-shrink-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-xl text-[12px] font-semibold text-[#1a0f00]/75 hover:bg-[#1a0f00]/[0.03] hover:text-[#1a0f00] transition-colors disabled:opacity-60"
+                >
+                  {verify?.kind === "loading" ? "…" : "Verify"}
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] leading-relaxed">
+                {!verify && <span className="text-[#1a0f00]/45">We&apos;ll connect to this endpoint on every paid request.</span>}
+                {verify?.kind === "ok" && <span className="text-[#16A34A]">✓ Origin reachable · {verify.status} · {verify.ms}ms</span>}
+                {verify?.kind === "fail" && <span className="text-[#DC2626]">{verify.status} from origin · {verify.ms}ms. Check URL or upstream auth.</span>}
+                {verify?.kind === "error" && <span className="text-[#DC2626]">Origin unreachable — {verify.message}. CORS / DNS likely; production gateway is server-to-server and unaffected.</span>}
+              </p>
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Price per call"><DollarInput value={pricePerCall} onChange={setPricePerCall} step="0.001" /></Field>
+              <Field label="Price per call">
+                <DollarInput value={pricePerCall} onChange={setPricePerCall} step="0.001" />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] text-[#1a0f00]/45 self-center mr-1">Suggested:</span>
+                  {([
+                    ["0.001", "log/tool"],
+                    ["0.01",  "search"],
+                    ["0.05",  "extraction"],
+                    ["0.20",  "deep research"],
+                  ] as const).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setPricePerCall(v)}
+                      className={`px-2 py-0.5 text-[10.5px] font-mono rounded border transition-colors ${
+                        pricePerCall === v
+                          ? "bg-[#1a0f00] text-white border-[#1a0f00]"
+                          : "bg-white text-[#1a0f00]/70 border-[#1a0f00]/15 hover:border-[#1a0f00]/35 hover:text-[#1a0f00]"
+                      }`}
+                    >
+                      ${v} <span className="font-sans font-normal opacity-65">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </Field>
               <Field label="Token budget limit" hintBelow="Max amount each Pay Token can spend"><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
             </div>
             <Field label="Rate limit" hintBelow="Max requests allowed per minute, per endpoint">
@@ -608,6 +682,9 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
             <Icon.Bolt className="w-4 h-4" />
             {busy ? "Creating…" : "Create Paid-Access Endpoint"}
           </button>
+          <p className="mt-2.5 text-center text-[11px] text-[#1a0f00]/55">
+            Next: issue Pay Token → send test request → watch ledger update
+          </p>
         </div>
 
         <PreviewPanel
@@ -627,34 +704,11 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
         />
       </section>
 
-      {/* What happens after you create this endpoint */}
-      <section className="mt-6 rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">After you create this endpoint</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <PostCreateStep n={1} title="Issue a Pay Token" desc="Hand the JWT to your buyer / agent — it carries the budget + expiry." />
-          <PostCreateStep n={2} title="Send a test request" desc="Hit /g/<shortId> with the JWT. See latency, fee, response in real time." />
-          <PostCreateStep n={3} title="Watch the ledger" desc="Every paid call lands in Postgres. Block + spend cap enforce automatically." />
-        </div>
-      </section>
     </>
   );
 }
 
-function PostCreateStep({ n, title, desc }: { n: number; title: string; desc: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1a0f00]/8 text-[11px] font-black text-[#1a0f00]/75">{n}</span>
-      <div className="min-w-0">
-        <p className="text-[12.5px] font-bold leading-tight">{title}</p>
-        <p className="text-[11px] text-[#1a0f00]/55 leading-snug mt-0.5">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Right-side preview with Endpoint / Pay Token / Test Call tabs ─── */
-
-type PreviewTab = "endpoint" | "paytoken" | "test";
+/* ─── Right-side vertical 3-step preview ─── */
 
 function PreviewPanel({
   apiUrl, previewUrl, previewSlug, slugConflict, rawSlug,
@@ -675,107 +729,95 @@ function PreviewPanel({
   estFee: number;
   estNet: number;
 }) {
-  const [tab, setTab] = useState<PreviewTab>("endpoint");
   return (
     <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 self-start">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Live preview</p>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Ready to go</span>
       </div>
 
-      {/* Tab strip */}
-      <div className="flex items-center gap-1 mb-4 border-b border-[#1a0f00]/8">
-        {([
-          ["endpoint", "Endpoint"],
-          ["paytoken", "Pay Token"],
-          ["test",     "Test Call"],
-        ] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors -mb-px border-b-2 ${
-              tab === id
-                ? "border-[#1a0f00] text-[#1a0f00]"
-                : "border-transparent text-[#1a0f00]/45 hover:text-[#1a0f00]"
-            }`}
-          >
-            {label}
+      {/* Step 1 — Gateway endpoint */}
+      <PreviewStep n={1} title="Gateway endpoint">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 px-3 py-2.5">
+          <code className="font-mono text-[11.5px] text-[#1a0f00] break-all truncate">{previewUrl}</code>
+          <button type="button" onClick={() => navigator.clipboard?.writeText(previewUrl)} className="flex-shrink-0 p-1 rounded hover:bg-[#1a0f00]/8 transition-colors text-[#1a0f00]/55" aria-label="Copy gateway URL">
+            <Icon.Copy className="w-3.5 h-3.5" />
           </button>
-        ))}
-      </div>
+        </div>
+        <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+          Slug “{previewSlug}”{slugConflict ? ` (auto-renamed from “${rawSlug}”)` : ""}. Real short ID assigned on create.
+          {" "}Proxies to <code className="font-mono">{apiUrl || "—"}</code>.
+        </p>
+      </PreviewStep>
 
-      {tab === "endpoint" && (
-        <div className="space-y-4">
-          <UrlBox label="Original API" url={apiUrl || "—"} />
-          <UrlBox label="LemonCake Gateway" url={previewUrl} tint hint={`Server assigns a short ID (e.g. /g/k7m3xq8v) on create. Slug will be "${previewSlug}"${slugConflict ? ` (auto-renamed from "${rawSlug}")` : ""}.`} />
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Ledger estimate</p>
-              <div className="relative">
-                <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
-                  <option value={1000}>1,000 calls / month</option>
-                  <option value={10000}>10,000 calls / month</option>
-                  <option value={100000}>100,000 calls / month</option>
-                </select>
-                <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-            <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1.5">
-              <RevRow k="Gross" v={fmtUsd(estRev)} />
-              <RevRow k="LemonCake fee (3%, after free 3k)" v={`-${fmtUsd(estFee)}`} muted />
-              <div className="h-px bg-[#1a0f00]/8 my-1.5" />
-              <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
-            </div>
-            <p className="mt-2 text-[10px] text-[#1a0f00]/50 leading-snug">Ledger amount. Stripe / x402 settlement comes next.</p>
+      {/* Step 2 — Pay Token rules */}
+      <PreviewStep n={2} title="Pay Token rules">
+        <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
+          <RevRow k="Budget" v={fmtUsd(tokenBudget)} />
+          <RevRow k="Rate limit" v={`${rateLimit} req/min`} />
+          <RevRow k="Per-call price" v={fmtUsd(pricePerCall)} />
+          <RevRow k="Expires in" v="24h (default)" muted />
+        </div>
+        <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+          HS256-signed JWT. Buyer attaches as <code className="font-mono">Authorization: Bearer</code>. Revocable instantly.
+        </p>
+      </PreviewStep>
+
+      {/* Step 3 — Test call */}
+      <PreviewStep n={3} title="Test call">
+        <div className="rounded-lg bg-[#1a0f00] text-white p-2.5 text-[10.5px] font-mono leading-relaxed">
+          curl -X POST {previewUrl} \<br />
+          &nbsp;&nbsp;-H &quot;Authorization: Bearer &lt;PAY_TOKEN&gt;&quot;
+        </div>
+        <div className="mt-2 rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-3 space-y-1 font-mono text-[11px]">
+          <RevRow k="HTTP" v="200 OK" highlight />
+          <RevRow k="x-lemoncake-charge" v={fmtUsd(pricePerCall)} />
+          <RevRow k="remaining budget" v={fmtUsd(Math.max(0, tokenBudget - pricePerCall))} muted />
+        </div>
+        <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+          On block: 402 / 429 / 401 with{" "}
+          <code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>.
+          Pay Token is refunded on upstream 5xx.
+        </p>
+      </PreviewStep>
+
+      {/* Ledger estimate */}
+      <div className="mt-5 pt-4 border-t border-[#1a0f00]/8">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Ledger estimate</p>
+          <div className="relative">
+            <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
+              <option value={1000}>1,000 calls / month</option>
+              <option value={10000}>10,000 calls / month</option>
+              <option value={100000}>100,000 calls / month</option>
+            </select>
+            <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
-      )}
-
-      {tab === "paytoken" && (
-        <div className="space-y-3">
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Pay Token rule (default)</p>
-          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1.5">
-            <RevRow k="Budget" v={fmtUsd(tokenBudget)} />
-            <RevRow k="Rate limit" v={`${rateLimit} req/min`} />
-            <RevRow k="Per-call price" v={fmtUsd(pricePerCall)} />
-          </div>
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 pt-2">Buyer-facing format</p>
-          <div className="rounded-lg bg-[#1a0f00] text-white p-3 text-[11px] font-mono leading-relaxed">
-            Authorization: Bearer eyJhbGciOiJIUzI1NiI…
-          </div>
-          <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug">
-            HS256-signed JWT, jti = DB primary key. Revocable instantly. Spend / call / expiry enforced server-side on every gateway hit.
-          </p>
+        <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
+          <RevRow k="Gross" v={fmtUsd(estRev)} />
+          <RevRow k="LemonCake fee (3%, after free 3k)" v={`-${fmtUsd(estFee)}`} muted />
+          <div className="h-px bg-[#1a0f00]/8 my-1" />
+          <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
         </div>
-      )}
-
-      {tab === "test" && (
-        <div className="space-y-3">
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">cURL the gateway</p>
-          <div className="rounded-lg bg-[#1a0f00] text-white p-3 text-[10.5px] font-mono leading-relaxed">
-            curl -X POST {previewUrl} \<br />
-            &nbsp;&nbsp;-H &quot;Authorization: Bearer &lt;jwt&gt;&quot;
-          </div>
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 pt-2">Expected response headers</p>
-          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3.5 space-y-1 font-mono text-[11px]">
-            <RevRow k="HTTP" v="200 OK" />
-            <RevRow k="x-lemoncake-charge" v={fmtUsd(pricePerCall)} />
-            <RevRow k="x-lemoncake-upstream-ms" v="~17" muted />
-          </div>
-          <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug">
-            On block: 402 / 429 / 401 with JSON{" "}
-            <code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>.
-            Pay Token is refunded if upstream returns 5xx.
-          </p>
-        </div>
-      )}
-
-      <div className="mt-4 pt-3 border-t border-[#1a0f00]/8 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/55">
-        <Icon.Lock className="w-3 h-3" />
-        <span>Only successful, paid requests are charged.</span>
+        <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/50">
+          <Icon.Lock className="w-3 h-3" />
+          Ledger only. Stripe / x402 settlement comes next.
+        </p>
       </div>
     </aside>
+  );
+}
+
+function PreviewStep({ n, title, children }: { n: number; title: string; children: ReactNode }) {
+  return (
+    <div className="mb-4 last:mb-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1a0f00] text-white text-[10px] font-black">{n}</span>
+        <p className="text-[12px] font-bold">{title}</p>
+      </div>
+      {children}
+    </div>
   );
 }
 
