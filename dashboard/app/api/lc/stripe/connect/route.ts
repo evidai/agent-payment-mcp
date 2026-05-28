@@ -52,41 +52,59 @@ export async function POST(req: Request) {
 
   let accountId = owner.stripe_account_id;
 
-  if (!accountId) {
-    // First time — create the Express account.
-    const account = await stripe().accounts.create({
-      type: "express",
-      country: "JP",  // Hiroto's platform country; Stripe asks the seller for theirs in onboarding
-      email: owner.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers:     { requested: true },
-      },
-      business_type: undefined, // let Stripe collect via onboarding
-      metadata: {
-        lc_owner_id: owner.id,
-      },
+  // Wrap all Stripe calls so a Stripe-side failure (e.g. Connect not yet
+  // enabled on the platform) surfaces as a structured JSON error the UI can
+  // show — instead of an unhandled 500 with a non-JSON body, which the
+  // client surfaces uselessly as "network_error".
+  try {
+    if (!accountId) {
+      // First time — create the Express account.
+      const account = await stripe().accounts.create({
+        type: "express",
+        country: "JP",  // Hiroto's platform country; Stripe asks the seller for theirs in onboarding
+        email: owner.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers:     { requested: true },
+        },
+        business_type: undefined, // let Stripe collect via onboarding
+        metadata: {
+          lc_owner_id: owner.id,
+        },
+      });
+
+      accountId = account.id;
+      await sql()`
+        update lc_owners
+        set stripe_account_id = ${accountId}
+        where id = ${ownerId}
+      `;
+    }
+
+    // Always mint a fresh AccountLink — they're single-use + expire fast.
+    const link = await stripe().accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/app?stripe=refresh`,
+      return_url:  `${origin}/app?stripe=return`,
+      type: "account_onboarding",
     });
 
-    accountId = account.id;
-    await sql()`
-      update lc_owners
-      set stripe_account_id = ${accountId}
-      where id = ${ownerId}
-    `;
+    return NextResponse.json({
+      accountId,
+      onboardingUrl: link.url,
+      expiresAt: link.expires_at,
+    });
+  } catch (err) {
+    const e = err as { type?: string; code?: string; message?: string; statusCode?: number };
+    console.error("[stripe/connect] Stripe call failed:", e?.type, e?.code, e?.message);
+    return NextResponse.json(
+      {
+        error: "stripe_error",
+        stripeType: e?.type ?? null,
+        stripeCode: e?.code ?? null,
+        message: e?.message ?? "Stripe request failed.",
+      },
+      { status: e?.statusCode && e.statusCode >= 400 && e.statusCode < 600 ? e.statusCode : 502 },
+    );
   }
-
-  // Always mint a fresh AccountLink — they're single-use + expire fast.
-  const link = await stripe().accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/app?stripe=refresh`,
-    return_url:  `${origin}/app?stripe=return`,
-    type: "account_onboarding",
-  });
-
-  return NextResponse.json({
-    accountId,
-    onboardingUrl: link.url,
-    expiresAt: link.expires_at,
-  });
 }

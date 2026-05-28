@@ -460,7 +460,7 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
       const r = await fetch("/api/lc/stripe/connect", { method: "POST" });
       const j = await r.json();
       if (!r.ok || !j.onboardingUrl) {
-        setStripeErr(j.error || "connect_failed");
+        setStripeErr(j.message || j.error || "connect_failed");
         return;
       }
       // Redirect into Stripe's hosted onboarding form.
