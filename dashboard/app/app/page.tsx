@@ -479,7 +479,7 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
         </div>
         <ul className="space-y-1 text-[10.5px] text-[#1a0f00]/65 mb-2">
           <li>3,000 API calls free</li>
-          <li>3% after, only when you earn</li>
+          <li>3% when settlement goes live</li>
           <li>No fixed transaction fee</li>
         </ul>
         <Link href="/pricing" className="text-[10.5px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] hover:underline">View pricing →</Link>
@@ -490,7 +490,7 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
 
 /* ────────────────────────────  panes  ──────────────────────────── */
 
-function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pane) => void; api: Api }) {
+function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; api: Api }) {
   // Empty by default — the placeholder shows the example. The user types
   // their own. (Pricing / budget / rate keep real defaults since those are
   // sensible starting values, not example labels.)
@@ -552,6 +552,11 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
   const estFee    = estRev * 0.03;
   const estNet    = estRev - estFee;
 
+  // After successful create, we hold the freshly returned Endpoint here
+  // and swap the form area for a success card. Resetting to null re-opens
+  // the form for another endpoint.
+  const [created, setCreated] = useState<Endpoint | null>(null);
+
   async function create() {
     setErr(null);
     if (!apiName.trim()) return setErr("API name is required.");
@@ -559,7 +564,7 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
     if (priceNum <= 0) return setErr("Price per call must be greater than 0.");
     setBusy(true);
     try {
-      await api.createEndpoint({
+      const ep = await api.createEndpoint({
         name: apiName.trim(),
         originalUrl: apiUrl.trim(),
         upstreamAuth: upstreamAuth.trim() || undefined,
@@ -567,12 +572,45 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
         tokenBudget: budgetNum,
         rateLimit: rateNum,
       });
-      goTo("apis");
+      setCreated(ep);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Create failed.");
     } finally {
       setBusy(false);
     }
+  }
+
+  // State-aware primary CTA. Empty URL → disabled; URL pasted but Verify
+  // not run yet → "Verify origin" (running verify, not create); any verify
+  // result (ok / fail / error) → "Create Paid-Access Endpoint".
+  type CtaState = "no_url" | "needs_verify" | "ready";
+  const ctaState: CtaState =
+    !/^https?:\/\//.test(apiUrl)
+      ? "no_url"
+      : !verify || verify.kind === "loading"
+        ? "needs_verify"
+        : "ready";
+  const ctaLabel = busy
+    ? "Creating…"
+    : ctaState === "no_url"        ? "Enter API URL to continue"
+      : ctaState === "needs_verify" ? "Verify origin"
+        : "Create Paid-Access Endpoint";
+  const ctaDisabled = busy || ctaState === "no_url" || verify?.kind === "loading";
+  async function onCtaClick() {
+    if (ctaState === "needs_verify") await verifyUrl();
+    else if (ctaState === "ready")    await create();
+  }
+
+  // ── Post-create success state ──────────────────────────────────────
+  if (created) {
+    return (
+      <CreatedSuccess
+        endpoint={created}
+        onIssueToken={() => goTo("paytoken", { endpointId: created.id })}
+        onTest={() => goTo("test", { endpointId: created.id })}
+        onCreateAnother={() => { setCreated(null); setVerify(null); }}
+      />
+    );
   }
 
   return (
@@ -583,18 +621,21 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
         subtitle="Turn any HTTP API into a protected endpoint with price rules, Pay Tokens, spend caps, and real-time usage logs."
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {["Metering live", "Pay Tokens live", "Usage ledger live"].map((label) => (
           <span key={label} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
             <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#16A34A]/15 text-[#16A34A] text-[9px] font-black">✓</span>
             {label}
           </span>
         ))}
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/55">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/30" />
-          Settlement optional: Stripe / x402 next
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/45" />
+          Access control live · Settlement optional
         </span>
       </div>
+      <p className="mb-6 text-[10.5px] text-[#1a0f00]/45 leading-snug">
+        Stripe / x402 settlement can be enabled later — endpoint, metering, and ledger work without it.
+      </p>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
@@ -653,7 +694,7 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
                   ))}
                 </div>
               </Field>
-              <Field label="Token budget limit" hintBelow="Max amount each Pay Token can spend"><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
+              <Field label="Max buyer spend per Pay Token" hintBelow="Maximum amount each Pay Token can spend before it stops working."><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
             </div>
             <Field label="Rate limit" hintBelow="Max requests allowed per minute, per endpoint">
               <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-xl focus-within:border-[#1a0f00]/55 transition-colors">
@@ -681,9 +722,20 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
 
           {err && <p className="mt-4 text-[12px] text-[#DC2626] bg-[#DC2626]/8 border border-[#DC2626]/25 rounded-lg px-3 py-2">{err}</p>}
 
-          <button type="button" onClick={create} disabled={busy} className="mt-6 w-full inline-flex items-center justify-center gap-2 py-3 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[14px] rounded-xl transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)] disabled:opacity-60 disabled:cursor-not-allowed">
-            <Icon.Bolt className="w-4 h-4" />
-            {busy ? "Creating…" : "Create Paid-Access Endpoint"}
+          <button
+            type="button"
+            onClick={onCtaClick}
+            disabled={ctaDisabled}
+            className={`mt-6 w-full inline-flex items-center justify-center gap-2 py-3 font-bold text-[14px] rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+              ctaState === "ready"
+                ? "bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] shadow-[0_1px_0_rgba(26,15,0,0.15)]"
+                : ctaState === "needs_verify"
+                  ? "bg-[#1a0f00] hover:bg-[#1a0f00]/90 text-white"
+                  : "bg-[#1a0f00]/8 text-[#1a0f00]/55"
+            }`}
+          >
+            {ctaState === "ready" && <Icon.Bolt className="w-4 h-4" />}
+            {ctaLabel}
           </button>
           <p className="mt-2.5 text-center text-[11px] text-[#1a0f00]/55">
             Next: issue Pay Token → send test request → watch ledger update
@@ -733,7 +785,7 @@ function PreviewPanel({
   estNet: number;
 }) {
   return (
-    <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 self-start">
+    <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 lg:sticky lg:top-20 self-start">
       <div className="flex items-center justify-between mb-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Live preview</p>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Ready to go</span>
@@ -756,7 +808,7 @@ function PreviewPanel({
       {/* Step 2 — Pay Token rules */}
       <PreviewStep n={2} title="Pay Token rules">
         <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
-          <RevRow k="Budget" v={fmtUsd(tokenBudget)} />
+          <RevRow k="Max buyer spend" v={fmtUsd(tokenBudget)} />
           <RevRow k="Rate limit" v={`${rateLimit} req/min`} />
           <RevRow k="Per-call price" v={fmtUsd(pricePerCall)} />
           <RevRow k="Expires in" v="24h (default)" muted />
@@ -778,16 +830,15 @@ function PreviewPanel({
           <RevRow k="remaining budget" v={fmtUsd(Math.max(0, tokenBudget - pricePerCall))} muted />
         </div>
         <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
-          On block: 402 / 429 / 401 with{" "}
+          Recorded to usage ledger. Settlement can be enabled later. On block: 402 / 429 / 401 with{" "}
           <code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>.
-          Pay Token is refunded on upstream 5xx.
         </p>
       </PreviewStep>
 
-      {/* Ledger estimate */}
+      {/* Usage ledger estimate */}
       <div className="mt-5 pt-4 border-t border-[#1a0f00]/8">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Ledger estimate</p>
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Usage ledger estimate</p>
           <div className="relative">
             <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
               <option value={1000}>1,000 calls / month</option>
@@ -821,6 +872,93 @@ function PreviewStep({ n, title, children }: { n: number; title: string; childre
       </div>
       {children}
     </div>
+  );
+}
+
+/* ─── Post-create success state ─── */
+
+function CreatedSuccess({
+  endpoint, onIssueToken, onTest, onCreateAnother,
+}: {
+  endpoint: Endpoint;
+  onIssueToken: () => void;
+  onTest: () => void;
+  onCreateAnother: () => void;
+}) {
+  const url = gatewayUrlOf(endpoint.shortId);
+  return (
+    <>
+      <div className="mb-6 flex items-start gap-3">
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#16A34A] text-white text-[16px] font-black flex-shrink-0">✓</span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-[#16A34A] uppercase tracking-widest mb-1">Live</p>
+          <h1 className="text-[26px] md:text-[30px] font-black leading-[1.15] tracking-tight">Your paid-access endpoint is live</h1>
+          <p className="mt-2 text-[13px] text-[#1a0f00]/60">
+            <code className="font-mono text-[12px] bg-[#1a0f00]/6 px-1.5 py-0.5 rounded">{endpoint.name}</code> is ready to take paid requests.
+            Hand the gateway URL + a Pay Token to your buyer.
+          </p>
+        </div>
+      </div>
+
+      <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Gateway URL</p>
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/15 px-3 py-3 mb-5">
+          <code className="font-mono text-[13px] text-[#1a0f00] break-all">{url}</code>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(url)}
+            className="flex-shrink-0 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Protection</p>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[12.5px] mb-5">
+          {[
+            ["Pay Token required",   "Every paid call must attach a signed JWT"],
+            ["Spend cap enforced",   `Max ${fmtUsd(endpoint.tokenBudget)} per Pay Token`],
+            ["Rate limit enforced",  `${endpoint.rateLimit} req/min per endpoint`],
+            ["Usage ledger active",  "Every successful call written to Postgres"],
+          ].map(([label, sub]) => (
+            <div key={label} className="flex items-start gap-2">
+              <span className="text-[#16A34A] font-black mt-0.5">✓</span>
+              <div>
+                <p className="font-semibold text-[#1a0f00]">{label}</p>
+                <p className="text-[11px] text-[#1a0f00]/55 leading-snug">{sub}</p>
+              </div>
+            </div>
+          ))}
+        </dl>
+
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Next step</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={onIssueToken} className="inline-flex items-center gap-2 px-4 py-2 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[13px] rounded-lg transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)]">
+            <Icon.Key className="w-4 h-4" /> Issue Pay Token
+          </button>
+          <button type="button" onClick={onTest} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
+            <Icon.Play className="w-3.5 h-3.5" /> Send test request
+          </button>
+          <button type="button" onClick={() => navigator.clipboard?.writeText(url)} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
+            <Icon.Copy className="w-3.5 h-3.5" /> Copy Gateway URL
+          </button>
+          <div className="flex-1" />
+          <button type="button" onClick={onCreateAnother} className="text-[12px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">
+            + Create another
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Endpoint summary</p>
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Price</dt><dd className="font-bold">{fmtUsd(endpoint.pricePerCall)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">/ call</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Spend cap</dt><dd className="font-bold">{fmtUsd(endpoint.tokenBudget)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">/ token</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Rate</dt><dd className="font-bold">{endpoint.rateLimit} <span className="text-[10px] text-[#1a0f00]/45 font-normal">req/min</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Upstream auth</dt><dd className="font-bold">{endpoint.upstreamAuth ? "Set ✓" : "—"}</dd></div>
+        </dl>
+      </section>
+    </>
   );
 }
 
