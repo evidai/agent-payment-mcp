@@ -56,3 +56,11 @@ legal/
 fsa-reply-draft.md
 api/scripts/freee-reauth.ts
 api/scripts/freee-extract-from-db.ts
+# Internal grant / strategy / investor / unreleased-product — keep out of the public repo
+docs/tokyo-stablecoin-grant/0[6-9]-*.md
+docs/tokyo-stablecoin-grant/1*.md
+docs/whitepaper/
+roadmap-2026-2027.md
+freee-launch-checklist.md
+gmx-mcp/
+pay-per-call-mcp/
