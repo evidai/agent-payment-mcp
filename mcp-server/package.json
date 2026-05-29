@@ -1,8 +1,8 @@
 {
   "name": "agent-payment-mcp",
   "mcpName": "io.github.evidai/agent-payment",
-  "version": "0.9.2",
-  "description": "Stripe-style drop-in USDC billing for any HTTP API or MCP. 8 free real-API demo services (search / translate / weather / geocode / time / dictionary / fx / echo) work instantly with zero signup, zero env vars. Upgrade to paid services with one ERC-2612 permit (90 days, on-chain $25/day cap). Non-custodial — your USDC never touches LemonCake. x402-compatible.",
+  "version": "0.9.3",
+  "description": "Monetize any HTTP API or MCP server in one line — no monthly fee, 3,000 calls free, then 3% only when your API earns. Non-custodial USDC billing on Base (~2s settlement, ~60x cheaper than card rails), x402-compatible. Also ships 8 free real-API demo tools (search / translate / weather / geocode / time / dictionary / fx / echo) that work instantly with zero signup, zero env vars.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
