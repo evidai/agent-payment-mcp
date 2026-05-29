@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
+// ── auth ────────────────────────────────────────────────────────────────────
+// すべての /api/admin/lc/* は Bearer (admin_token) で保護されている。
+function authHeaders(): HeadersInit {
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-// v2 admin nav. Custody-era sections (buyers / jpyc / marketplace / monitoring
-// / finance) all deleted post-2026-05 (non-custodial pivot)。Killswitch は
-// overview にバナーとして移植済み。
-type NavSection =
-  | "overview"
-  | "providers"
-  | "subscriptions"
-  | "activity"
-  | "invoices"
-  | "offramp";
+// ピボット後 (2026-05) のコンソール。買い手が /buy/[shortId] で Stripe 前払い →
+// Pay Token 1 枚発行、3% 手数料は Checkout で 1 回だけ。旧 m2m/サブスク/オフランプ
+// のセクションは廃止。KPI は live な lc_* テーブルから直接集計する。
+type NavSection = "overview" | "providers" | "activity" | "invoices";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const Ico = {
@@ -39,19 +39,6 @@ function Pill({label, variant}: {label:string; variant:"green"|"red"|"amber"|"gr
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${c}`}>{label}</span>;
 }
 
-function Btn({label,color,size="sm",onClick,disabled}:{label:string;color:"red"|"green"|"violet"|"sky"|"gray"|"amber";size?:"sm"|"xs";onClick?:()=>void;disabled?:boolean}) {
-  const c = {
-    red:    "border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
-    green:  "border-green-200 bg-green-50 text-green-700 hover:bg-green-100",
-    violet: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100",
-    sky:    "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
-    gray:   "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100",
-    amber:  "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
-  }[color];
-  const s = size === "xs" ? "px-1.5 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs";
-  return <button onClick={onClick} disabled={disabled} className={`rounded-md border font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${c} ${s}`}>{label}</button>;
-}
-
 function KpiCard({label,value,unit,delta,color="default"}:{label:string;value:string|number;unit?:string;delta?:string;color?:"default"|"green"|"red"|"blue"|"amber"|"violet"}) {
   const vc = {default:"text-gray-900",green:"text-green-600",red:"text-red-600",blue:"text-blue-600",amber:"text-amber-600",violet:"text-violet-600"}[color];
   return (
@@ -66,18 +53,6 @@ function KpiCard({label,value,unit,delta,color="default"}:{label:string;value:st
   );
 }
 
-function SectionHeader({title, count, children}: {title:string; count?:number; children?: React.ReactNode}) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-        {count !== undefined && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{count}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function Th({children,right}:{children:React.ReactNode;right?:boolean}) {
   return <th className={`px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50 border-b border-gray-100 whitespace-nowrap ${right?"text-right":"text-left"}`}>{children}</th>;
 }
@@ -86,7 +61,6 @@ function Td({children,right,mono,cls}:{children:React.ReactNode;right?:boolean;m
   return <td className={`px-3 py-2.5 text-xs border-b border-gray-50 align-middle ${right?"text-right":"text-left"} ${mono?"font-mono tabular-nums":""} ${cls??""}`}>{children}</td>;
 }
 
-// ── TaskBadge for overview ─────────────────────────────────────────────────────
 function TaskItem({icon, label, count, urgent, onClick}: {icon:React.ReactNode; label:string; count:number; urgent?:boolean; onClick?:()=>void}) {
   return (
     <button onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all w-full text-left ${urgent?"border-red-200 bg-red-50 hover:bg-red-100":"border-gray-200 bg-white hover:bg-gray-50"}`}>
@@ -97,7 +71,6 @@ function TaskItem({icon, label, count, urgent, onClick}: {icon:React.ReactNode; 
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({msg, type, onDone}: {msg:string; type:"success"|"error"|"info"; onDone:()=>void}) {
   useEffect(() => { const t = setTimeout(onDone, 2500); return ()=>clearTimeout(t); }, [onDone]);
   const bg = type==="success"?"bg-navy text-white" : type==="error"?"bg-red-600 text-white" : "bg-blue-600 text-white";
@@ -110,252 +83,411 @@ function Toast({msg, type, onDone}: {msg:string; type:"success"|"error"|"info"; 
   );
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function Modal({title, onClose, children, wide}: {title:string; onClose:()=>void; children:React.ReactNode; wide?:boolean}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"/>
-      <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${wide?"max-w-2xl":"max-w-lg"} max-h-[88vh] overflow-y-auto`} onClick={e=>e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          </button>
-        </div>
-        <div className="px-5 py-4">{children}</div>
-      </div>
-    </div>
-  );
+// ── formatters ────────────────────────────────────────────────────────────────
+function fmtJpy(n: number) { return "¥" + Math.round(n).toLocaleString(); }
+function fmtUsd(n: number) {
+  const max = n !== 0 && Math.abs(n) < 1 ? 4 : 2;
+  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: max });
+}
+function shortDate(s: string | null | undefined) { return s ? s.slice(0, 10) : "—"; }
+function shortTime(s: string | null | undefined) { return s ? s.slice(0, 19).replace("T", " ") : "—"; }
+
+// ── LemonCake live stats (lc_* テーブル集計) ────────────────────────────────────
+interface LcWindow { gross: number; fee: number; net: number; orders: number; calls: number; callGross: number; }
+interface LcStats {
+  providers: { total: number; withStripe: number; chargesEnabled: number; withSale: number };
+  endpoints: { total: number; sellable: number; live: number };
+  sales:     { orders: number; buyers: number; gross: number; fee: number; net: number; spent: number; outstanding: number };
+  gateway:   { calls: number; grossMetered: number };
+  timeseries: { today: LcWindow; month: LcWindow; all: LcWindow };
+  blocked7d: number;
+  feeRate:   number;
 }
 
-
-// ─────────────────────────────────────────────────────────────
-// v2 panels — admin-v2 API を叩いて読み取り専用で表示するシンプルなテーブル群
-// ─────────────────────────────────────────────────────────────
-
-interface V2Stats {
-  mrrJpy: number;
-  annualizedArrJpy: number;
-  activeSubscriptions: { FREE: number; PRO: number; BUSINESS: number; ENTERPRISE: number };
-  providers: { total: number; active: number; suspended: number };
-  charges: { todayCount: number; todayVolumeUsdc: string; monthCount: number; monthVolumeUsdc: string; allTimeCount: number; allTimeVolumeUsdc: string };
-  invoices: { draft: number; issued: number; sent: number };
-  offramp:  { pending: number; completed: number; failed: number };
-}
-
-function useV2Stats() {
-  const [stats, setStats] = useState<V2Stats | null>(null);
+function useLcStats() {
+  const [stats, setStats] = useState<LcStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/v2/stats`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => setStats(d))
-      .catch(() => setStats(null))
+    fetch(`/api/admin/lc/stats`, { headers: authHeaders() })
+      .then(async (r) => {
+        if (!r.ok) { setError(`stats ${r.status}`); return null; }
+        return r.json();
+      })
+      .then((d) => { if (d) setStats(d); })
+      .catch(() => setError("network"))
       .finally(() => setLoading(false));
   }, []);
-  return { stats, loading };
+  return { stats, loading, error };
 }
 
-function fmtJpy(n: number) { return "¥" + Math.round(n).toLocaleString(); }
-function fmtUsdc(s: string | number) {
-  const n = typeof s === "string" ? parseFloat(s) : s;
-  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 4 });
-}
-
-// ── v2 Providers ─────────────────────────────────────────────
-interface V2Provider {
-  id: string; name: string; email: string;
-  baseWalletAddress: string;
-  pricePerCallUsdc: string; freeCallsPerMonth: number;
-  registrationNumber: string | null; autoIssueInvoices: boolean;
-  active: boolean;
-  plan: "FREE"|"PRO"|"BUSINESS"|"ENTERPRISE";
-  subscriptionStatus: string;
-  createdAt: string;
-}
-
-function V2ProvidersPage() {
-  const [rows, setRows] = useState<V2Provider[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
-  const [planFilter, setPlanFilter] = useState<"all"|"FREE"|"PRO"|"BUSINESS">("all");
+// ── KillSwitchBanner ──────────────────────────────────────────────────────────
+// 緊急停止スイッチ。これは「m2m USDC 課金 (Permit / PermitCharge)」経路だけを
+// 止める。Stripe 前払いと Gateway 呼び出しには影響しないので、文言で明示する。
+function KillSwitchBanner() {
+  const [halted, setHalted]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast]     = useState<{msg:string; type:"success"|"error"|"info"}|null>(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/v2/providers?limit=200`)
-      .then(r => r.ok ? r.json() : [])
-      .then(setRows).catch(() => setRows([])).finally(() => setLoading(false));
+    (async () => {
+      try {
+        const r = await fetch("/api/admin/killswitch");
+        if (!r.ok) return;
+        const d = (await r.json()) as { isHalted?: boolean };
+        if (typeof d.isHalted === "boolean") setHalted(d.isHalted);
+      } catch { /* noop */ }
+    })();
   }, []);
 
-  const filtered = rows.filter(r => {
-    if (planFilter !== "all" && r.plan !== planFilter) return false;
-    if (q && !`${r.name} ${r.email} ${r.id}`.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  });
+  function showToast(msg: string, type: "success"|"error"|"info" = "success") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }
 
-  const planBadge = (plan: V2Provider["plan"]) => {
-    const cfg: Record<V2Provider["plan"], { v: "gray"|"amber"|"violet"|"green"; l: string }> = {
-      FREE:       { v: "gray",   l: "Free" },
-      PRO:        { v: "amber",  l: "Pro" },
-      BUSINESS:   { v: "violet", l: "Business" },
-      ENTERPRISE: { v: "green",  l: "Enterprise" },
-    };
-    return <Pill label={cfg[plan].l} variant={cfg[plan].v}/>;
-  };
+  async function toggle() {
+    if (loading) return;
+    const desired = !halted;
+    if (desired && !confirm("m2m USDC 課金経路 (Permit / PermitCharge) を停止します。\nStripe 前払いと Gateway 呼び出しには影響しません。よろしいですか？")) return;
+    setLoading(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+      const r = await fetch("/api/admin/killswitch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ halt: desired }),
+      });
+      if (!r.ok) {
+        const e = (await r.json().catch(() => ({}))) as { error?: string };
+        showToast(e.error ?? `操作失敗 (${r.status})`, "error");
+        return;
+      }
+      const d = (await r.json()) as { isHalted?: boolean };
+      setHalted(d.isHalted ?? desired);
+      showToast(d.isHalted ? "m2m 課金を停止しました" : "m2m 課金を再開しました");
+    } catch {
+      showToast("ネットワークエラー", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="検索: 名前 / Email / ID"
-          className="flex-1 min-w-[200px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"/>
-        <select value={planFilter} onChange={(e)=>setPlanFilter(e.target.value as typeof planFilter)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
-          <option value="all">全プラン</option>
-          <option value="FREE">Free</option>
-          <option value="PRO">Pro</option>
-          <option value="BUSINESS">Business</option>
-        </select>
-        <span className="text-xs text-gray-500">{filtered.length} 件</span>
-      </div>
-
-      {loading ? (
-        <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead><tr><Th>Provider</Th><Th>プラン</Th><Th>受取 Wallet</Th><Th right>単価</Th><Th right>無料枠</Th><Th>T番号</Th><Th>状態</Th><Th>登録日</Th></tr></thead>
-            <tbody>
-              {filtered.map(r => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <Td>
-                    <p className="font-medium text-gray-900 text-sm">{r.name}</p>
-                    <p className="text-[10px] text-gray-400">{r.email}</p>
-                    <p className="text-[10px] text-gray-300 font-mono">{r.id.slice(0,12)}…</p>
-                  </Td>
-                  <Td>{planBadge(r.plan)}</Td>
-                  <Td mono cls="text-xs text-gray-500">{r.baseWalletAddress.slice(0,6)}…{r.baseWalletAddress.slice(-4)}</Td>
-                  <Td right mono>${r.pricePerCallUsdc}</Td>
-                  <Td right mono>{r.freeCallsPerMonth.toLocaleString()}</Td>
-                  <Td mono cls="text-[10px] text-gray-500">{r.registrationNumber ?? "—"}</Td>
-                  <Td>{r.active ? <Pill label="active" variant="green"/> : <Pill label="suspended" variant="red"/>}</Td>
-                  <Td cls="text-[10px] text-gray-500">{r.createdAt.slice(0,10)}</Td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-400">該当なし</td></tr>
-              )}
-            </tbody>
-          </table>
+    <>
+      <div className={`flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${halted ? "bg-red-50 border-red-300" : "bg-white border-gray-200"}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className={`flex-shrink-0 w-2 h-2 rounded-full ${halted ? "bg-red-500 animate-pulse" : "bg-emerald-400"}`}/>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-gray-900">
+              {halted ? "🚨 緊急停止中 — m2m USDC 課金 (Permit) を全件拒否中" : "m2m 課金経路 稼働中"}
+            </p>
+            <p className="text-[10px] text-gray-500 hidden sm:block">
+              {halted
+                ? "「再開」で Permit 課金が再び通る。Stripe 前払い・Gateway は影響なし"
+                : "緊急時は m2m USDC 課金 (Permit) を即時停止。Stripe 前払い・Gateway は止まりません"}
+            </p>
+          </div>
         </div>
-      )}
-    </div>
+        <button
+          onClick={toggle}
+          disabled={loading}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition disabled:opacity-50 ${halted ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-red-600 text-white hover:bg-red-500"}`}
+        >
+          {loading ? "..." : halted ? "再開" : "停止"}
+        </button>
+      </div>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
+    </>
   );
 }
 
-// ── v2 Subscriptions（KPI ベース、プラン分布） ────────────────
-function V2SubscriptionsPage() {
-  const { stats, loading } = useV2Stats();
+// ── Overview ────────────────────────────────────────────────────────────────
+function LcOverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
+  const { stats, loading, error } = useLcStats();
 
   if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
-  if (!stats)  return <p className="text-sm text-red-500 text-center py-12">API 接続失敗</p>;
+  if (!stats)  return <p className="text-sm text-red-500 text-center py-12">集計 API に接続できません（/api/admin/lc/stats{error ? ` — ${error}` : ""}）</p>;
 
-  const totalActive = stats.activeSubscriptions.PRO + stats.activeSubscriptions.BUSINESS + stats.activeSubscriptions.ENTERPRISE;
+  const s = stats;
+  const noStripe = Math.max(0, s.providers.total - s.providers.withStripe);
+  const noSale   = Math.max(0, s.providers.total - s.providers.withSale);
 
   return (
     <div className="space-y-6">
+      {/* killswitch — m2m 課金経路のみ停止 */}
+      <KillSwitchBanner />
+
+      {/* hero KPI: 前払い売上の流れ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="MRR" value={fmtJpy(stats.mrrJpy)} color="green" delta={`ARR ${fmtJpy(stats.annualizedArrJpy)}`}/>
-        <KpiCard label="有料サブスク" value={totalActive} unit="件" color="amber"/>
-        <KpiCard label="Free Provider" value={stats.activeSubscriptions.FREE} unit="件" color="default" delta={`総 ${stats.providers.total}`}/>
-        <KpiCard label="停止中" value={stats.providers.suspended} unit="件" color={stats.providers.suspended > 0 ? "red" : "default"}/>
+        <KpiCard label="前払い売上 (総額)" value={fmtUsd(s.sales.gross)} color="green" delta={`${s.sales.orders.toLocaleString()} 注文 / ${s.sales.buyers.toLocaleString()} 購入者`}/>
+        <KpiCard label={`手数料収益 (${Math.round(s.feeRate*100)}%)`} value={fmtUsd(s.sales.fee)} color="amber" delta="Checkout で 1 回徴収"/>
+        <KpiCard label="出品者受取 (net)" value={fmtUsd(s.sales.net)} color="blue" delta={`売上の ${Math.round((1-s.feeRate)*100)}% を還元`}/>
+        <KpiCard label="Gateway 呼び出し" value={s.gateway.calls.toLocaleString()} unit="回" color="violet" delta={`課金額 ${fmtUsd(s.gateway.grossMetered)}`}/>
       </div>
 
-      <div>
-        <h3 className="text-sm font-bold text-gray-900 mb-3">プラン分布</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {([
-            { plan: "FREE",       label: "Free",       jpy: 0,     count: stats.activeSubscriptions.FREE,       color: "border-gray-200" },
-            { plan: "PRO",        label: "Pro",        jpy: 4980,  count: stats.activeSubscriptions.PRO,        color: "border-amber-300 bg-amber-50/30" },
-            { plan: "BUSINESS",   label: "Business",   jpy: 14800, count: stats.activeSubscriptions.BUSINESS,   color: "border-violet-300 bg-violet-50/30" },
-            { plan: "ENTERPRISE", label: "Enterprise", jpy: 0,     count: stats.activeSubscriptions.ENTERPRISE, color: "border-emerald-300 bg-emerald-50/30" },
-          ] as const).map(p => (
-            <div key={p.plan} className={`rounded-2xl border-2 ${p.color} p-5`}>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{p.label}</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 font-mono">{p.count}</p>
-              <p className="text-xs text-gray-400 mt-1">{p.jpy > 0 ? `¥${p.jpy.toLocaleString()} / 月` : "—"}</p>
-              <p className="mt-3 text-xs text-gray-600">
-                月貢献: <strong className="font-mono">{fmtJpy(p.jpy * p.count)}</strong>
-              </p>
-            </div>
-          ))}
+      {/* 2nd row: Provider / クレジット / ブロック */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard label="Provider 数" value={s.providers.total} unit="者" delta={`Stripe接続 ${s.providers.withStripe} / 売上あり ${s.providers.withSale}`}/>
+        <KpiCard label="出品 API (有料)" value={s.endpoints.sellable} unit="本" delta={`総 ${s.endpoints.total} / 稼働 ${s.endpoints.live}`}/>
+        <KpiCard label="未消化クレジット" value={fmtUsd(s.sales.outstanding)} color="default" delta={`消化済 ${fmtUsd(s.sales.spent)}`}/>
+        <KpiCard label="ブロック (7日)" value={s.blocked7d} unit="件" color={s.blocked7d > 0 ? "red" : "default"} delta="上限超過 / 期限切れ等"/>
+      </div>
+
+      {/* 期間サマリー — 今日 / 今月 / 累計 */}
+      {s.timeseries && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-1">期間サマリー</h3>
+          <p className="text-[10px] text-gray-400 mb-4">JST 基準。前払い売上 / 手数料 / Gateway 呼び出し</p>
+          <div className="grid grid-cols-3 gap-4">
+            {([
+              { label: "今日", w: s.timeseries.today },
+              { label: "今月", w: s.timeseries.month },
+              { label: "累計", w: s.timeseries.all },
+            ] as const).map(({ label, w }) => (
+              <div key={label} className="rounded-xl border border-gray-100 bg-gray-50/50 p-4">
+                <p className="text-xs font-semibold text-gray-500 mb-2">{label}</p>
+                <p className="text-xl font-bold text-gray-900 font-mono tabular-nums">{fmtUsd(w.gross)}</p>
+                <p className="text-[10px] text-gray-400">{w.orders.toLocaleString()} 注文</p>
+                <div className="mt-2 pt-2 border-t border-gray-100 space-y-0.5">
+                  <p className="text-[11px] text-gray-500 flex justify-between"><span>手数料</span><span className="font-mono text-amber-700">{fmtUsd(w.fee)}</span></p>
+                  <p className="text-[11px] text-gray-500 flex justify-between"><span>呼び出し</span><span className="font-mono text-gray-700">{w.calls.toLocaleString()}</span></p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 運営タスク */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-900">運営タスク</h3>
+          <button onClick={() => setNav("activity")} className="text-xs text-blue-600 hover:underline">アクティビティ →</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <TaskItem icon={<Ico.Finance cls="w-4 h-4"/>} label="Stripe 未接続の Provider"  count={noStripe}      urgent={noStripe > 0}      onClick={() => setNav("providers")}/>
+          <TaskItem icon={<Ico.User cls="w-4 h-4"/>}    label="まだ売上ゼロの Provider"    count={noSale}                                  onClick={() => setNav("providers")}/>
+          <TaskItem icon={<Ico.Alert cls="w-4 h-4"/>}   label="ブロックされた呼び出し(7日)" count={s.blocked7d}  urgent={s.blocked7d > 0}   onClick={() => setNav("activity")}/>
         </div>
       </div>
     </div>
   );
 }
 
-// ── v2 Activity（PermitCharge live feed） ─────────────────────
-interface V2Charge {
-  id: string; ownerAddress: string; serviceId: string; providerName: string | null;
-  amountUsdc: string; txHash: string | null;
-  status: string; failureReason: string | null;
-  createdAt: string; completedAt: string | null;
+// ── Providers ─────────────────────────────────────────────────────────────────
+interface LcProvider {
+  ownerId: string; email: string | null; createdAt: string;
+  stripeConnected: boolean; chargesEnabled: boolean;
+  endpoints: number; sellable: number;
+  orders: number; gross: number; fee: number; net: number; spent: number; outstanding: number;
+  calls: number; lastSale: string | null;
 }
 
-function V2ActivityPage() {
-  const [rows, setRows] = useState<V2Charge[]>([]);
+function LcProvidersPage() {
+  const [rows, setRows] = useState<LcProvider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<"all"|"COMPLETED"|"FAILED"|"PENDING">("all");
+  const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
-  const load = () => {
-    setLoading(true);
-    const url = `${API_URL}/api/admin/v2/charges?limit=200${statusFilter !== "all" ? `&status=${statusFilter}` : ""}`;
-    fetch(url).then(r => r.ok ? r.json() : []).then(setRows).catch(() => setRows([])).finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetch(`/api/admin/lc/providers`, { headers: authHeaders() })
+      .then(async (r) => { if (!r.ok) { setError(`providers ${r.status}`); return null; } return r.json(); })
+      .then((d) => { if (d?.providers) setRows(d.providers); })
+      .catch(() => setError("network"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = rows.filter((r) =>
+    !q || `${r.email ?? ""} ${r.ownerId}`.toLowerCase().includes(q.toLowerCase())
+  );
+
+  if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
+  if (error)   return <p className="text-sm text-red-500 text-center py-12">取得失敗（/api/admin/lc/providers — {error}）</p>;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 items-center">
-        <select value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value as typeof statusFilter)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
-          <option value="all">全状態</option>
-          <option value="COMPLETED">完了</option>
-          <option value="PENDING">処理中</option>
-          <option value="FAILED">失敗</option>
-        </select>
-        <button onClick={load} className="text-xs font-bold text-amber-700 hover:underline">再読み込み</button>
-        <span className="text-xs text-gray-500 ml-auto">{rows.length} 件</span>
+        <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="検索: Email / Owner ID"
+          className="flex-1 min-w-[200px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"/>
+        <span className="text-xs text-gray-500">{filtered.length} 者</span>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+        <table className="w-full">
+          <thead><tr><Th>Provider</Th><Th>Stripe</Th><Th right>出品/稼働</Th><Th right>注文</Th><Th right>前払い</Th><Th right>手数料</Th><Th right>受取</Th><Th right>未消化</Th><Th right>呼び出し</Th><Th>最終売上</Th></tr></thead>
+          <tbody>
+            {filtered.map((r) => (
+              <tr key={r.ownerId} className="hover:bg-gray-50">
+                <Td>
+                  <p className="font-medium text-gray-900 text-sm">{r.email ?? "（メール未設定）"}</p>
+                  <p className="text-[10px] text-gray-300 font-mono">{r.ownerId}</p>
+                </Td>
+                <Td>
+                  {r.chargesEnabled ? <Pill label="課金可" variant="green"/>
+                    : r.stripeConnected ? <Pill label="審査中" variant="amber"/>
+                    : <Pill label="未接続" variant="gray"/>}
+                </Td>
+                <Td right mono>{r.sellable}/{r.endpoints}</Td>
+                <Td right mono>{r.orders.toLocaleString()}</Td>
+                <Td right mono cls="text-gray-900">{fmtUsd(r.gross)}</Td>
+                <Td right mono cls="text-amber-700">{fmtUsd(r.fee)}</Td>
+                <Td right mono cls="text-blue-700">{fmtUsd(r.net)}</Td>
+                <Td right mono cls="text-gray-500">{fmtUsd(r.outstanding)}</Td>
+                <Td right mono>{r.calls.toLocaleString()}</Td>
+                <Td cls="text-[10px] text-gray-500">{shortDate(r.lastSale)}</Td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={10} className="px-4 py-8 text-center text-xs text-gray-400">該当なし</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Activity ──────────────────────────────────────────────────────────────────
+interface LcPurchase { id:string; endpoint:string|null; shortId:string|null; amount:number; fee:number; buyer:string|null; status:string; at:string; }
+interface LcCall     { id:string; endpoint:string|null; shortId:string|null; gross:number; fee:number; net:number; upstreamStatus:number|null; upstreamMs:number|null; at:string; }
+interface LcBlock    { id:string; endpoint:string|null; shortId:string|null; reason:string; attempted:number; at:string; }
+
+const BLOCK_REASON_LABEL: Record<string, string> = {
+  rate_limit_exceeded: "レート上限",
+  spend_cap_exceeded:  "予算超過",
+  token_expired:       "期限切れ",
+  token_revoked:       "失効",
+  endpoint_paused:     "停止中",
+  upstream_error:      "上流エラー",
+};
+
+function LcActivityPage() {
+  const [purchases, setPurchases] = useState<LcPurchase[]>([]);
+  const [calls, setCalls] = useState<LcCall[]>([]);
+  const [blocks, setBlocks] = useState<LcBlock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"purchases"|"calls"|"blocks">("purchases");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    fetch(`/api/admin/lc/activity`, { headers: authHeaders() })
+      .then(async (r) => { if (!r.ok) { setError(`activity ${r.status}`); return null; } return r.json(); })
+      .then((d) => {
+        if (!d) return;
+        setPurchases(d.purchases ?? []);
+        setCalls(d.calls ?? []);
+        setBlocks(d.blocks ?? []);
+      })
+      .catch(() => setError("network"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const TABS: { id: typeof tab; label: string; count: number }[] = [
+    { id: "purchases", label: "前払い購入", count: purchases.length },
+    { id: "calls",     label: "Gateway 呼び出し", count: calls.length },
+    { id: "blocks",    label: "ブロック", count: blocks.length },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-center">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${tab===t.id ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"}`}>
+            {t.label} <span className="text-gray-400">({t.count})</span>
+          </button>
+        ))}
+        <button onClick={load} className="text-xs font-bold text-amber-700 hover:underline ml-auto">再読み込み</button>
       </div>
 
       {loading ? (
         <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      ) : error ? (
+        <p className="text-sm text-red-500 text-center py-12">取得失敗（/api/admin/lc/activity — {error}）</p>
+      ) : tab === "purchases" ? (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <table className="w-full">
-            <thead><tr><Th>日時</Th><Th>Provider</Th><Th>Buyer Wallet</Th><Th right>金額 (USDC)</Th><Th>状態</Th><Th>Tx</Th></tr></thead>
+            <thead><tr><Th>日時</Th><Th>API</Th><Th>購入者</Th><Th right>金額</Th><Th right>手数料</Th><Th>状態</Th></tr></thead>
             <tbody>
-              {rows.map(r => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <Td mono cls="text-[10px] text-gray-500">{r.createdAt.slice(0,19).replace("T"," ")}</Td>
+              {purchases.map((p) => (
+                <tr key={p.id} className="hover:bg-gray-50">
+                  <Td mono cls="text-[10px] text-gray-500">{shortTime(p.at)}</Td>
                   <Td>
-                    <p className="text-xs text-gray-900">{r.providerName ?? "—"}</p>
-                    <p className="text-[10px] text-gray-400 font-mono">{r.serviceId.slice(0,12)}…</p>
+                    <p className="text-xs text-gray-900">{p.endpoint ?? "—"}</p>
+                    {p.shortId && <p className="text-[10px] text-gray-400 font-mono">/{p.shortId}</p>}
                   </Td>
-                  <Td mono cls="text-[10px] text-gray-500">{r.ownerAddress.slice(0,6)}…{r.ownerAddress.slice(-4)}</Td>
-                  <Td right mono cls="text-gray-900">{r.amountUsdc}</Td>
+                  <Td cls="text-[11px] text-gray-500">{p.buyer ?? "—"}</Td>
+                  <Td right mono cls="text-gray-900">{fmtUsd(p.amount)}</Td>
+                  <Td right mono cls="text-amber-700">{fmtUsd(p.fee)}</Td>
                   <Td>
-                    {r.status === "COMPLETED" ? <Pill label="完了" variant="green"/> :
-                     r.status === "FAILED"    ? <Pill label="失敗" variant="red"/> :
-                                                <Pill label="処理中" variant="amber"/>}
-                  </Td>
-                  <Td>
-                    {r.txHash ? (
-                      <a href={`https://basescan.org/tx/${r.txHash}`} target="_blank" rel="noopener" className="text-[10px] font-mono text-blue-600 hover:underline">{r.txHash.slice(0,10)}…</a>
-                    ) : <span className="text-[10px] text-gray-300">—</span>}
+                    {p.status === "active"    ? <Pill label="有効" variant="green"/> :
+                     p.status === "exhausted" ? <Pill label="使い切り" variant="gray"/> :
+                     p.status === "expired"   ? <Pill label="期限切れ" variant="amber"/> :
+                     p.status === "revoked"   ? <Pill label="失効" variant="red"/> :
+                                                <Pill label={p.status} variant="gray"/>}
                   </Td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-400">該当なし</td></tr>
+              {purchases.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-400">前払い購入はまだありません</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : tab === "calls" ? (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+          <table className="w-full">
+            <thead><tr><Th>日時</Th><Th>API</Th><Th right>課金</Th><Th right>手数料</Th><Th right>net</Th><Th>上流</Th><Th right>ms</Th></tr></thead>
+            <tbody>
+              {calls.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50">
+                  <Td mono cls="text-[10px] text-gray-500">{shortTime(c.at)}</Td>
+                  <Td>
+                    <p className="text-xs text-gray-900">{c.endpoint ?? "—"}</p>
+                    {c.shortId && <p className="text-[10px] text-gray-400 font-mono">/{c.shortId}</p>}
+                  </Td>
+                  <Td right mono cls="text-gray-900">{fmtUsd(c.gross)}</Td>
+                  <Td right mono cls="text-amber-700">{fmtUsd(c.fee)}</Td>
+                  <Td right mono cls="text-blue-700">{fmtUsd(c.net)}</Td>
+                  <Td>
+                    {c.upstreamStatus == null ? <span className="text-[10px] text-gray-300">—</span> :
+                     c.upstreamStatus < 400 ? <Pill label={String(c.upstreamStatus)} variant="green"/> :
+                                              <Pill label={String(c.upstreamStatus)} variant="red"/>}
+                  </Td>
+                  <Td right mono cls="text-gray-500">{c.upstreamMs ?? "—"}</Td>
+                </tr>
+              ))}
+              {calls.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-400">Gateway 呼び出しはまだありません</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+          <table className="w-full">
+            <thead><tr><Th>日時</Th><Th>API</Th><Th>理由</Th><Th right>試行額</Th></tr></thead>
+            <tbody>
+              {blocks.map((b) => (
+                <tr key={b.id} className="hover:bg-gray-50">
+                  <Td mono cls="text-[10px] text-gray-500">{shortTime(b.at)}</Td>
+                  <Td>
+                    <p className="text-xs text-gray-900">{b.endpoint ?? "—"}</p>
+                    {b.shortId && <p className="text-[10px] text-gray-400 font-mono">/{b.shortId}</p>}
+                  </Td>
+                  <Td><Pill label={BLOCK_REASON_LABEL[b.reason] ?? b.reason} variant="red"/></Td>
+                  <Td right mono cls="text-gray-500">{fmtUsd(b.attempted)}</Td>
+                </tr>
+              ))}
+              {blocks.length === 0 && (
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-400">ブロックはありません</td></tr>
               )}
             </tbody>
           </table>
@@ -365,14 +497,16 @@ function V2ActivityPage() {
   );
 }
 
-// ── v2 Invoices ──────────────────────────────────────────────
+// ── Invoices (legacy v2 API) ────────────────────────────────────────────────
+// 適格請求書 (JP T+13)。発行ロジックは旧 Express /api/admin/v2/invoices のまま。
+// ピボット後の前払いモデルとは別系統だが、JP 税制対応のため残置。
 interface V2Invoice {
   id: string; providerName: string | null; buyerAddress: string;
   callCount: number; totalJpy: string; totalUsdc: string;
   status: string; periodFrom: string; periodTo: string; issuedAt: string;
 }
 
-function V2InvoicesPage() {
+function InvoicesPage() {
   const [rows, setRows] = useState<V2Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -385,18 +519,19 @@ function V2InvoicesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <p className="text-[11px] text-gray-400">適格請求書は旧 m2m (USDC) 課金の集計から発行されます。Stripe 前払いの領収書は Stripe 側で発行されます。</p>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <table className="w-full">
           <thead><tr><Th>発行日</Th><Th>Provider</Th><Th>Buyer</Th><Th>期間</Th><Th right>件数</Th><Th right>JPY</Th><Th>状態</Th><Th>PDF</Th></tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <Td mono cls="text-[10px] text-gray-500">{r.issuedAt.slice(0,10)}</Td>
+                <Td mono cls="text-[10px] text-gray-500">{shortDate(r.issuedAt)}</Td>
                 <Td cls="text-xs text-gray-900">{r.providerName ?? "—"}</Td>
                 <Td mono cls="text-[10px] text-gray-500">{r.buyerAddress.slice(0,6)}…{r.buyerAddress.slice(-4)}</Td>
-                <Td mono cls="text-[10px] text-gray-500">{r.periodFrom.slice(0,10)}〜{r.periodTo.slice(0,10)}</Td>
+                <Td mono cls="text-[10px] text-gray-500">{shortDate(r.periodFrom)}〜{shortDate(r.periodTo)}</Td>
                 <Td right mono>{r.callCount.toLocaleString()}</Td>
-                <Td right mono>¥{Math.round(parseFloat(r.totalJpy)).toLocaleString()}</Td>
+                <Td right mono>{fmtJpy(parseFloat(r.totalJpy))}</Td>
                 <Td>
                   {r.status === "DRAFT"  && <Pill label="下書き" variant="gray"/>}
                   {r.status === "ISSUED" && <Pill label="発行済" variant="blue"/>}
@@ -419,454 +554,12 @@ function V2InvoicesPage() {
   );
 }
 
-// ── v2 Offramp ──────────────────────────────────────────────
-interface V2Offramp {
-  id: string; providerName: string | null; exchange: string;
-  usdcAmount: string; withdrawnJpy: string | null;
-  status: string; failureReason: string | null;
-  createdAt: string;
-}
-
-function V2OfframpPage() {
-  const [rows, setRows] = useState<V2Offramp[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/admin/v2/offramp?limit=200`)
-      .then(r => r.ok ? r.json() : []).then(setRows).catch(() => setRows([])).finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead><tr><Th>日時</Th><Th>Provider</Th><Th>取引所</Th><Th right>USDC</Th><Th right>出金 JPY</Th><Th>状態</Th><Th>失敗理由</Th></tr></thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.id} className="hover:bg-gray-50">
-                <Td mono cls="text-[10px] text-gray-500">{r.createdAt.slice(0,19).replace("T"," ")}</Td>
-                <Td cls="text-xs text-gray-900">{r.providerName ?? "—"}</Td>
-                <Td><Pill label={r.exchange} variant="blue"/></Td>
-                <Td right mono>{r.usdcAmount}</Td>
-                <Td right mono>{r.withdrawnJpy ? "¥" + Math.round(parseFloat(r.withdrawnJpy)).toLocaleString() : "—"}</Td>
-                <Td>
-                  {r.status === "WITHDRAWN" && <Pill label="完了" variant="green"/>}
-                  {r.status === "FAILED"    && <Pill label="失敗" variant="red"/>}
-                  {(r.status === "PENDING" || r.status === "USDC_SENT" || r.status === "SOLD") && <Pill label={r.status} variant="amber"/>}
-                </Td>
-                <Td cls="text-[10px] text-red-600 max-w-[200px] truncate">{r.failureReason ?? ""}</Td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-400">オフランプ履歴なし</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ── v2 Overview ──────────────────────────────────────────────
-// ── KillSwitchBanner ──────────────────────────────────────────────────────────
-// 全システム停止スイッチ。/api/admin/killswitch を叩いて spender wallet を
-// halt させる（PermitCharge が新規に走らなくなる）。普段は閉じた状態、
-// 押下時に確認ダイアログ。MonitoringPage（v1）からこちらに移植。
-function KillSwitchBanner() {
-  const [halted, setHalted]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [toast, setToast]       = useState<{msg:string; type:"success"|"error"|"info"}|null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch("/api/admin/killswitch");
-        if (!r.ok) return;
-        const d = (await r.json()) as { isHalted?: boolean };
-        if (typeof d.isHalted === "boolean") setHalted(d.isHalted);
-      } catch { /* noop */ }
-    })();
-  }, []);
-
-  function showToast(msg: string, type: "success"|"error"|"info" = "success") {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  }
-
-  async function toggle() {
-    if (loading) return;
-    const desired = !halted;
-    if (desired && !confirm("システム全体を停止します。\n全 Provider の PermitCharge が即時拒否されます。よろしいですか？")) return;
-    setLoading(true);
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-      const r = await fetch("/api/admin/killswitch", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ halt: desired }),
-      });
-      if (!r.ok) {
-        const e = (await r.json().catch(() => ({}))) as { error?: string };
-        showToast(e.error ?? `操作失敗 (${r.status})`, "error");
-        return;
-      }
-      const d = (await r.json()) as { isHalted?: boolean };
-      setHalted(d.isHalted ?? desired);
-      showToast(d.isHalted ? "システムを停止しました" : "システムを再開しました");
-    } catch {
-      showToast("ネットワークエラー", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <>
-      <div className={`flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${
-        halted
-          ? "bg-red-50 border-red-300"
-          : "bg-white border-gray-200"
-      }`}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className={`flex-shrink-0 w-2 h-2 rounded-full ${halted ? "bg-red-500 animate-pulse" : "bg-emerald-400"}`}/>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-gray-900">
-              {halted ? "🚨 緊急停止中 — Permit 課金は全件拒否されています" : "システム稼働中"}
-            </p>
-            <p className="text-[10px] text-gray-500 hidden sm:block">
-              {halted ? "「再開」を押すと PermitCharge が再び通る状態に戻る" : "緊急時は右の「停止」で全 Provider の課金を即時止められる"}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={toggle}
-          disabled={loading}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition disabled:opacity-50 ${
-            halted
-              ? "bg-emerald-600 text-white hover:bg-emerald-500"
-              : "bg-red-600 text-white hover:bg-red-500"
-          }`}
-        >
-          {loading ? "..." : halted ? "再開" : "停止"}
-        </button>
-      </div>
-      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
-    </>
-  );
-}
-
-// ── BazaarBootstrapCard ──────────────────────────────────────────
-// $1 USDC + 少額 ETH を spender に送ったあと、ボタン 1 つで /api/x402-demo を
-// 叩き Coinbase Bazaar 自動カタログを誘発する。一度成功すると Bazaar 永続
-// 登録なので、success 後は最小表示にする。
-interface BootstrapStatus {
-  spenderAddress: string;
-  usdcBalance:    string;
-  usdcBalanceRaw: string;
-  ethBalance:     string;
-  ethBalanceWei:  string;
-  ready:          boolean;
-  needs:          string[];
-  resourceUrl:    string;
-  lastResult:     null | {
-    ranAt:       string;
-    status:      "success" | "failed";
-    txHash?:     string;
-    facilitator?:string;
-    httpStatus?: number;
-    reason?:     string;
-  };
-}
-
-function BazaarBootstrapCard() {
-  const [status, setStatus] = useState<BootstrapStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [toast, setToast] = useState<{msg:string; type:"success"|"error"|"info"}|null>(null);
-
-  const authHeaders = (): HeadersInit => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch(`${API_URL}/api/admin/bootstrap/status`, { headers: authHeaders() });
-      if (!r.ok) { setStatus(null); return; }
-      setStatus(await r.json());
-    } catch { setStatus(null); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const trigger = async () => {
-    if (running) return;
-    if (!confirm("Coinbase Bazaar bootstrap を実行します。\nspender が自分自身に 0.001 USDC を送って CDP settle を 1 回完了させ、CDP に /api/x402-demo URL を Bazaar カタログさせます。\n\n実行しますか？")) return;
-    setRunning(true);
-    try {
-      const r = await fetch(`${API_URL}/api/admin/bootstrap/bazaar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-      });
-      const data = await r.json() as { ok?: boolean; txHash?: string; reason?: string; httpStatus?: number };
-      if (data.ok) {
-        setToast({ msg: `Bazaar bootstrap 成功${data.txHash ? ` (${data.txHash.slice(0,10)}…)` : ""}`, type: "success" });
-      } else {
-        setToast({ msg: `失敗: ${data.reason ?? `HTTP ${data.httpStatus ?? "?"}`}`, type: "error" });
-      }
-      await load();
-    } catch (e) {
-      setToast({ msg: `ネットワークエラー: ${e instanceof Error ? e.message : "unknown"}`, type: "error" });
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  if (loading) {
-    return <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-400">Bazaar bootstrap 状態を取得中…</div>;
-  }
-  if (!status) {
-    return <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-400">Bazaar bootstrap API 未到達（/api/admin/bootstrap/status）</div>;
-  }
-
-  const succeeded = status.lastResult?.status === "success";
-
-  // 成功後は最小表示（折りたたみ可能）
-  if (succeeded && collapsed) {
-    return (
-      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-emerald-600">✅</span>
-          <span className="font-bold text-emerald-800">Coinbase Bazaar bootstrap 完了</span>
-          <span className="text-emerald-700/70 font-mono hidden sm:inline">
-            {status.lastResult?.txHash?.slice(0,10)}…
-          </span>
-        </div>
-        <button onClick={() => setCollapsed(false)} className="text-[11px] font-semibold text-emerald-700 hover:underline">詳細</button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className={`rounded-2xl border p-4 ${succeeded ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base">{succeeded ? "✅" : "🚀"}</span>
-              <h3 className="text-sm font-bold text-gray-900">Coinbase Bazaar bootstrap</h3>
-              {succeeded && <Pill label="完了" variant="green"/>}
-            </div>
-            <p className="text-[11px] text-gray-600 mt-1">
-              spender → spender に 0.001 USDC を送って CDP settle 1 回を成立させ、<code className="font-mono text-[10px] bg-white/60 px-1 rounded">/api/x402-demo</code> を Bazaar カタログに乗せます。<br/>
-              <span className="text-gray-500">自払いなので USDC ネット移動はゼロ、コスト ≈ ガス代のみ（数十円）。</span>
-            </p>
-          </div>
-          {succeeded && (
-            <button onClick={() => setCollapsed(true)} className="text-[11px] font-semibold text-emerald-700 hover:underline flex-shrink-0">畳む</button>
-          )}
-        </div>
-
-        {/* spender wallet info */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
-          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">送金先 (spender)</p>
-            <p className="text-[11px] font-mono text-gray-900 mt-0.5 break-all">{status.spenderAddress}</p>
-            <button
-              onClick={() => { navigator.clipboard.writeText(status.spenderAddress); setToast({msg:"アドレスをコピー", type:"info"}); }}
-              className="text-[10px] font-bold text-amber-700 hover:underline mt-0.5"
-            >コピー</button>
-          </div>
-          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">USDC 残高 (Base)</p>
-            <p className="text-sm font-mono text-gray-900 mt-0.5">${status.usdcBalance}</p>
-            <p className="text-[10px] text-gray-500">必要: ≥ $0.01</p>
-          </div>
-          <div className="bg-white rounded-lg border border-white/80 px-3 py-2">
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">ETH 残高 (gas)</p>
-            <p className="text-sm font-mono text-gray-900 mt-0.5">{status.ethBalance}</p>
-            <p className="text-[10px] text-gray-500">必要: ≥ 0.0002</p>
-          </div>
-        </div>
-
-        {/* needs list */}
-        {!status.ready && status.needs.length > 0 && (
-          <div className="bg-white border border-amber-200 rounded-lg px-3 py-2 mb-3">
-            <p className="text-[11px] font-bold text-amber-800 mb-1">未充足条件:</p>
-            <ul className="space-y-0.5">
-              {status.needs.map((n, i) => (
-                <li key={i} className="text-[11px] text-amber-900 flex items-start gap-1.5">
-                  <span className="text-amber-500 flex-shrink-0">•</span>
-                  <span>{n}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* trigger button */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={trigger}
-            disabled={!status.ready || running}
-            className="px-4 py-2 rounded-lg text-xs font-bold transition bg-amber-500 text-white hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {running ? "実行中…" : succeeded ? "🔁 もう一度実行" : "🚀 Bazaar に登録 (1-click)"}
-          </button>
-          <button onClick={load} className="text-[11px] font-bold text-gray-600 hover:underline">残高を再取得</button>
-          <span className="text-[10px] text-gray-500 font-mono truncate flex-1">
-            resource: {status.resourceUrl}
-          </span>
-        </div>
-
-        {/* last result */}
-        {status.lastResult && (
-          <div className="mt-3 pt-3 border-t border-amber-200/50">
-            <p className="text-[11px] font-bold text-gray-700 mb-1">前回結果（{status.lastResult.ranAt.slice(0,19).replace("T"," ")} UTC）:</p>
-            <div className="bg-white rounded-lg border border-gray-200 px-3 py-2 text-[11px] space-y-1">
-              <p>状態: {status.lastResult.status === "success"
-                ? <span className="text-emerald-700 font-bold">成功</span>
-                : <span className="text-red-700 font-bold">失敗</span>}
-                <span className="text-gray-400 ml-2">HTTP {status.lastResult.httpStatus ?? "?"}</span>
-              </p>
-              {status.lastResult.txHash && (
-                <p>
-                  tx: <a href={`https://basescan.org/tx/${status.lastResult.txHash}`} target="_blank" rel="noopener" className="text-blue-600 font-mono hover:underline">{status.lastResult.txHash}</a>
-                </p>
-              )}
-              {status.lastResult.facilitator && (
-                <p>facilitator: <span className="font-mono text-gray-600">{status.lastResult.facilitator}</span></p>
-              )}
-              {status.lastResult.reason && (
-                <p className="text-red-700">reason: <span className="font-mono">{status.lastResult.reason}</span></p>
-              )}
-              {status.lastResult.status === "success" && (
-                <p className="text-emerald-700 mt-1">
-                  ✓ CDP 検索 URL: <a href="https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?q=lemoncake" target="_blank" rel="noopener" className="font-mono text-blue-600 hover:underline">discovery/search?q=lemoncake</a>
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
-    </>
-  );
-}
-
-function V2OverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
-  const { stats, loading } = useV2Stats();
-
-  if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
-  if (!stats)  return <p className="text-sm text-red-500 text-center py-12">API 接続失敗（/api/admin/v2/stats）</p>;
-
-  const totalPaid = stats.activeSubscriptions.PRO + stats.activeSubscriptions.BUSINESS + stats.activeSubscriptions.ENTERPRISE;
-  const conversionRate = stats.providers.total > 0 ? (totalPaid / stats.providers.total) * 100 : 0;
-
-  return (
-    <div className="space-y-6">
-      {/* killswitch banner — 緊急時のみ操作。普段は閉じてる */}
-      <KillSwitchBanner />
-
-      {/* Coinbase Bazaar bootstrap (1-click) — 成功すると最小表示に折りたたむ */}
-      <BazaarBootstrapCard />
-
-      {/* hero KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="MRR" value={fmtJpy(stats.mrrJpy)} color="green" delta={`ARR ${fmtJpy(stats.annualizedArrJpy)}`}/>
-        <KpiCard label="今月の流通量" value={fmtUsdc(stats.charges.monthVolumeUsdc)} color="blue" delta={`${stats.charges.monthCount.toLocaleString()} call`}/>
-        <KpiCard label="Provider 数" value={stats.providers.total} unit="件" color="amber" delta={`有料化 ${conversionRate.toFixed(1)}%`}/>
-        <KpiCard label="今日の課金" value={stats.charges.todayCount} unit="件" color="violet" delta={fmtUsdc(stats.charges.todayVolumeUsdc)}/>
-      </div>
-
-      {/* plan distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-900">プラン分布</h3>
-            <button onClick={() => setNav("subscriptions")} className="text-xs text-blue-600 hover:underline">詳細 →</button>
-          </div>
-          <div className="space-y-3">
-            {([
-              { plan: "Pro",        count: stats.activeSubscriptions.PRO,        color: "bg-amber-400",   total: stats.providers.total },
-              { plan: "Business",   count: stats.activeSubscriptions.BUSINESS,   color: "bg-violet-400",  total: stats.providers.total },
-              { plan: "Enterprise", count: stats.activeSubscriptions.ENTERPRISE, color: "bg-emerald-400", total: stats.providers.total },
-              { plan: "Free",       count: stats.activeSubscriptions.FREE,       color: "bg-gray-300",    total: stats.providers.total },
-            ] as const).map(p => {
-              const pct = p.total > 0 ? (p.count / p.total) * 100 : 0;
-              return (
-                <div key={p.plan}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-700 font-medium">{p.plan}</span>
-                    <span className="text-xs font-mono text-gray-900">{p.count} <span className="text-gray-400">({pct.toFixed(1)}%)</span></span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${p.color}`} style={{ width: `${pct}%` }}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-900">運営タスク</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <TaskItem icon={<Ico.Finance cls="w-4 h-4"/>} label="未発行インボイス（DRAFT）" count={stats.invoices.draft}                              onClick={() => setNav("invoices")}/>
-            <TaskItem icon={<Ico.Finance cls="w-4 h-4"/>} label="未送信インボイス（ISSUED）" count={stats.invoices.issued}                            onClick={() => setNav("invoices")}/>
-            <TaskItem icon={<Ico.Bolt cls="w-4 h-4"/>}    label="進行中オフランプ"           count={stats.offramp.pending}                            onClick={() => setNav("offramp")}/>
-            <TaskItem icon={<Ico.Alert cls="w-4 h-4"/>}   label="失敗オフランプ"             count={stats.offramp.failed}    urgent={stats.offramp.failed > 0} onClick={() => setNav("offramp")}/>
-          </div>
-        </div>
-      </div>
-
-      {/* charges summary */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-gray-900">課金サマリー</h3>
-          <button onClick={() => setNav("activity")} className="text-xs text-blue-600 hover:underline">アクティビティ →</button>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-gray-400">本日</p>
-            <p className="mt-1 text-xl font-bold text-gray-900 font-mono">{fmtUsdc(stats.charges.todayVolumeUsdc)}</p>
-            <p className="text-[10px] text-gray-500">{stats.charges.todayCount.toLocaleString()} 件</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">今月</p>
-            <p className="mt-1 text-xl font-bold text-gray-900 font-mono">{fmtUsdc(stats.charges.monthVolumeUsdc)}</p>
-            <p className="text-[10px] text-gray-500">{stats.charges.monthCount.toLocaleString()} 件</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">累計</p>
-            <p className="mt-1 text-xl font-bold text-gray-900 font-mono">{fmtUsdc(stats.charges.allTimeVolumeUsdc)}</p>
-            <p className="text-[10px] text-gray-500">{stats.charges.allTimeCount.toLocaleString()} 件</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
 // ── Admin Sidebar ─────────────────────────────────────────────────────────────
 const NAV: {id:NavSection; label:string; sub:string; Icon: ({cls}:{cls?:string})=>React.JSX.Element}[] = [
-  { id:"overview",      label:"概要",            sub:"MRR / 流通量 / 主要 KPI", Icon: Ico.Overview },
-  { id:"providers",     label:"Provider",        sub:"v2 提供者一覧 + プラン",  Icon: Ico.User     },
-  { id:"subscriptions", label:"サブスク",        sub:"Stripe 連動・プラン分布", Icon: Ico.Finance  },
-  { id:"activity",      label:"アクティビティ",  sub:"PermitCharge ライブ",     Icon: Ico.Bolt     },
-  { id:"invoices",      label:"インボイス",      sub:"適格請求書 (T+13)",       Icon: Ico.Finance  },
-  { id:"offramp",       label:"オフランプ",      sub:"USDC → JPY 出金履歴",      Icon: Ico.Bolt     },
+  { id:"overview",  label:"概要",            sub:"前払い売上 / 手数料 / KPI",  Icon: Ico.Overview },
+  { id:"providers", label:"Provider",        sub:"出品者 + Stripe + 売上",      Icon: Ico.User     },
+  { id:"activity",  label:"アクティビティ",  sub:"購入 / 呼び出し / ブロック",  Icon: Ico.Bolt     },
+  { id:"invoices",  label:"インボイス",      sub:"適格請求書 (legacy m2m)",     Icon: Ico.Finance  },
 ];
 
 function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>void}) {
@@ -935,12 +628,10 @@ function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>voi
 
 // ── Page titles & descriptions ────────────────────────────────────────────────
 const PAGE_META: Record<NavSection, {title:string; desc:string}> = {
-  overview:      { title:"概要",                 desc:"MRR・流通量・要対応タスク" },
-  providers:     { title:"Provider",             desc:"v2 提供者一覧（permit 受取 + プラン）" },
-  subscriptions: { title:"サブスクリプション",    desc:"Stripe 連動のプラン分布 / MRR 集計" },
-  activity:      { title:"アクティビティ",       desc:"PermitCharge ライブフィード（全 provider 横断）" },
-  invoices:      { title:"インボイス",           desc:"適格請求書（T+13）発行・送信状況" },
-  offramp:       { title:"オフランプ",           desc:"USDC → JPY 出金（Coincheck）の履歴と失敗監視" },
+  overview:  { title:"概要",             desc:"前払い売上・3% 手数料・Gateway 呼び出し" },
+  providers: { title:"Provider",         desc:"出品者一覧（Stripe 接続 + 前払い売上 + 受取）" },
+  activity:  { title:"アクティビティ",   desc:"前払い購入 / Gateway 呼び出し / ブロック" },
+  invoices:  { title:"インボイス",       desc:"適格請求書（legacy m2m 課金の集計）" },
 };
 
 // ── Root ──────────────────────────────────────────────────────────────────────
@@ -948,7 +639,7 @@ export default function AdminRoot() {
   const [nav, setNav] = useState<NavSection>("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [clock, setClock] = useState("--:--:--");
-  const [authReady, setAuthReady] = useState(false);
+  const [, setAuthReady] = useState(false);
 
   // 認証チェック: localStorage からトークン取得、なければログインへ
   useEffect(() => {
@@ -1041,12 +732,10 @@ export default function AdminRoot() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-7 py-4 sm:py-6">
-          {nav === "overview"      && <V2OverviewPage setNav={setNav}/>}
-          {nav === "providers"     && <V2ProvidersPage/>}
-          {nav === "subscriptions" && <V2SubscriptionsPage/>}
-          {nav === "activity"      && <V2ActivityPage/>}
-          {nav === "invoices"      && <V2InvoicesPage/>}
-          {nav === "offramp"       && <V2OfframpPage/>}
+          {nav === "overview"  && <LcOverviewPage setNav={setNav}/>}
+          {nav === "providers" && <LcProvidersPage/>}
+          {nav === "activity"  && <LcActivityPage/>}
+          {nav === "invoices"  && <InvoicesPage/>}
         </div>
       </main>
     </div>
