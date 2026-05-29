@@ -3,7 +3,8 @@
  *
  * Two streams, newest first:
  *   - purchases: Stripe-purchased Pay Tokens (a buyer prepaid a bundle)
- *   - calls:     metered gateway calls (lc_test_runs)
+ *   - calls:     real metered gateway calls — runs on a purchased Pay Token
+ *                (seller self-test runs on comp tokens are excluded)
  *   - blocks:    refused calls (rate-limit / spend-cap / expired / paused …)
  *
  * Admin-only: reads across ALL owners. Buyer emails are masked here so the
@@ -96,7 +97,9 @@ export async function GET(req: NextRequest) {
         r.upstream_ms       as upstream_ms,
         r.at                as at
       from lc_test_runs r
+      join lc_pay_tokens t on t.id = r.pay_token_id
       left join lc_endpoints e on e.id = r.endpoint_id
+      where t.stripe_checkout_session_id is not null
       order by r.at desc
       limit 50
     `,

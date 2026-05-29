@@ -61,7 +61,9 @@ export async function GET(req: NextRequest) {
          where t.owner_id = o.id and t.stripe_checkout_session_id is not null)                 as gross,
       (select coalesce(sum(spent), 0)::float8 from lc_pay_tokens t
          where t.owner_id = o.id and t.stripe_checkout_session_id is not null)                 as spent,
-      (select count(*)::int from lc_test_runs r where r.owner_id = o.id)                       as calls,
+      (select count(*)::int from lc_test_runs r
+         join lc_pay_tokens pt on pt.id = r.pay_token_id
+         where r.owner_id = o.id and pt.stripe_checkout_session_id is not null)                as calls,
       (select max(issued_at) from lc_pay_tokens t
          where t.owner_id = o.id and t.stripe_checkout_session_id is not null)                 as last_sale
     from lc_owners o

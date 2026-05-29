@@ -35,13 +35,25 @@ export async function GET(req: NextRequest) {
 
   const db = sql();
 
-  // Providers (owners) + how many have a sellable endpoint / Stripe connected.
+  // Providers — REAL providers only, not every anonymous cookie owner.
+  // lc_owners gets one row per visitor (ensureOwnerId upserts a cookie owner
+  // on the public lc routes), so count(*) over the raw table is meaningless
+  // (mostly empty ghosts). We count owners who have actually published an
+  // endpoint OR made a real (Stripe-purchased) sale — the same population the
+  // Provider table lists — so this KPI equals the rows you see there.
   const [owners] = await db<{ total: number; with_stripe: number; live_charges: number }[]>`
+    with p as (
+      select o.stripe_account_id, o.stripe_charges_enabled
+      from lc_owners o
+      where exists (select 1 from lc_endpoints e where e.owner_id = o.id)
+         or exists (select 1 from lc_pay_tokens t
+                      where t.owner_id = o.id and t.stripe_checkout_session_id is not null)
+    )
     select
       count(*)::int                                              as total,
       count(*) filter (where stripe_account_id is not null)::int as with_stripe,
       count(*) filter (where stripe_charges_enabled)::int        as live_charges
-    from lc_owners
+    from p
   `;
 
   // Endpoints (APIs) — total, sellable (priced), live.
@@ -79,12 +91,18 @@ export async function GET(req: NextRequest) {
       and status = 'active'
   `;
 
-  // Gateway calls metered (across all owners).
+  // Gateway calls metered — REAL buyer calls only (runs on a Stripe-purchased
+  // Pay Token). lc_test_runs also logs sellers test-calling their own endpoint
+  // with a comp/test token; counting those conflated test traffic with real
+  // usage (e.g. "6 calls / $0.06" while the purchased token only spent $0.01).
+  // Same rule as "sales": real == has a checkout session.
   const [calls] = await db<{ total: number; gross: number }[]>`
     select
       count(*)::int                      as total,
-      coalesce(sum(gross), 0)::float8    as gross
-    from lc_test_runs
+      coalesce(sum(r.gross), 0)::float8  as gross
+    from lc_test_runs r
+    join lc_pay_tokens t on t.id = r.pay_token_id
+    where t.stripe_checkout_session_id is not null
   `;
 
   // Blocked attempts (rate-limit / spend-cap / expired …) — last 7 days.
@@ -129,13 +147,16 @@ export async function GET(req: NextRequest) {
         date_trunc('month', now() at time zone 'Asia/Tokyo') at time zone 'Asia/Tokyo' as month_start
     )
     select
-      count(*)            filter (where at >= b.day_start)::int             as today_calls,
-      coalesce(sum(gross) filter (where at >= b.day_start),   0)::float8   as today_gross,
-      count(*)            filter (where at >= b.month_start)::int           as month_calls,
-      coalesce(sum(gross) filter (where at >= b.month_start), 0)::float8   as month_gross,
-      count(*)::int                                                         as all_calls,
-      coalesce(sum(gross), 0)::float8                                       as all_gross
-    from lc_test_runs r, b
+      count(*)              filter (where r.at >= b.day_start)::int            as today_calls,
+      coalesce(sum(r.gross) filter (where r.at >= b.day_start),   0)::float8  as today_gross,
+      count(*)              filter (where r.at >= b.month_start)::int          as month_calls,
+      coalesce(sum(r.gross) filter (where r.at >= b.month_start), 0)::float8  as month_gross,
+      count(*)::int                                                            as all_calls,
+      coalesce(sum(r.gross), 0)::float8                                        as all_gross
+    from lc_test_runs r
+    join lc_pay_tokens t on t.id = r.pay_token_id
+    cross join b
+    where t.stripe_checkout_session_id is not null
   `;
 
   const window = (g: number, orders: number, calls: number, callGross: number) => ({
