@@ -23,6 +23,8 @@ type Row = {
   created_at: Date;
   stripe_account_id: string | null;
   charges_enabled: boolean;
+  payouts_enabled: boolean;
+  details_submitted: boolean;
   endpoints: number;
   sellable: number;
   orders: number;
@@ -49,6 +51,8 @@ export async function GET(req: NextRequest) {
       o.created_at                  as created_at,
       o.stripe_account_id           as stripe_account_id,
       o.stripe_charges_enabled      as charges_enabled,
+      o.stripe_payouts_enabled      as payouts_enabled,
+      o.stripe_details_submitted    as details_submitted,
       (select count(*)::int from lc_endpoints e where e.owner_id = o.id)                       as endpoints,
       (select count(*)::int from lc_endpoints e where e.owner_id = o.id and e.price_per_call > 0) as sellable,
       (select count(*)::int from lc_pay_tokens t
@@ -73,6 +77,8 @@ export async function GET(req: NextRequest) {
     createdAt: r.created_at,
     stripeConnected: !!r.stripe_account_id,
     chargesEnabled: r.charges_enabled,
+    payoutsEnabled: r.payouts_enabled,
+    detailsSubmitted: r.details_submitted,
     endpoints: r.endpoints,
     sellable: r.sellable,
     orders: r.orders,

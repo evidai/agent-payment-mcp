@@ -280,10 +280,36 @@ function LcOverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
 // ── Providers ─────────────────────────────────────────────────────────────────
 interface LcProvider {
   ownerId: string; email: string | null; createdAt: string;
-  stripeConnected: boolean; chargesEnabled: boolean;
+  stripeConnected: boolean; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean;
   endpoints: number; sellable: number;
   orders: number; gross: number; fee: number; net: number; spent: number; outstanding: number;
   calls: number; lastSale: string | null;
+}
+
+// Stripe Connect の入金健全性を 1 セルに凝縮。primary pill = 一番の詰まり、
+// 下段に 課金(charges)/入金(payouts) の可否ドット。
+function StripeStatus({ p }: { p: LcProvider }) {
+  let pill: React.ReactNode;
+  if (!p.stripeConnected)                       pill = <Pill label="未接続"   variant="gray"/>;
+  else if (p.chargesEnabled && p.payoutsEnabled) pill = <Pill label="入金可"   variant="green"/>;
+  else if (!p.detailsSubmitted)                  pill = <Pill label="登録途中" variant="gray"/>;
+  else                                           pill = <Pill label="審査中"   variant="amber"/>;
+  const dot = (ok: boolean, label: string) => (
+    <span className={`inline-flex items-center gap-0.5 ${ok ? "text-green-600" : "text-gray-300"}`}>
+      <span className="text-[8px] leading-none">●</span>{label}
+    </span>
+  );
+  return (
+    <div className="space-y-1">
+      {pill}
+      {p.stripeConnected && (
+        <div className="flex gap-2 text-[9px] font-medium">
+          {dot(p.chargesEnabled, "課金")}
+          {dot(p.payoutsEnabled, "入金")}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function LcProvidersPage() {
@@ -325,11 +351,7 @@ function LcProvidersPage() {
                   <p className="font-medium text-gray-900 text-sm">{r.email ?? "（メール未設定）"}</p>
                   <p className="text-[10px] text-gray-300 font-mono">{r.ownerId}</p>
                 </Td>
-                <Td>
-                  {r.chargesEnabled ? <Pill label="課金可" variant="green"/>
-                    : r.stripeConnected ? <Pill label="審査中" variant="amber"/>
-                    : <Pill label="未接続" variant="gray"/>}
-                </Td>
+                <Td><StripeStatus p={r}/></Td>
                 <Td right mono>{r.sellable}/{r.endpoints}</Td>
                 <Td right mono>{r.orders.toLocaleString()}</Td>
                 <Td right mono cls="text-gray-900">{fmtUsd(r.gross)}</Td>
