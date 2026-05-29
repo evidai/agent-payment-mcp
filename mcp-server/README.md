@@ -1,16 +1,17 @@
-# agent-payment-mcp 🍋
+# 🍋 LemonCake
 
-**Stripe-style drop-in USDC billing for any HTTP API. Try in 5 seconds, zero signup.**
+**Monetize any HTTP API or MCP server in one line. No monthly fee — 3,000 calls free, then 3% only when your API earns.**
+
+Drop-in USDC billing — no Stripe, no signup, non-custodial (USDC lands straight in your wallet). Settles in ~2s on Base, ~60× cheaper than card rails. x402-compatible. Try it in 5 seconds, zero config.
 
 [![npm](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
-[![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
+[![Glama score](https://glama.ai/mcp/servers/wpdnowy4e0/badge)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
 [![non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
 [![x402](https://img.shields.io/badge/x402-Bazaar_discoverable-blueviolet)](https://www.x402.org/)
 [![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
 [![pricing](https://img.shields.io/badge/pricing-no_monthly_fee-fffd43)](https://lemoncake.xyz/pricing)
-[![MPP-compatible](https://img.shields.io/badge/MPP_%2F_Tempo-interop-blueviolet)](https://lemoncake.xyz/pricing)
 
 > 💰 **No monthly fee. Pay 3% only when your API earns. 3,000 calls free.** [See pricing →](https://lemoncake.xyz/pricing)
 
