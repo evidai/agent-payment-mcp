@@ -48,10 +48,27 @@
 - [ ] **15:00** JPYC社 corporate 問合せフォーム送信完了確認
   - 自動返信メールがあるはず → 受信確認
 
+### 11:00-11:30 ★ 即取りクレジット 2件（合計17分）
+- [ ] **11:00** ⚡ **Anthropic Claude for Startups** 申請（公式 2分）
+  - URL: https://claude.com/programs/startups
+  - $25K-$100K の Claude API クレジット、ローリング審査、12ヶ月有効
+  - LemonCake = MCP サーバー = 完全適合、補助金事業中の API コスト圧縮
+- [ ] **11:15** ⚡ **Vercel for Startups** 申請（15分）
+  - URL: https://vercel.com/startups/credits
+  - $30K credits + Pro plan、既存 lemoncake.xyz / dashboard デプロイで即活用
+
 ### Evening
+- ⚠️ **JPYC Grant 申請は取り下げ**：`grant.jpyc.jp` が DNS NXDOMAIN（ドメイン消滅）、公式 X も 2025-2026 言及なしのため、事実上休眠と推定。
+  - 代替：5/25 10:00 送信の corporate 問合せメール（草案B）に「Grant 継続中か」の質問4を追加済 → 公式回答で現状確定
 - [ ] **17:00** 公庫 浜松支店（**053-455-3211**）事前相談予約
   - 「個人事業主・補助金つなぎ用」「来週中に相談したい」
 - [ ] **18:00** 5/25 の進捗を `tokyo-stablecoin-grant-2026.md` のステータスセクションに記録
+
+### 5/30 (金) 追加申請
+- [ ] **Circle Developer Grants 2026 申請**（rolling）
+  - URL: https://circle.questbook.app/
+  - $5K-$100K USDC、「Agentic economic activity」が公式優先カテゴリ
+  - 申請前にデモ動画 + Arc 統合方針を整理
 
 ---
 
