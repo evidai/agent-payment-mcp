@@ -6,7 +6,7 @@ Drop-in USDC billing — no Stripe, no signup, non-custodial (USDC lands straigh
 
 [![npm](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
-[![Glama score](https://glama.ai/mcp/servers/wpdnowy4e0/badge)](https://glama.ai/mcp/servers/evidai/lemon-cake)
+[![Glama score](https://img.shields.io/badge/Glama_score-AAA-success)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-blue)](https://registry.modelcontextprotocol.io)
 [![non-custodial](https://img.shields.io/badge/non--custodial-USDC_stays_in_your_wallet-success)](https://lemoncake.xyz/start/v2)
 [![x402](https://img.shields.io/badge/x402-Bazaar_discoverable-blueviolet)](https://www.x402.org/)
