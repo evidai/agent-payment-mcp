@@ -215,11 +215,28 @@ async function handle(req: Request, { params }: Ctx) {
     ]);
   }
 
-  // Pipe response back to buyer (with CORS so browser-side agents work)
+  // Buffer the upstream body before relaying it. We must NOT stream
+  // undici's response body straight through: fetch() transparently
+  // decompresses the payload, so the bytes we hold are already plain even
+  // though upstream's `content-encoding: gzip/br` header is still present.
+  // Re-emitting that header over plain bytes makes Vercel's edge and HTTP
+  // clients try to decode them again and end up with an empty/corrupt body.
+  // Buffering + dropping content-encoding/content-length guarantees the
+  // buyer receives exactly the bytes we actually have.
+  const nullBody =
+    upstreamRes.status === 101 ||
+    upstreamRes.status === 204 ||
+    upstreamRes.status === 205 ||
+    upstreamRes.status === 304;
+  const outBody = nullBody ? null : await upstreamRes.arrayBuffer();
+
+  // Relay response back to buyer (with CORS so browser-side agents work)
   const outHeaders = new Headers();
   upstreamRes.headers.forEach((v, k) => {
     const lk = k.toLowerCase();
     if (lk === "content-length" || lk === "transfer-encoding" || lk === "connection") return;
+    // Body is already decoded by fetch() — never re-advertise an encoding.
+    if (lk === "content-encoding") return;
     // Don't echo upstream's own ACAO — we set our own below to keep
     // the gateway's CORS policy consistent regardless of origin behaviour.
     if (lk.startsWith("access-control-")) return;
@@ -229,7 +246,7 @@ async function handle(req: Request, { params }: Ctx) {
   outHeaders.set("x-lemoncake-upstream-ms", String(ms));
   for (const [k, v] of Object.entries(corsHeaders(req))) outHeaders.set(k, v);
 
-  return new Response(upstreamRes.body, {
+  return new Response(outBody, {
     status: upstreamRes.status,
     headers: outHeaders,
   });
