@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import ContactButton from "../ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — AI API Gatekeeper (private beta)",
-  description: "Turn any AI API into a paid API in minutes. The permission + billing layer between AI agents and your endpoints. URL rewrite or one-line SDK. Spend-limited Pay Tokens. Open core, MIT.",
+  title: "LemonCake — Turn any AI API into a paid API (open core, private beta)",
+  description: "Usage-based billing for AI APIs and MCP servers. No monthly fee — pay 3% only when your API earns, free for the first 3,000 calls every month. Sub-cent metering, spend-limited Pay Tokens, embedded wallet, abuse prevention. Open core, MIT SDK. Works where Stripe Connect doesn't.",
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -13,145 +14,116 @@ export const metadata = {
       "en-US": "https://lemoncake.xyz/about/en",
     },
   },
+  openGraph: {
+    title: "LemonCake — Turn any AI API into a paid API",
+    description: "Usage-based billing for AI APIs and MCP servers. Pay 3% only when your API earns. Sub-cent metering, spend-limited Pay Tokens, embedded wallet. Open core, MIT.",
+    url: "https://lemoncake.xyz/about/en",
+    type: "article",
+  },
+};
+
+// ── FAQPage JSON-LD (AEO/AIO: quotable Q&A for AI search engines, mirrors JP /about) ──
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is LemonCake?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "LemonCake is a usage-based billing and monetization layer for AI APIs and MCP servers. You add one URL prefix (or a one-line SDK call) and your endpoint becomes a paid API — metering, Pay Token verification, rate limiting, abuse prevention, and payout all handled for you. It's open core: the SDK is MIT-licensed, the billing engine is hosted.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How much does LemonCake cost?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "There is no monthly fee. You pay 3% only when your AI API actually earns — 97% goes to you. The first 3,000 API calls each month are free, with gateway, Pay Token issuance, spend limits, and usage metering all included.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How is LemonCake different from Stripe, Orb, or Metronome?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Stripe is built for a human swiping a card, with a ~$0.30 effective floor that breaks sub-cent pricing. Orb and Metronome meter and invoice but still settle through Stripe. LemonCake collapses meter + invoice + pay into one SDK and treats the AI agent as a first-class buyer, so you can charge $0.005 per call to a non-human caller.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is a Pay Token?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "A Pay Token is a spend-limited credential a buyer hands to your API. It carries a hard spending cap, expiry, and scope. The gateway checks it on every call, so a runaway or abusive agent hits the cap and is blocked before your API — or your cloud bill — ever sees the request.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can AI agents pay my API directly?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Agents pay your endpoint directly with one-time spend caps — no human in the loop, no API-key sharing, and no \"reset my credentials\" support tickets. This is the AI-native use case LemonCake is built for.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Do my buyers need a crypto wallet?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No. We embed a wallet at signup. Buyers sign in with email and never touch the underlying mechanics. Settlement uses USDC under the hood, but neither you nor your buyers have to learn crypto to use LemonCake.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is LemonCake open source?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "It's open core, like Supabase, Clerk, and Resend. The SDK (@lemon-cake/mcp-sdk, @lemon-cake/x402-server, agent-payment-mcp) and all MCP adapters are MIT-licensed on npm and GitHub. The hosted billing engine, dashboard, compliance, and abuse detection run as a service. If we vanish, your integration keeps working.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does LemonCake work with MCP servers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — it's drop-in middleware for any MCP server, and works with any MCP SDK. Servers are auto-listed on Bazaar, Glama, Smithery, mcp.so, and the Claude Code Plugins Directory. It also works in countries where Stripe Connect doesn't, such as Japan, Indonesia, and Argentina.",
+      },
+    },
+  ],
 };
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
-const IconZap = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-  </svg>
-);
-const IconStore = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>
-);
 const IconArrowRight = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true">
     <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
   </svg>
 );
-const IconCheck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconTerminal = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-  </svg>
-);
-const IconPackage = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-  </svg>
-);
-// ── Data ──────────────────────────────────────────────────────────────────────
-const whyItems = [
-  {
-    eyebrow: "ERC-2612 permit",
-    title: "Delegate spending power\nwith a hard cap",
-    body: "All you hand the agent is a permit. Set the USDC limit, expiry, and target service up front — your agent gets autonomous payment capability with zero runaway risk. The moment the limit is reached, payments stop automatically.",
-    stats: [
-      { num: "JWT", label: "permit format" },
-      { num: "USDC", label: "Settlement currency" },
-    ],
-    flipped: false,
-  },
-  {
-    eyebrow: "Marketplace",
-    title: "Agents choose,\nagents pay",
-    body: "APIs listed on the LemonCake marketplace are discovered, called, and paid for autonomously by agents. M2M transactions that need no human approval, all through a single proxy endpoint.",
-    stats: [
-      { num: "M2M", label: "Autonomous transactions" },
-      { num: "1", label: "Unified proxy API" },
-    ],
-    flipped: true,
-  },
-  {
-    eyebrow: "Idempotent Payments",
-    title: "Zero double charges.\nReliable micro-payments.",
-    body: "Every call gets an auto-assigned UUID Idempotency-Key. Network failures and timeout retries can never cause the same payment to execute twice.",
-    stats: [
-      { num: "UUID", label: "Auto idempotency key" },
-      { num: "0", label: "Double-charge risk" },
-    ],
-    flipped: false,
-  },
-  {
-    eyebrow: "Base · USDC",
-    title: "Settle on Base.\nFunded in seconds.",
-    body: "USDC on Base means ~$0.0001 gas, ~2 second finality, and a Coinbase-grade onramp. Your agent pays per call in real money — no JWT bookkeeping, no API key juggling, no fund custody.",
-    stats: [
-      { num: "USDC", label: "Settlement currency" },
-      { num: "Base", label: "L2 chain" },
-    ],
-    flipped: true,
-  },
-];
-
-const buyerFeatures = [
-  "Grant agents safe payment capability with permits",
-  "Control risk with spending limits, expiry, and scoped services",
-  "Agents autonomously select APIs and complete payments instantly",
-  "Fund the wallet on Base in seconds — no custody, no manual top-ups",
-  "KYA/KYC tiers manage daily limits in graduated steps",
-  "Real-time monitoring of charges, balance, and token usage",
-];
-
-const sellerFeatures = [
-  "Register your API and publish to the marketplace same day",
-  "Reach AI agents — an entirely new, untapped customer segment",
-  "Real-time aggregation of call counts and cumulative revenue",
-  "Service fees deposit automatically to your wallet after approval",
-  "Set service type and per-call price freely",
-  "24/7 revenue with no human sales, no human marketing",
-];
-
-const integrations = [
-  {
-    icon: <IconTerminal />,
-    badge: "npm · agent-payment-mcp",
-    title: "MCP server",
-    subtitle: "Plug into Claude / Cursor",
-    body: "Start with npx in a single command. Append to claude_desktop_config.json and Claude Desktop or Cursor immediately gets every LemonCake capability.",
-    code: `npx -y agent-payment-mcp`,
-    tools: ["list_services", "call_service", "check_balance", "setup"],
-    href: "https://www.npmjs.com/package/agent-payment-mcp",
-    published: true,
-  },
-  {
-    icon: <IconPackage />,
-    badge: "npm · eliza-plugin-lemoncake",
-    title: "Eliza v2 plugin",
-    subtitle: "@elizaos/core v2 compatible",
-    body: "Add it to character.plugins and your Eliza agent can run EXECUTE_LEMONCAKE_PAYMENT. Supports both PAY_TOKEN and BUYER_JWT modes.",
-    code: `npm install eliza-plugin-lemoncake`,
-    tools: ["EXECUTE_LEMONCAKE_PAYMENT", "PAY_WITH_LEMONCAKE", "M2M_PAYMENT"],
-    href: "https://www.npmjs.com/package/eliza-plugin-lemoncake",
-    published: true,
-  },
-];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AboutPageEn() {
   return (
     <div className="min-h-screen bg-[#06060a] text-white font-sans antialiased">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-lg object-cover" />
+              <Image src="/logo.png" alt="LemonCake" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
               <span className="font-bold text-[15px] text-white">LemonCake</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
               {[
-                { label: "Docs",       href: "/docs" },
-                { label: "Pricing",    href: "/pricing" },
-                { label: "Quickstart", href: "#quickstart" },
-                { label: "Consulting", href: "/consulting" },
+                { label: "Docs",         href: "/docs" },
+                { label: "Pricing",      href: "/pricing" },
+                { label: "How it works", href: "#how-it-works" },
+                { label: "Consulting",   href: "/consulting" },
               ].map(({ label, href }) => (
                 <a key={label} href={href} className="text-[13px] text-white/50 hover:text-white/90 transition-colors">{label}</a>
               ))}
@@ -184,9 +156,13 @@ export default function AboutPageEn() {
         <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
           {/* Image — top on mobile, right on desktop (mirrors JP /about hero) */}
           <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
-            <img
+            <Image
               src="/hero-visual.png"
               alt="LemonCake — AI agent payment infrastructure"
+              width={2508}
+              height={2508}
+              priority
+              sizes="(min-width: 768px) 460px, 380px"
               className="w-full h-auto drop-shadow-2xl"
             />
           </div>
@@ -208,7 +184,7 @@ export default function AboutPageEn() {
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
               <strong className="text-[#1a0f00]">No monthly fee. Pay 3% only when your AI API earns.</strong><br />
-              Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
+              Start free — 3,000 calls every month, with gateway, Pay Token, spend limits, and metering all included.
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
               <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br />
@@ -255,7 +231,7 @@ export default function AboutPageEn() {
             </pre>
           </div>
           <p className="mt-4 text-center text-[12px] text-[#1a0f00]/50">
-            Drop-in MCP middleware. Works with any MCP SDK. Free up to 1,000 calls / month.
+            Drop-in MCP middleware. Works with any MCP SDK. Free up to 3,000 calls / month.
           </p>
         </section>
       </div>
@@ -269,7 +245,7 @@ export default function AboutPageEn() {
        * 4 cards with arrows between: Your API → Gateway → Paid Access → Revenue.
        * Each card has a short verb-noun caption — no jargon, no crypto words.
        */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="max-w-6xl mx-auto px-6 py-20 scroll-mt-20">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-12 leading-tight">
           Four boxes between you<br />
@@ -292,7 +268,7 @@ export default function AboutPageEn() {
                   <div className="text-[12px] text-white/55 mt-1.5">{step.sub}</div>
                 </div>
                 {i < arr.length - 1 && (
-                  <div className="px-2 text-white/30 text-xl font-thin">→</div>
+                  <div className="px-2 text-white/30 text-xl font-thin" aria-hidden="true">→</div>
                 )}
               </div>
             ))}
@@ -313,7 +289,7 @@ export default function AboutPageEn() {
                   <div className="text-[12px] text-white/55 mt-1">{step.sub}</div>
                 </div>
                 {i < arr.length - 1 && (
-                  <div className="text-center py-1 text-white/30 text-lg">↓</div>
+                  <div className="text-center py-1 text-white/30 text-lg" aria-hidden="true">↓</div>
                 )}
               </div>
             ))}
@@ -381,10 +357,10 @@ export default function AboutPageEn() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-3 text-white/50 font-semibold"></th>
-                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
-                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
-                  <th className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/50 font-semibold"></th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
+                  <th scope="col" className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
                 </tr>
               </thead>
               <tbody>
@@ -635,7 +611,7 @@ export default function AboutPageEn() {
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
             No monthly fee. Pay 3% only when your API earns.
-            Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
+            Start free — 3,000 calls every month, with gateway, Pay Token, spend limits, and metering all included.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
@@ -671,7 +647,7 @@ export default function AboutPageEn() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo.png" alt="LemonCake" className="w-6 h-6 rounded-md object-cover" />
+                <Image src="/logo.png" alt="LemonCake" width={24} height={24} className="w-6 h-6 rounded-md object-cover" />
                 <span className="font-bold text-[13px] text-white">LemonCake</span>
               </div>
               <p className="text-[12px] text-white/30 leading-relaxed">M2M Payment Infrastructure<br />for AI Agents</p>

@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import ContactButton from "./ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — AI エージェントに財布を持たせる M2M 決済・会計インフラ",
-  description: "LemonCake は AI エージェント専用の M2M 決済・会計インフラ。permit 1 行で外部 API に自律決済、freee / MoneyForward 自動仕訳、源泉徴収 10.21% / インボイス国税庁 API / 電子帳簿保存法 7 年保持まで全自動。JPYC・USDC 対応。Dify・LangChain・MCP で即利用可能。",
+  title: "LemonCake — AI API を数分で有料化する従量課金レイヤー（オープンコア）",
+  description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%（毎月 3,000 コール無料）。サブセント計測・支出上限付き Pay Token・組込みウォレット・暴走防止まで標準装備。SDK は MIT のオープンコア。Stripe Connect が使えない国でも動作。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -13,14 +14,14 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "LemonCake — AI エージェントに財布を持たせる M2M 決済・会計インフラ",
-    description: "permit 1 行で AI エージェントに安全な支払い能力を付与。freee / MoneyForward 自動仕訳、源泉徴収・インボイス・電帳法対応。",
+    title: "LemonCake — AI API を数分で有料化する従量課金レイヤー",
+    description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%。サブセント計測・Pay Token・組込みウォレット。SDK は MIT のオープンコア。",
     url: "https://lemoncake.xyz/about",
     type: "article",
   },
 };
 
-// ── FAQPage JSON-LD（AEO/AIO: AI 検索エンジンが引用しやすい形で Q&A を提供） ──
+// ── FAQPage JSON-LD（AEO/AIO: AI 検索エンジンが引用しやすい形で Q&A を提供。本文の可視内容と一致させる） ──
 const faqJsonLd = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -30,63 +31,63 @@ const faqJsonLd = {
       name: "LemonCake とは何ですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "LemonCake は AI エージェント専用の M2M（Machine-to-Machine）決済・会計インフラです。permit に 1 度署名するだけで、AI エージェントが外部 API に自律的に支払い、freee / MoneyForward に自動仕訳まで完結します。日本の源泉徴収（10.21%）、インボイス制度（国税庁 API 連携）、電子帳簿保存法（7 年保持）にフルコンプライアンス。",
+        text: "LemonCake は AI API・MCP サーバーのための従量課金・収益化レイヤーです。URL に prefix を 1 つ足す（または SDK を 1 行呼ぶ）だけで、あなたのエンドポイントが有料 API になります。使用量計測・Pay Token 検証・レート制限・不正防止・精算まで全部こちらで処理。SDK は MIT のオープンコアで、課金エンジンはホスト型です。",
       },
     },
     {
       "@type": "Question",
-      name: "AI エージェントに安全にお金を持たせるにはどうすればいい？",
+      name: "料金はいくらですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "LemonCake の permit に署名してください。予算上限・有効期限・呼び出し先ホストの allowlist を絞ったトークンをエージェントに渡すだけで、漏洩しても被害が限定されます。リクエストごとに Reputation スコアで異常検知も行います。",
+        text: "月額費用はありません。あなたの AI API が実際に売れた時だけ 3%（97% があなたの取り分）。毎月 3,000 API コールまで無料で、Gateway・Pay Token 発行・支出上限・使用量計測まで全部込みです。",
       },
     },
     {
       "@type": "Question",
-      name: "AI エージェントが外部 API に支払った場合、源泉徴収はどう処理される？",
+      name: "Stripe / Orb / Metronome と何が違いますか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "LemonCake が自動判定します。受領者の法人/個人判定、報酬区分（原稿料・デザイン料・講演料など）、10.21% または 20.42% の税率計算、国税庁インボイス API による登録番号照合まで全自動で行い、freee に 3 勘定仕訳（外注費／預り金／普通預金）で記帳します。",
+        text: "Stripe は「人間がカードを切る」前提で、実質 $0.30 の下限がサブセント課金を壊します。Orb と Metronome は計測・請求はしても決済は Stripe 任せ。LemonCake は計測＋請求＋決済を 1 つの SDK に統合し、AI エージェントを一級の Buyer として扱うので、人間でない呼び出し元に 1 コール $0.005 で課金できます。",
       },
     },
     {
       "@type": "Question",
-      name: "JPYC で AI エージェント決済はできますか？",
+      name: "Pay Token とは何ですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "できます。LemonCake は JPYC（Polygon 上の円建てステーブルコイン）を標準サポート。為替リスクなし、実質手数料 1 円/件、税務は利益課税のみで暗号資産課税の複雑さを回避できます。USDC も並行サポート。",
+        text: "Pay Token は Buyer があなたの API に渡す支出上限付きのクレデンシャルです。ハードな支出上限・有効期限・スコープを持ち、Gateway がコールごとに検証します。暴走・乱用するエージェントは上限に当たって、あなたの API も（クラウドの請求も）リクエストを見る前にブロックされます。",
       },
     },
     {
       "@type": "Question",
-      name: "Dify / LangChain / MCP で使えますか？",
+      name: "AI エージェントが私の API に直接支払えますか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "はい。Dify 公式プラグイン、LangChain Tool（Python/JS）、MCP サーバー（@lemoncake/mcp-server）を提供しています。中級エンジニアなら 15 分で組み込み完了します。",
+        text: "はい。エージェントが使い切り上限付きで、あなたのエンドポイントに直接支払います。人間の承認も、API キー共有も、「認証情報をリセットして」というサポート対応も不要。これが LemonCake が想定する AI ネイティブな使い方です。",
       },
     },
     {
       "@type": "Question",
-      name: "Skyfire や Coinbase x402 との違いは？",
+      name: "Buyer に暗号資産ウォレットは必要ですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Skyfire は米国市場中心で USDC 主体、x402 は HTTP 402 ベースのオープン標準です。LemonCake は JPYC + USDC 両対応で、日本の税務（源泉徴収・インボイス・電子帳簿保存法）と会計ソフト（freee / MoneyForward）に唯一フル統合しています。日本市場で業務利用するなら LemonCake が最適解です。",
+        text: "不要です。サインアップ時にウォレットを埋め込むので、Buyer はメールでログインするだけ。裏側は USDC で決済しますが、あなたも Buyer も暗号資産を学ぶ必要はありません。",
       },
     },
     {
       "@type": "Question",
-      name: "無料で試せますか？",
+      name: "LemonCake はオープンソースですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "はい。lemoncake.xyz で 30 秒でアカウントを作成でき、無料枠があります。クレジットカード登録なしで permit の発行・テスト決済まで試せます。",
+        text: "Supabase / Clerk / Resend と同じオープンコアです。SDK（@lemon-cake/mcp-sdk・@lemon-cake/x402-server・agent-payment-mcp）と全 MCP アダプタは npm・GitHub で MIT 公開。ホスト型の課金エンジン・ダッシュボード・コンプライアンス・不正検知はサービスとして運用します。私たちが消えても、あなたの組込みは動き続けます。",
       },
     },
     {
       "@type": "Question",
-      name: "どの会計ソフトに対応していますか？",
+      name: "MCP サーバーで使えますか？日本でも動きますか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "freee 会計、MoneyForward クラウド会計の両方に対応しています。OAuth 連携後は AI エージェントの決済が発生するたびにイベントベースで自動仕訳が作成されます。",
+        text: "はい。どの MCP サーバーにもそのまま挿せるミドルウェアで、どの MCP SDK でも動作します。Bazaar・Glama・Smithery・mcp.so・Claude Code Plugins Directory に自動掲載。Stripe Connect が使えない国でも動くので、日本・インドネシア・アルゼンチンでも初日から利用できます。",
       },
     },
   ],
@@ -94,7 +95,7 @@ const faqJsonLd = {
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 const IconArrowRight = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true">
     <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
   </svg>
 );
@@ -104,7 +105,8 @@ const IconArrowRight = () => (
 // Monetization Flow / Why developers / Billing 比較 / Abuse Log /
 // Open core / Safety rails を日本語化したもの。旧 USDC/JPYC・permit・
 // Quickstart・Buyer-Seller・Mission・Philosophy セクションは撤去。
-// メタデータと FAQ JSON-LD は日本語 SEO 資産として保持。
+// メタデータと FAQ JSON-LD も新ポジショニング（従量課金・3%・Pay Token・
+// オープンコア）に合わせて書き換え、可視内容と一致させた（2026-05-29）。
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#06060a] text-white font-sans antialiased">
@@ -118,7 +120,7 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-lg object-cover" />
+              <Image src="/logo.png" alt="LemonCake" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
               <span className="font-bold text-[15px] text-white">LemonCake</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
@@ -149,9 +151,13 @@ export default function AboutPage() {
         <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
           {/* Image — top on mobile, right on desktop */}
           <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
-            <img
+            <Image
               src="/hero-visual.png"
               alt="LemonCake — AI agent payment infrastructure"
+              width={2508}
+              height={2508}
+              priority
+              sizes="(min-width: 768px) 460px, 380px"
               className="w-full h-auto drop-shadow-2xl"
             />
           </div>
@@ -173,7 +179,7 @@ export default function AboutPage() {
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
               <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 3%。</strong><br />
-              最初の 3,000 API calls 無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
+              毎月 3,000 API calls まで無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
               <strong>今出荷中:</strong> SDK (lc.charge / lc.protect) — MIT、npm 公開済。<br />
@@ -220,7 +226,7 @@ export default function AboutPage() {
             </pre>
           </div>
           <p className="mt-4 text-center text-[12px] text-[#1a0f00]/50">
-            MCP にそのまま挿せるミドルウェア。どの MCP SDK でも動作。月 1,000 calls まで無料。
+            MCP にそのまま挿せるミドルウェア。どの MCP SDK でも動作。月 3,000 calls まで無料。
           </p>
         </section>
       </div>
@@ -249,7 +255,7 @@ export default function AboutPage() {
                   <div className="text-[12px] text-white/55 mt-1.5">{step.sub}</div>
                 </div>
                 {i < arr.length - 1 && (
-                  <div className="px-2 text-white/30 text-xl font-thin">→</div>
+                  <div className="px-2 text-white/30 text-xl font-thin" aria-hidden="true">→</div>
                 )}
               </div>
             ))}
@@ -270,7 +276,7 @@ export default function AboutPage() {
                   <div className="text-[12px] text-white/55 mt-1">{step.sub}</div>
                 </div>
                 {i < arr.length - 1 && (
-                  <div className="text-center py-1 text-white/30 text-lg">↓</div>
+                  <div className="text-center py-1 text-white/30 text-lg" aria-hidden="true">↓</div>
                 )}
               </div>
             ))}
@@ -324,10 +330,10 @@ export default function AboutPage() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-3 text-white/50 font-semibold"></th>
-                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
-                  <th className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
-                  <th className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/50 font-semibold"></th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
+                  <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
+                  <th scope="col" className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
                 </tr>
               </thead>
               <tbody>
@@ -337,7 +343,7 @@ export default function AboutPage() {
                   ["1 コール サブセント",                "実質 $0.30 下限",     "可能だが Stripe 課金",        "$0.005"],
                   ["MCP / agent ミドルウェア",           "—",                   "—",                           "そのまま挿せる"],
                   ["API キー管理不要",                   "キー必須",            "キー必須",                    "組込み認証"],
-                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "月 1,000 件・ガス代込み"],
+                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "月 3,000 件・ガス代込み"],
                   ["OSS の SDK",                         "クローズド",          "クローズド",                  "MIT"],
                   ["導入時間",                           "Connect オンボーディング", "実装エンジニアが必要",    "env var 1 つ"],
                 ].map(([f, s, o, lc]) => (
@@ -527,7 +533,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
             月額無料。API が売れた時だけ 3%。
-            最初の 3,000 API calls 無料 — Gateway・Pay Token・利用制御・使用量計測まで全部込み。
+            毎月 3,000 API calls まで無料 — Gateway・Pay Token・利用制御・使用量計測まで全部込み。
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
@@ -562,7 +568,7 @@ export default function AboutPage() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo.png" alt="LemonCake" className="w-6 h-6 rounded-md object-cover" />
+                <Image src="/logo.png" alt="LemonCake" width={24} height={24} className="w-6 h-6 rounded-md object-cover" />
                 <span className="font-bold text-[13px] text-white">LemonCake</span>
               </div>
               <p className="text-[12px] text-white/30 leading-relaxed">M2M Payment Infrastructure<br />for AI Agents</p>
