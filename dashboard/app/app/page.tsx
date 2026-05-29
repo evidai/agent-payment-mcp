@@ -19,7 +19,7 @@
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode, type SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode, type SVGProps } from "react";
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
@@ -370,6 +370,28 @@ function RealDashboard() {
     if (params.get("auth")) setActivePane("account");
   }, []);
 
+  // ── First-run sign-in gate ──────────────────────────────────────────────
+  // Visitors arriving from the "無料で始める" CTA see a sign-in screen first,
+  // so each person reconnects to their OWN workspace from any browser. The
+  // workspace is "claimed" once it has an email (via OAuth or magic link).
+  // Anonymous use stays one click away ("あとで") to keep friction low.
+  const [claimedEmail, setClaimedEmail] = useState<string | null | undefined>(undefined); // undefined = still loading
+  const [bypassGate, setBypassGate] = useState(false);
+  useEffect(() => {
+    fetch("/api/lc/me")
+      .then((r) => r.json())
+      .then((d) => setClaimedEmail(d.owner?.email ?? null))
+      .catch(() => setClaimedEmail(null));
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { if (sessionStorage.getItem("lc:skipSignin")) setBypassGate(true); } catch {}
+    // Just came back from an OAuth / Stripe / magic-link round-trip → never gate.
+    const params = new URL(window.location.href).searchParams;
+    if (params.get("auth") || params.get("stripe")) setBypassGate(true);
+  }, []);
+  const showGate = claimedEmail === null && !bypassGate;
+
   /* Mutations — all hit the API, then refetch */
   const api = {
     createEndpoint: async (input: { name: string; originalUrl: string; upstreamAuth?: string; pricePerCall: number; tokenBudget: number; rateLimit: number }) => {
@@ -405,6 +427,22 @@ function RealDashboard() {
     },
     refetch: refetchAll,
   };
+
+  // Hold the dashboard until we know whether this workspace is claimed, then
+  // show the sign-in screen first for unclaimed (new) visitors.
+  if (claimedEmail === undefined) return <Shell><LoadingShell /></Shell>;
+  if (showGate) {
+    return (
+      <Shell>
+        <SignInGate
+          onSkip={() => {
+            try { sessionStorage.setItem("lc:skipSignin", "1"); } catch {}
+            setBypassGate(true);
+          }}
+        />
+      </Shell>
+    );
+  }
 
   return (
     <div>
@@ -567,6 +605,116 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
 }
 
 /* ────────────────────────────  panes  ──────────────────────────── */
+
+/* ──────────────────────  first-run sign-in screen  ────────────────────── */
+
+function SignInGate({ onSkip }: { onSkip: () => void }) {
+  const [providers, setProviders] = useState<{ google: boolean; github: boolean } | null>(null);
+  useEffect(() => {
+    fetch("/api/lc/auth/providers")
+      .then((r) => r.json())
+      .then((d) => setProviders({ google: !!d.google, github: !!d.github }))
+      .catch(() => setProviders({ google: false, github: false }));
+  }, []);
+
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState(false);
+  async function submitEmail(e: FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setBusy(true);
+    setErr(false);
+    try {
+      const r = await fetch("/api/lc/auth/request-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!r.ok) setErr(true);
+      else setSent(true);
+    } catch {
+      setErr(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-[420px] mx-auto py-16">
+      <div className="text-center mb-8">
+        <h1 className="text-[26px] font-black leading-tight mb-2">ワークスペースにサインイン</h1>
+        <p className="text-[13px] text-[#1a0f00]/55 leading-relaxed">
+          ログインすると、どのブラウザからでも同じワークスペースに戻れます。
+        </p>
+      </div>
+
+      {sent ? (
+        <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 text-center">
+          <p className="text-[13px] text-[#16A34A] font-semibold mb-1">✓ メールを送信しました</p>
+          <p className="text-[12.5px] text-[#1a0f00]/60 leading-relaxed">受信トレイのマジックリンクを開いて、サインインを完了してください。</p>
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
+          {providers && (providers.google || providers.github) && (
+            <div className="space-y-2 mb-4">
+              {providers.google && (
+                <a href="/api/lc/auth/oauth/google/start" className="flex items-center justify-center gap-2.5 w-full px-4 py-2.5 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] font-semibold text-[#1a0f00] hover:border-[#1a0f00]/40 transition-colors">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.4 5.4 0 0 1-2.4 3.58v2.97h3.86c2.26-2.09 3.56-5.17 3.56-8.79z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-2.97c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z" />
+                    <path fill="#FBBC05" d="M5.27 14.32a7.2 7.2 0 0 1 0-4.62V6.61H1.29a12 12 0 0 0 0 10.8l3.98-3.09z" />
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.61l3.98 3.09C6.22 6.85 8.87 4.75 12 4.75z" />
+                  </svg>
+                  Continue with Google
+                </a>
+              )}
+              {providers.github && (
+                <a href="/api/lc/auth/oauth/github/start" className="flex items-center justify-center gap-2.5 w-full px-4 py-2.5 bg-[#1a0f00] text-white rounded-lg text-[13px] font-semibold hover:bg-[#1a0f00]/90 transition-colors">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z" />
+                  </svg>
+                  Continue with GitHub
+                </a>
+              )}
+              <div className="flex items-center gap-3 pt-1">
+                <span className="h-px flex-1 bg-[#1a0f00]/10" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">or email</span>
+                <span className="h-px flex-1 bg-[#1a0f00]/10" />
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={submitEmail} className="space-y-2">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-[#1a0f00]/15 text-[13px] focus:outline-none focus:border-[#1a0f00]/40"
+            />
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full px-4 py-2.5 bg-[#fffd43] text-[#1a0f00] rounded-lg text-[13px] font-semibold hover:bg-[#fffd43]/90 transition-colors disabled:opacity-50"
+            >
+              {busy ? "送信中…" : "メールでログインリンクを受け取る"}
+            </button>
+          </form>
+          {err && <p className="text-[12px] text-[#B91C1C] mt-2">送信に失敗しました。もう一度お試しください。</p>}
+        </div>
+      )}
+
+      <div className="text-center mt-5">
+        <button type="button" onClick={onSkip} className="text-[12.5px] text-[#1a0f00]/45 hover:text-[#1a0f00]/80 underline">
+          あとで（スキップして試す）
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function AccountPane() {
   // ── Identity: anonymous owner cookie + claimed email ──
