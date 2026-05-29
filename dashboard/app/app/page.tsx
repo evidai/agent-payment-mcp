@@ -20,6 +20,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode, type SVGProps } from "react";
+import {
+  publicPageUrl,
+  badgeUrl as badgeUrlOf,
+  curlExample,
+  readmeBadgeMarkdown,
+  xPostText,
+  docsSnippet,
+  mcpListingText,
+  CATEGORIES,
+} from "@/lib/lc-growth";
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
@@ -37,6 +47,15 @@ type Endpoint = {
   rateLimit: number;
   status: "live" | "paused";
   createdAt: number;
+  // ── Phase 4: Developer Growth Loop ──
+  publicSlug?: string | null;
+  publicTitle?: string | null;
+  publicDescription?: string | null;
+  category?: string | null;
+  sellerDisplayName?: string | null;
+  publicPageEnabled?: boolean;
+  badgeEnabled?: boolean;
+  directoryStatus?: "none" | "pending" | "approved" | "rejected";
 };
 
 type PayToken = {
@@ -112,7 +131,7 @@ function computeSales(tokens: PayToken[]): Sales {
 
 /* ────────────────────────────  serializers  ──────────────────────────── */
 
-type EndpointRow = { id: string; short_id: string; name: string; slug: string; original_url: string; upstream_auth: string | null; price_per_call: number | string; token_budget: number | string; rate_limit: number; status: "live" | "paused"; created_at: string };
+type EndpointRow = { id: string; short_id: string; name: string; slug: string; original_url: string; upstream_auth: string | null; price_per_call: number | string; token_budget: number | string; rate_limit: number; status: "live" | "paused"; created_at: string; public_slug?: string | null; public_title?: string | null; public_description?: string | null; category?: string | null; seller_display_name?: string | null; public_page_enabled?: boolean; badge_enabled?: boolean; directory_status?: "none" | "pending" | "approved" | "rejected" };
 type PayTokenRow = { id: string; endpoint_id: string; budget: number | string; spent: number | string; max_calls: number; calls_used: number; expires_at: string; status: PayToken["status"]; issued_at: string; stripe_checkout_session_id?: string | null; buyer_email?: string | null };
 type TestRunRow  = { id: string; endpoint_id: string; pay_token_id: string; gross: number | string; fee: number | string; net: number | string; upstream_status: number | null; upstream_ms: number | null; at: string };
 type BlockedRow  = { id: string; endpoint_id: string; pay_token_id: string | null; reason: BlockReason; attempted: number | string; at: string };
@@ -123,6 +142,14 @@ const fromEndpoint = (r: EndpointRow): Endpoint => ({
   pricePerCall: Number(r.price_per_call), tokenBudget: Number(r.token_budget),
   rateLimit: r.rate_limit, status: r.status,
   createdAt: new Date(r.created_at).getTime(),
+  publicSlug: r.public_slug ?? null,
+  publicTitle: r.public_title ?? null,
+  publicDescription: r.public_description ?? null,
+  category: r.category ?? null,
+  sellerDisplayName: r.seller_display_name ?? null,
+  publicPageEnabled: r.public_page_enabled ?? true,
+  badgeEnabled: r.badge_enabled ?? true,
+  directoryStatus: r.directory_status ?? "none",
 });
 const fromToken = (r: PayTokenRow): PayToken => ({
   id: r.id, endpointId: r.endpoint_id,
@@ -1457,6 +1484,8 @@ function CreatedSuccess({
         </div>
       </section>
 
+      <ShareKit endpoint={endpoint} />
+
       <section className="rounded-2xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-5">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Endpoint summary</p>
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
@@ -1467,6 +1496,186 @@ function CreatedSuccess({
         </dl>
       </section>
     </>
+  );
+}
+
+/* ─── Share Kit + Submit to Directory (shown on the success screen) ─── */
+
+type GrowthShareType =
+  | "copy_gateway_url"
+  | "copy_curl"
+  | "copy_readme_badge"
+  | "copy_x_post"
+  | "copy_docs_snippet"
+  | "copy_mcp_listing"
+  | "submit_directory";
+
+function ShareKit({ endpoint }: { endpoint: Endpoint }) {
+  const pSlug = endpoint.publicSlug || endpoint.shortId;
+  const apiId = endpoint.shortId;
+  const publicUrl = publicPageUrl(pSlug);
+  const badge = badgeUrlOf(apiId);
+
+  const snippets = {
+    readme: readmeBadgeMarkdown({ apiId, slug: pSlug }),
+    curl: curlExample({ shortId: endpoint.shortId }),
+    docs: docsSnippet({ name: endpoint.name, description: endpoint.publicDescription, shortId: endpoint.shortId, price: endpoint.pricePerCall, slug: pSlug }),
+    xpost: xPostText({ name: endpoint.name, price: endpoint.pricePerCall, slug: pSlug }),
+    mcp: mcpListingText({ name: endpoint.name, description: endpoint.publicDescription, shortId: endpoint.shortId, price: endpoint.pricePerCall, slug: pSlug }),
+  };
+
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // directory form
+  const [category, setCategory] = useState<string>(endpoint.category || "");
+  const [description, setDescription] = useState<string>(endpoint.publicDescription || "");
+  const [submitting, setSubmitting] = useState(false);
+  const [dirStatus, setDirStatus] = useState<Endpoint["directoryStatus"]>(endpoint.directoryStatus || "none");
+  const [dirError, setDirError] = useState<string | null>(null);
+
+  function track(shareType: GrowthShareType) {
+    try {
+      void fetch("/api/lc/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({ shareType, endpointId: endpoint.id, slug: pSlug, shortId: endpoint.shortId }),
+      });
+    } catch {
+      /* analytics best-effort */
+    }
+  }
+
+  async function copy(text: string, key: string, shareType: GrowthShareType) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1600);
+      track(shareType);
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
+  async function submitDirectory() {
+    if (!category || submitting) return;
+    setSubmitting(true);
+    setDirError(null);
+    try {
+      const res = await fetch("/api/lc/directory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpointId: endpoint.id, category, description: description.trim() || undefined }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setDirError(json?.error || "Could not submit. Try again.");
+        return;
+      }
+      setDirStatus("pending");
+    } catch {
+      setDirError("Network error — please retry.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const fields: { key: string; label: string; text: string; share: GrowthShareType; mono?: boolean }[] = [
+    { key: "readme", label: "1 · README badge", text: snippets.readme, share: "copy_readme_badge", mono: true },
+    { key: "curl", label: "2 · curl example", text: snippets.curl, share: "copy_curl", mono: true },
+    { key: "docs", label: "3 · Docs snippet (Markdown)", text: snippets.docs, share: "copy_docs_snippet", mono: true },
+    { key: "xpost", label: "4 · Launch post (X)", text: snippets.xpost, share: "copy_x_post" },
+    { key: "mcp", label: "5 · Directory / MCP listing text", text: snippets.mcp, share: "copy_mcp_listing" },
+  ];
+
+  return (
+    <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
+      {/* Public API page URL */}
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Public API page</p>
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] px-3 py-3 mb-1.5">
+        <code className="font-mono text-[13px] text-[#1a0f00] break-all">{publicUrl}</code>
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          <button type="button" onClick={() => copy(publicUrl, "purl", "copy_gateway_url")} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{copied === "purl" ? "Copied" : "Copy"}</button>
+          <a href={publicUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> Open</a>
+        </div>
+      </div>
+      <p className="text-[11px] text-[#1a0f00]/50 mb-6">A shareable page for your API — usage ledger, quickstart, and a Try-it link. Anyone can view it.</p>
+
+      {/* Share kit */}
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">Share your paid-access API</p>
+      <p className="text-[12px] text-[#1a0f00]/60 mb-4">Add this to your README, docs, or launch post so developers can try your API.</p>
+
+      {/* badge preview */}
+      <div className="flex items-center gap-2 mb-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={badge} alt="Paid access powered by LemonCake" className="h-5" />
+        <span className="text-[11px] text-[#1a0f00]/45">← your README badge</span>
+      </div>
+
+      <div className="flex flex-col gap-3 mb-6">
+        {fields.map((f) => (
+          <div key={f.key}>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[11.5px] font-bold text-[#1a0f00]/70">{f.label}</p>
+              <button type="button" onClick={() => copy(f.text, f.key, f.share)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] transition-colors">
+                <Icon.Copy className="w-3.5 h-3.5" />{copied === f.key ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <pre className={`rounded-xl border border-[#1a0f00]/10 bg-[#fafaf7] p-3 text-[10.5px] leading-relaxed overflow-x-auto whitespace-pre-wrap break-words ${f.mono ? "font-mono text-[#1a0f00]/75" : "text-[#1a0f00]/75"}`}>{f.text}</pre>
+          </div>
+        ))}
+      </div>
+
+      {/* Submit to Directory */}
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Submit to the LemonCake Directory</p>
+      {dirStatus === "pending" ? (
+        <div className="rounded-xl bg-[#fffbe6] border border-[#1a0f00]/12 px-3 py-3 text-[12.5px] text-[#1a0f00]/70">
+          <b>Submitted — pending review.</b> Once approved, your API appears in the public <Link href="/directory" className="underline underline-offset-2">Directory</Link>.
+        </div>
+      ) : dirStatus === "approved" ? (
+        <div className="rounded-xl bg-[#F0FDF4] border border-[#16A34A]/20 px-3 py-3 text-[12.5px] text-[#16A34A]">
+          <b>Listed in the Directory.</b> <Link href="/directory" className="underline underline-offset-2 text-[#16A34A]">View it →</Link>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] p-4">
+          <div className="grid sm:grid-cols-[180px_1fr] gap-3 mb-3">
+            <div>
+              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[#1a0f00]/15 bg-white text-[13px] text-[#1a0f00] focus:outline-none focus:border-[#1a0f00]/40"
+              >
+                <option value="">Select a category…</option>
+                {CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">Short description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                placeholder="One line on what your API does."
+                className="w-full px-3 py-2 rounded-lg border border-[#1a0f00]/15 bg-white text-[13px] text-[#1a0f00] resize-none focus:outline-none focus:border-[#1a0f00]/40"
+              />
+            </div>
+          </div>
+          {dirError && <p className="text-[11.5px] text-[#DC2626] mb-2">{dirError}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={submitDirectory}
+              disabled={!category || submitting}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a0f00] text-[#fffd43] font-bold text-[13px] rounded-lg hover:bg-[#1a0f00]/85 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Submitting…" : "Submit to Directory"}
+            </button>
+            <p className="text-[11px] text-[#1a0f00]/45">Approved listings appear publicly. Admin review required.</p>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

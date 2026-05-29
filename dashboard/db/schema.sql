@@ -134,3 +134,54 @@ create table if not exists lc_oauth_identities (
   primary key (provider, subject)
 );
 create index if not exists lc_oauth_identities_owner_idx on lc_oauth_identities(owner_id);
+
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 4: Developer Growth Loop
+-- Public API pages (/api/[slug]), README badges (/badge/[apiId].svg),
+-- a LemonCake Directory, and share/analytics events. These columns are
+-- ALSO applied lazily from the server (ensureGrowthSchema in lc-backend.ts),
+-- so a fresh deploy works even before this file is re-run in Supabase.
+-- ───────────────────────────────────────────────────────────────────────
+
+-- Public-page / sharing metadata on each endpoint.
+alter table lc_endpoints add column if not exists public_slug         text;
+alter table lc_endpoints add column if not exists public_title        text;
+alter table lc_endpoints add column if not exists public_description  text;
+alter table lc_endpoints add column if not exists category            text;
+alter table lc_endpoints add column if not exists seller_display_name text;
+alter table lc_endpoints add column if not exists public_page_enabled boolean not null default true;
+alter table lc_endpoints add column if not exists badge_enabled       boolean not null default true;
+alter table lc_endpoints add column if not exists directory_status    text not null default 'none';
+alter table lc_endpoints add column if not exists share_count         int  not null default 0;
+alter table lc_endpoints add column if not exists public_page_views   int  not null default 0;
+-- public_slug is the human-readable handle in /api/<slug>; globally unique.
+create unique index if not exists lc_endpoints_public_slug_unq
+  on lc_endpoints(public_slug) where public_slug is not null;
+
+-- One directory submission per endpoint. Admin flips status to approved.
+create table if not exists lc_directory_submissions (
+  id           uuid primary key default gen_random_uuid(),
+  endpoint_id  uuid not null unique references lc_endpoints(id) on delete cascade,
+  owner_id     text not null references lc_owners(id) on delete cascade,
+  category     text not null,
+  description  text,
+  status       text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  submitted_at timestamptz not null default now(),
+  reviewed_at  timestamptz,
+  reviewed_by  text
+);
+create index if not exists lc_directory_submissions_status_idx on lc_directory_submissions(status);
+
+-- Share / growth analytics. share_type is a free-text event name; the app
+-- writes: copy_gateway_url, copy_curl, copy_readme_badge, copy_x_post,
+-- copy_docs_snippet, copy_mcp_listing, view_public_page, submit_directory,
+-- click_try_demo_from_public_page, click_create_own_api_from_public_page.
+create table if not exists lc_share_events (
+  id          uuid primary key default gen_random_uuid(),
+  endpoint_id uuid references lc_endpoints(id) on delete cascade,
+  owner_id    text,
+  share_type  text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists lc_share_events_endpoint_idx on lc_share_events(endpoint_id, created_at desc);
+create index if not exists lc_share_events_type_idx on lc_share_events(share_type, created_at desc);

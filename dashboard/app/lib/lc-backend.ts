@@ -134,6 +134,29 @@ export type EndpointRow = {
   rate_limit: number;
   status: "live" | "paused";
   created_at: Date;
+  // ── Phase 4: Developer Growth Loop (nullable until ensureGrowthSchema runs) ──
+  public_slug?: string | null;
+  public_title?: string | null;
+  public_description?: string | null;
+  category?: string | null;
+  seller_display_name?: string | null;
+  public_page_enabled?: boolean;
+  badge_enabled?: boolean;
+  directory_status?: "none" | "pending" | "approved" | "rejected";
+  share_count?: number;
+  public_page_views?: number;
+};
+
+export type DirectorySubmissionRow = {
+  id: string;
+  endpoint_id: string;
+  owner_id: string;
+  category: string;
+  description: string | null;
+  status: "pending" | "approved" | "rejected";
+  submitted_at: Date;
+  reviewed_at: Date | null;
+  reviewed_by: string | null;
 };
 
 export type PayTokenRow = {
@@ -174,3 +197,154 @@ export type BlockedRow = {
   attempted: string;
   at: Date;
 };
+
+export type ShareEventRow = {
+  id: string;
+  endpoint_id: string | null;
+  owner_id: string | null;
+  share_type: string;
+  created_at: Date;
+};
+
+/* ──────────────── Phase 4: lazy growth-loop schema ──────────────── */
+
+// Memoized so a warm Vercel instance runs the DDL at most once. The block
+// mirrors the "Phase 4" section in db/schema.sql exactly, so a fresh deploy
+// works even before that file is re-run by hand in the Supabase SQL editor.
+// Every statement is idempotent (IF NOT EXISTS), so re-running is harmless.
+let _growthSchemaReady: Promise<void> | null = null;
+
+const GROWTH_DDL = `
+alter table lc_endpoints add column if not exists public_slug         text;
+alter table lc_endpoints add column if not exists public_title        text;
+alter table lc_endpoints add column if not exists public_description  text;
+alter table lc_endpoints add column if not exists category            text;
+alter table lc_endpoints add column if not exists seller_display_name text;
+alter table lc_endpoints add column if not exists public_page_enabled boolean not null default true;
+alter table lc_endpoints add column if not exists badge_enabled       boolean not null default true;
+alter table lc_endpoints add column if not exists directory_status    text not null default 'none';
+alter table lc_endpoints add column if not exists share_count         int  not null default 0;
+alter table lc_endpoints add column if not exists public_page_views   int  not null default 0;
+create unique index if not exists lc_endpoints_public_slug_unq
+  on lc_endpoints(public_slug) where public_slug is not null;
+
+create table if not exists lc_directory_submissions (
+  id           uuid primary key default gen_random_uuid(),
+  endpoint_id  uuid not null unique references lc_endpoints(id) on delete cascade,
+  owner_id     text not null references lc_owners(id) on delete cascade,
+  category     text not null,
+  description  text,
+  status       text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  submitted_at timestamptz not null default now(),
+  reviewed_at  timestamptz,
+  reviewed_by  text
+);
+create index if not exists lc_directory_submissions_status_idx on lc_directory_submissions(status);
+
+create table if not exists lc_share_events (
+  id          uuid primary key default gen_random_uuid(),
+  endpoint_id uuid references lc_endpoints(id) on delete cascade,
+  owner_id    text,
+  share_type  text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists lc_share_events_endpoint_idx on lc_share_events(endpoint_id, created_at desc);
+create index if not exists lc_share_events_type_idx on lc_share_events(share_type, created_at desc);
+`;
+
+/** Apply the Phase 4 DDL once per warm instance. Safe + idempotent. */
+export function ensureGrowthSchema(): Promise<void> {
+  if (!_growthSchemaReady) {
+    _growthSchemaReady = (async () => {
+      try {
+        // Run each statement individually — pgbouncer (prepare:false) + the
+        // extended protocol can't run multi-statement strings, and none of
+        // our DDL statements contain embedded semicolons, so a plain split is
+        // safe. Each is idempotent (IF NOT EXISTS), so order doesn't matter.
+        const statements = GROWTH_DDL.split(";").map((s) => s.trim()).filter(Boolean);
+        for (const stmt of statements) {
+          await sql().unsafe(stmt);
+        }
+      } catch (err) {
+        // Reset so a later request can retry (e.g. transient connection drop).
+        _growthSchemaReady = null;
+        throw err;
+      }
+    })();
+  }
+  return _growthSchemaReady;
+}
+
+/* ──────────────── public-slug generation ──────────────── */
+
+/** Sanitize an arbitrary string into a slug fragment (lowercase, hyphenated). */
+export function sanitizeSlug(input: string): string {
+  const s = input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/g, "");
+  return s || "api";
+}
+
+/**
+ * Build a globally-unique public_slug from a base name. Tries the sanitized
+ * base, then -2, -3, … until it finds one free in lc_endpoints.public_slug.
+ * Assumes ensureGrowthSchema() has already run.
+ */
+export async function generatePublicSlug(base: string): Promise<string> {
+  const root = sanitizeSlug(base);
+  for (let n = 0; n < 50; n++) {
+    const candidate = n === 0 ? root : `${root}-${n + 1}`;
+    const hit = await sql()<{ one: number }[]>`
+      select 1 as one from lc_endpoints where public_slug = ${candidate} limit 1
+    `;
+    if (hit.length === 0) return candidate;
+  }
+  // Extremely unlikely fallback: append a short random suffix.
+  return `${root}-${shortId().slice(0, 6)}`;
+}
+
+/* ──────────────── share / growth analytics ──────────────── */
+
+export type ShareType =
+  | "copy_gateway_url"
+  | "copy_curl"
+  | "copy_readme_badge"
+  | "copy_x_post"
+  | "copy_docs_snippet"
+  | "copy_mcp_listing"
+  | "view_public_page"
+  | "submit_directory"
+  | "click_try_demo_from_public_page"
+  | "click_create_own_api_from_public_page";
+
+/**
+ * Log a share/growth event and bump the relevant counter on the endpoint.
+ * view_public_page → public_page_views; copy_* / submit_directory → share_count.
+ * Best-effort: never throws — analytics must not break a user-facing action.
+ */
+export async function recordShareEvent(opts: {
+  endpointId?: string | null;
+  ownerId?: string | null;
+  shareType: ShareType | string;
+}): Promise<void> {
+  const { endpointId = null, ownerId = null, shareType } = opts;
+  try {
+    await sql()`
+      insert into lc_share_events (endpoint_id, owner_id, share_type)
+      values (${endpointId}, ${ownerId}, ${shareType})
+    `;
+    if (endpointId) {
+      if (shareType === "view_public_page") {
+        await sql()`update lc_endpoints set public_page_views = public_page_views + 1 where id = ${endpointId}`;
+      } else if (shareType.startsWith("copy_") || shareType === "submit_directory") {
+        await sql()`update lc_endpoints set share_count = share_count + 1 where id = ${endpointId}`;
+      }
+    }
+  } catch {
+    // swallow — analytics is non-critical
+  }
+}

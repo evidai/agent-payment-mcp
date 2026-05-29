@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { backendEnvReady, ensureOwnerId, sql, shortId, type EndpointRow } from "@/lib/lc-backend";
+import {
+  backendEnvReady,
+  ensureOwnerId,
+  ensureGrowthSchema,
+  generatePublicSlug,
+  sql,
+  shortId,
+  type EndpointRow,
+} from "@/lib/lc-backend";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -8,6 +16,7 @@ const notReady = () => NextResponse.json({ error: "backend_not_configured" }, { 
 
 export async function GET() {
   if (!backendEnvReady()) return notReady();
+  await ensureGrowthSchema();
   const ownerId = await ensureOwnerId();
   const rows = await sql()<EndpointRow[]>`
     select * from lc_endpoints
@@ -33,6 +42,7 @@ function sanitizeSlug(input: string): string {
 
 export async function POST(req: Request) {
   if (!backendEnvReady()) return notReady();
+  await ensureGrowthSchema();
   const ownerId = await ensureOwnerId();
 
   let body: CreateBody;
@@ -76,9 +86,21 @@ export async function POST(req: Request) {
 
   const upstreamAuth = body.upstreamAuth?.trim() || null;
 
+  // Globally-unique public handle for /api/<public_slug>. The per-owner `slug`
+  // can collide across owners, so the public page needs its own namespace.
+  const publicSlug = await generatePublicSlug(name);
+
   const [row] = await sql()<EndpointRow[]>`
-    insert into lc_endpoints (short_id, owner_id, name, slug, original_url, upstream_auth, price_per_call, token_budget, rate_limit, status)
-    values (${sid}, ${ownerId}, ${name}, ${slug}, ${originalUrl}, ${upstreamAuth}, ${pricePerCall}, ${tokenBudget}, ${rateLimit}, 'live')
+    insert into lc_endpoints (
+      short_id, owner_id, name, slug, original_url, upstream_auth,
+      price_per_call, token_budget, rate_limit, status,
+      public_slug, public_title, public_page_enabled, badge_enabled, directory_status
+    )
+    values (
+      ${sid}, ${ownerId}, ${name}, ${slug}, ${originalUrl}, ${upstreamAuth},
+      ${pricePerCall}, ${tokenBudget}, ${rateLimit}, 'live',
+      ${publicSlug}, ${name}, true, true, 'none'
+    )
     returning *
   `;
   return NextResponse.json({ endpoint: row }, { status: 201 });
