@@ -1,7 +1,7 @@
 {
   "name": "lemon-cake-mcp",
-  "version": "0.5.1",
-  "description": "DEPRECATED: renamed to `pay-per-call-mcp`. This package is now a thin wrapper that boots the renamed server so existing `npx -y lemon-cake-mcp` configs keep working.",
+  "version": "0.5.2",
+  "description": "DEPRECATED: renamed to `agent-payment-mcp`. This package is a thin wrapper so existing `npx -y lemon-cake-mcp` configs keep working.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -22,9 +22,9 @@
     "type": "git",
     "url": "https://github.com/evidai/lemon-cake.git"
   },
-  "homepage": "https://www.npmjs.com/package/pay-per-call-mcp",
+  "homepage": "https://www.npmjs.com/package/agent-payment-mcp",
   "bugs": {
-    "url": "https://github.com/evidai/lemon-cake/issues"
+    "url": "https://github.com/evidai/agent-payment-mcp/issues"
   },
   "license": "MIT",
   "scripts": {
@@ -35,6 +35,6 @@
     "access": "public"
   },
   "dependencies": {
-    "pay-per-call-mcp": "0.5.1"
+    "agent-payment-mcp": "0.6.0"
   }
 }
