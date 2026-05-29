@@ -21,8 +21,8 @@ export function LangSwitcher({ current, basePath, variant = "dark" }: LangSwitch
   function switchTo(loc: "ja" | "en") {
     document.cookie = `lemon_locale=${loc}; max-age=31536000; path=/`;
     const target = loc === "en"
-      ? `/en${basePath}`
-      : basePath;   // ja のときは prefix なしの canonical path に戻す
+      ? `${basePath}/en`   // EN 正規 URL は suffix 形式 (e.g. /about/en)
+      : basePath;   // ja のときは suffix なしの canonical path に戻す
     window.location.href = target;
   }
 

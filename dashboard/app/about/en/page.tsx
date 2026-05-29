@@ -181,46 +181,57 @@ export default function AboutPageEn() {
        * them click.
        */}
       <div className="bg-[#fffd43] w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 mb-6 flex-wrap justify-center">
-            <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
-              The safe monetization layer for AI APIs · Open core
-            </span>
-            <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
-              Private Beta
-            </span>
+        <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          {/* Image — top on mobile, right on desktop (mirrors JP /about hero) */}
+          <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
+            <img
+              src="/hero-visual.png"
+              alt="LemonCake — AI agent payment infrastructure"
+              className="w-full h-auto drop-shadow-2xl"
+            />
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#1a0f00] mb-6 leading-[1.08]">
-            Turn any AI API into a<br />
-            <span className="text-black">
-              paid API in minutes.
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-[#1a0f00]/60 max-w-2xl mx-auto mb-4 leading-relaxed">
-            No monthly fee. Pay 3% only when your AI API earns.<br className="hidden md:block" />
-            Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
-          </p>
-          <p className="text-[12px] text-[#1a0f00]/45 mb-10 leading-relaxed max-w-xl mx-auto">
-            <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br className="hidden md:block" />
-            <strong>Q3 2026:</strong> hosted gateway, Pay Token issuance, margin dashboard. Design partners get early access.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link
-              href="/app"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
-            >
-              Start building <IconArrowRight />
-            </Link>
-            <Link
-              href="/docs"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
-            >
-              View docs →
-            </Link>
+          {/* Text — bottom on mobile, left on desktop */}
+          <div className="flex-1 text-center md:text-left order-2 md:order-1">
+            <div className="inline-flex items-center gap-2 mb-5 flex-wrap justify-center md:justify-start">
+              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+                The safe monetization layer for AI APIs · Open core
+              </span>
+              <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
+                Private Beta
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.08]">
+              Turn any AI API into a<br />
+              <span className="text-black">
+                paid API in minutes.
+              </span>
+            </h1>
+            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
+              <strong className="text-[#1a0f00]">No monthly fee. Pay 3% only when your AI API earns.</strong><br />
+              Start free with 3,000 API calls — gateway, Pay Token, spend limits, metering all included.
+            </p>
+            <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
+              <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br />
+              <strong>Q3 2026:</strong> hosted gateway, Pay Token issuance, margin dashboard. Design partners get early access.
+            </p>
+            <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
+              >
+                Start building <IconArrowRight />
+              </Link>
+              <Link
+                href="/docs"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+              >
+                View docs →
+              </Link>
+            </div>
+            <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
+              Used by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
+            </p>
           </div>
-          <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-            Used by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
-          </p>
         </section>
 
         {/* Code snippet — sits inside the yellow hero band as a "this is real" anchor */}
