@@ -16,6 +16,12 @@ const nextConfig = {
       // Current product is the /app gateway + Stripe Connect Express path.
       // Inbound seller traffic should land in the actual workspace.
       { source: "/sellers", destination: "/app", permanent: true },
+
+      // /en/about was a prefix-style EN URL the old LangSwitcher generated.
+      // It never had a route file (404). EN canonical is the suffix form
+      // /about/en. Redirect so any cached / bookmarked / indexed old links
+      // land on the real page instead of 404ing.
+      { source: "/en/about", destination: "/about/en", permanent: true },
     ];
   },
 };
