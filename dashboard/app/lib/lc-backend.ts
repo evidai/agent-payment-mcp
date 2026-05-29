@@ -147,6 +147,9 @@ export type PayTokenRow = {
   expires_at: Date;
   status: "active" | "expired" | "exhausted" | "revoked";
   issued_at: Date;
+  // Phase 2 (buyer prepaid bundles) — null for seller-issued test tokens.
+  stripe_checkout_session_id?: string | null;
+  buyer_email?: string | null;
 };
 
 export type TestRunRow = {

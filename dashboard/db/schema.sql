@@ -101,3 +101,17 @@ create unique index if not exists lc_owners_stripe_account_unq on lc_owners(stri
 -- We bypass RLS on the server using SUPABASE_SERVICE_KEY. If you want to
 -- expose anon-key reads from the browser later, add RLS policies that
 -- match owner_id against a header / auth claim. For now, server-only.
+
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 2: buyer prepaid bundles (Stripe Direct Charge → Pay Token)
+-- A buyer pays on /buy/[shortId]; we mint ONE Pay Token whose budget == the
+-- amount paid (the 3% platform fee is taken once at Checkout, not per call).
+-- Idempotency is keyed by the Stripe Checkout Session id so the success-page
+-- fetch and the webhook can't double-mint.
+-- ───────────────────────────────────────────────────────────────────────
+
+alter table lc_pay_tokens add column if not exists stripe_checkout_session_id text;
+alter table lc_pay_tokens add column if not exists buyer_email text;
+create unique index if not exists lc_pay_tokens_session_unq
+  on lc_pay_tokens(stripe_checkout_session_id)
+  where stripe_checkout_session_id is not null;
