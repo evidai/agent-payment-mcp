@@ -129,7 +129,7 @@ export interface ExecutePermitTransferParams {
 }
 
 export interface PermitTransferResult {
-  permitTxHash:   Hex;
+  permitTxHash:   Hex | null;   // permit() 実行時の tx。既存 allowance を再利用してスキップした場合は null
   transferTxHash: Hex;
   feeTxHash:      Hex | null;   // 手数料 transferFrom の tx（スキップ時は null）
 }
@@ -159,24 +159,45 @@ export async function executePermitTransfer(
 
   const { permit, toAddress, amountRaw, feeAddress, feeAmountRaw } = params;
 
-  // ── Step 1: permit() ──────────────────────────────────────
+  // ── Step 1: permit()（必要な時だけ）─────────────────────────
+  // 「一度署名すれば 90 日・複数回課金」を成立させる肝。
+  // ERC-2612 permit は nonce 紐付きの使い切りなので、同じ署名を 2 回オンチェーン
+  // に出すと nonce 不一致で revert する。そこで毎回 permit() を呼ぶのではなく、
+  // 既存 allowance が今回の必要額（provider + fee）を満たすなら permit() を
+  // スキップし、確立済みの allowance から直接 transferFrom する。
+  // allowance が不足している初回（または使い切り後）だけ、クライアントが渡した
+  // “その時点の nonce で有効な”署名で permit() を実行して allowance を再確立する。
+  // これで stale な署名の再送による revert を避ける。
+  const needed = amountRaw + (feeAmountRaw ?? 0n);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const permitTxHash = await (walletClient.writeContract as any)({
+  const currentAllowance = (await (publicClient.readContract as any)({
     address:      BASE_USDC_ADDRESS,
     abi:          USDC_ABI,
-    functionName: "permit",
-    args: [
-      permit.owner,
-      permit.spender,
-      permit.value,
-      permit.deadline,
-      permit.v,
-      permit.r,
-      permit.s,
-    ],
-  }) as Hex;
+    functionName: "allowance",
+    args:         [permit.owner, permit.spender],
+  })) as bigint;
 
-  await publicClient.waitForTransactionReceipt({ hash: permitTxHash });
+  let permitTxHash: Hex | null = null;
+  if (currentAllowance < needed) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    permitTxHash = (await (walletClient.writeContract as any)({
+      address:      BASE_USDC_ADDRESS,
+      abi:          USDC_ABI,
+      functionName: "permit",
+      args: [
+        permit.owner,
+        permit.spender,
+        permit.value,
+        permit.deadline,
+        permit.v,
+        permit.r,
+        permit.s,
+      ],
+    })) as Hex;
+
+    await publicClient.waitForTransactionReceipt({ hash: permitTxHash });
+  }
 
   // ── Step 2: transferFrom() ────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
