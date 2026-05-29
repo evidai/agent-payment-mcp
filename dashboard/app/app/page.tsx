@@ -585,6 +585,28 @@ function AccountPane() {
     loadMe();
   }, [loadMe]);
 
+  // ── Social sign-in: which provider buttons to show ──
+  const [providers, setProviders] = useState<{ google: boolean; github: boolean } | null>(null);
+  useEffect(() => {
+    fetch("/api/lc/auth/providers")
+      .then((r) => r.json())
+      .then((d) => setProviders({ google: !!d.google, github: !!d.github }))
+      .catch(() => setProviders({ google: false, github: false }));
+  }, []);
+
+  // ── Sign-in result banner (magic link AND OAuth both land on ?auth=...) ──
+  const [authNote, setAuthNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const a = url.searchParams.get("auth");
+    if (!a) return;
+    setAuthNote(a);
+    if (a === "signed_in") loadMe(); // refresh so the card flips to "Signed in"
+    url.searchParams.delete("auth");
+    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+  }, [loadMe]);
+
   // ── Email claim flow ──
   const [emailInput, setEmailInput] = useState("");
   const [claimBusy, setClaimBusy] = useState(false);
@@ -644,9 +666,31 @@ function AccountPane() {
     }
   }
 
+  const authBanner: { tone: "ok" | "err"; text: string } | null = (() => {
+    if (!authNote) return null;
+    switch (authNote) {
+      case "signed_in": return { tone: "ok", text: "Signed in." };
+      case "oauth_denied": return { tone: "err", text: "Sign-in was cancelled." };
+      case "bad_state":
+      case "missing_code": return { tone: "err", text: "Sign-in session expired — please try again." };
+      case "oauth_exchange_failed":
+      case "owner_resolve_failed": return { tone: "err", text: "Couldn't complete sign-in — please try again." };
+      case "invalid_or_expired": return { tone: "err", text: "That link is invalid or expired." };
+      case "missing_token": return { tone: "err", text: "That sign-in link is incomplete." };
+      case "backend_not_configured": return { tone: "err", text: "Backend isn't configured yet." };
+      default: return authNote.endsWith("_not_configured") ? { tone: "err", text: "That sign-in method isn't configured yet." } : null;
+    }
+  })();
+
   return (
     <>
       <PaneHeading eyebrow="Account" title="Sign-in & payouts" subtitle="Claim this workspace with an email so you can recover it from any browser, then connect Stripe to accept buyer payments. LemonCake takes 3%; the rest settles straight to your Stripe balance." />
+
+      {authBanner && (
+        <div className={`mb-4 px-3.5 py-2.5 rounded-lg text-[12.5px] font-medium border ${authBanner.tone === "ok" ? "bg-[#16A34A]/8 border-[#16A34A]/25 text-[#15803D]" : "bg-[#DC2626]/8 border-[#DC2626]/25 text-[#B91C1C]"}`}>
+          {authBanner.text}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Card 1 — workspace identity */}
@@ -666,8 +710,38 @@ function AccountPane() {
           ) : (
             <div>
               <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">
-                Right now this workspace only lives in this browser&apos;s cookie. Add an email to lock it to you — required before connecting Stripe.
+                Sign in to claim this workspace so you can reach it from any browser — required before connecting Stripe.
               </p>
+
+              {providers && (providers.google || providers.github) && (
+                <div className="mb-3 space-y-2">
+                  {providers.google && (
+                    <a href="/api/lc/auth/oauth/google/start" className="flex items-center justify-center gap-2.5 w-full px-4 py-2.5 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] font-semibold text-[#1a0f00] hover:border-[#1a0f00]/40 transition-colors">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                        <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.4 5.4 0 0 1-2.4 3.58v2.97h3.86c2.26-2.09 3.56-5.17 3.56-8.79z" />
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-2.97c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z" />
+                        <path fill="#FBBC05" d="M5.27 14.32a7.2 7.2 0 0 1 0-4.62V6.61H1.29a12 12 0 0 0 0 10.8l3.98-3.09z" />
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.61l3.98 3.09C6.22 6.85 8.87 4.75 12 4.75z" />
+                      </svg>
+                      Continue with Google
+                    </a>
+                  )}
+                  {providers.github && (
+                    <a href="/api/lc/auth/oauth/github/start" className="flex items-center justify-center gap-2.5 w-full px-4 py-2.5 bg-[#1a0f00] text-white rounded-lg text-[13px] font-semibold hover:bg-[#1a0f00]/90 transition-colors">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z" />
+                      </svg>
+                      Continue with GitHub
+                    </a>
+                  )}
+                  <div className="flex items-center gap-3 pt-1">
+                    <span className="h-px flex-1 bg-[#1a0f00]/10" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">or email</span>
+                    <span className="h-px flex-1 bg-[#1a0f00]/10" />
+                  </div>
+                </div>
+              )}
+
               {claimResult?.ok && (claimResult.sent ? (
                 <p className="text-[12px] text-[#16A34A] mb-3">✓ Check your inbox for the magic link.</p>
               ) : (

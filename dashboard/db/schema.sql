@@ -115,3 +115,22 @@ alter table lc_pay_tokens add column if not exists buyer_email text;
 create unique index if not exists lc_pay_tokens_session_unq
   on lc_pay_tokens(stripe_checkout_session_id)
   where stripe_checkout_session_id is not null;
+
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 3: social sign-in (Google / GitHub OAuth)
+-- Self-hosted OAuth 2.0 Authorization Code flow. A social sign-in resolves
+-- to the SAME lc_owners row model as the email magic-link: an identity is
+-- recorded here so a returning user lands on their existing workspace no
+-- matter which provider (or magic link) they use. Owner email/cookie logic
+-- is unchanged — this table just maps (provider, subject) → owner_id.
+-- ───────────────────────────────────────────────────────────────────────
+
+create table if not exists lc_oauth_identities (
+  provider    text not null,            -- 'google' | 'github'
+  subject     text not null,            -- provider's stable user id (Google sub / GitHub numeric id)
+  owner_id    text not null references lc_owners(id) on delete cascade,
+  email       text,                     -- email seen at sign-in (may be unverified / null)
+  created_at  timestamptz not null default now(),
+  primary key (provider, subject)
+);
+create index if not exists lc_oauth_identities_owner_idx on lc_oauth_identities(owner_id);
