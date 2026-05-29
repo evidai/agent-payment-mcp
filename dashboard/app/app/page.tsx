@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode, type SVGProp
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
-type Pane = "add" | "apis" | "paytoken" | "test" | "revenue" | "blocked" | "account";
+type Pane = "add" | "apis" | "buylinks" | "paytoken" | "test" | "revenue" | "blocked" | "account";
 
 type Endpoint = {
   id: string;
@@ -51,6 +51,16 @@ type PayToken = {
   issuedAt: number;
   /** Returned only on issue() — the signed JWT the buyer hands to the gateway. */
   jwt?: string;
+  /** Buyer's email, captured at Stripe Checkout. null for manually-issued test tokens. */
+  buyerEmail?: string | null;
+  /**
+   * Where the token came from:
+   *   "purchase" — a buyer prepaid on /buy/[shortId] (real money, 97% already
+   *                landed in the seller's Stripe balance at checkout).
+   *   "test"     — the seller hand-issued it from the dashboard (a comp / for
+   *                testing the gateway). No money behind it.
+   */
+  source: "purchase" | "test";
 };
 
 type TestRun = {
@@ -76,10 +86,34 @@ type BlockedReq = {
   at: number;
 };
 
+/** Shape returned by GET /api/lc/stripe/status. */
+type StripeStatus = { connected: boolean; accountId?: string | null; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean; country: string | null };
+
+/** Aggregate of buyer prepaid purchases — the real money figures post-pivot. */
+type Sales = {
+  count: number;        // number of purchases (purchased tokens)
+  gross: number;        // total prepaid by buyers (sum of purchased token budgets)
+  net: number;          // what reaches the seller's Stripe balance (97%)
+  consumed: number;     // prepaid credit buyers have already spent through the gateway
+  outstanding: number;  // prepaid credit not yet consumed (seller's liability)
+};
+function computeSales(tokens: PayToken[]): Sales {
+  const purchased = tokens.filter((t) => t.source === "purchase");
+  const gross = purchased.reduce((a, t) => a + t.budget, 0);
+  const consumed = purchased.reduce((a, t) => a + Math.min(t.spent, t.budget), 0);
+  return {
+    count: purchased.length,
+    gross,
+    net: gross * 0.97,
+    consumed,
+    outstanding: Math.max(0, gross - consumed),
+  };
+}
+
 /* ────────────────────────────  serializers  ──────────────────────────── */
 
 type EndpointRow = { id: string; short_id: string; name: string; slug: string; original_url: string; upstream_auth: string | null; price_per_call: number | string; token_budget: number | string; rate_limit: number; status: "live" | "paused"; created_at: string };
-type PayTokenRow = { id: string; endpoint_id: string; budget: number | string; spent: number | string; max_calls: number; calls_used: number; expires_at: string; status: PayToken["status"]; issued_at: string };
+type PayTokenRow = { id: string; endpoint_id: string; budget: number | string; spent: number | string; max_calls: number; calls_used: number; expires_at: string; status: PayToken["status"]; issued_at: string; stripe_checkout_session_id?: string | null; buyer_email?: string | null };
 type TestRunRow  = { id: string; endpoint_id: string; pay_token_id: string; gross: number | string; fee: number | string; net: number | string; upstream_status: number | null; upstream_ms: number | null; at: string };
 type BlockedRow  = { id: string; endpoint_id: string; pay_token_id: string | null; reason: BlockReason; attempted: number | string; at: string };
 
@@ -96,6 +130,8 @@ const fromToken = (r: PayTokenRow): PayToken => ({
   maxCalls: r.max_calls, callsUsed: r.calls_used,
   expiresAt: new Date(r.expires_at).getTime(),
   status: r.status, issuedAt: new Date(r.issued_at).getTime(),
+  buyerEmail: r.buyer_email ?? null,
+  source: r.stripe_checkout_session_id ? "purchase" : "test",
 });
 const fromRun = (r: TestRunRow): TestRun => ({
   id: r.id, endpointId: r.endpoint_id, payTokenId: r.pay_token_id,
@@ -132,6 +168,12 @@ function gatewayUrlOf(shortId: string): string {
   if (typeof window !== "undefined") return `${window.location.origin}/g/${shortId}`;
   return `https://www.lemoncake.xyz/g/${shortId}`;
 }
+/** Public buyer-facing prepaid-purchase page. This is the link a seller shares
+ *  with buyers post-pivot: they pay on it and get a Pay Token automatically. */
+function buyUrlOf(shortId: string): string {
+  if (typeof window !== "undefined") return `${window.location.origin}/buy/${shortId}`;
+  return `https://www.lemoncake.xyz/buy/${shortId}`;
+}
 function slugifyName(input: string): string {
   return input.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32);
 }
@@ -155,6 +197,7 @@ const Icon = {
   Pause:   (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 4v16M15 4v16" /></svg>),
   Refresh: (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5" /></svg>),
   Bank:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 10 12 4l9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18" /></svg>),
+  Link:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>),
 };
 
 /* ────────────────────────────  sidebar  ──────────────────────────── */
@@ -164,6 +207,7 @@ const SIDEBAR: { heading: string; items: NavItem[] }[] = [
   { heading: "Setup", items: [
     { label: "Add API",      icon: "Plus", pane: "add" },
     { label: "Gateway",      icon: "Code", pane: "apis" },
+    { label: "Buy links",    icon: "Link", pane: "buylinks" },
     { label: "Pay Tokens",   icon: "Key",  pane: "paytoken" },
     { label: "Test Request", icon: "Play", pane: "test" },
   ]},
@@ -272,6 +316,18 @@ function RealDashboard() {
   }, [jwtById]);
   const [loaded,    setLoaded]    = useState(false);
 
+  // Seller's Stripe Connect state — lifted here so the Gateway, Usage Ledger,
+  // and post-create success card can all tell whether a shared buy link will
+  // actually take payments (charges_enabled) without each refetching it.
+  const [stripe, setStripe] = useState<StripeStatus | null>(null);
+  useEffect(() => {
+    fetch("/api/lc/stripe/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j && typeof j.connected === "boolean") setStripe(j as StripeStatus); })
+      .catch(() => { /* 503 / not configured → leave null */ });
+  }, []);
+  const paymentsReady = !!stripe?.chargesEnabled;
+
   const refetchAll = useCallback(async () => {
     const [e, t, r, b] = await Promise.all([
       fetch("/api/lc/endpoints").then((x) => x.json()).catch(() => ({ endpoints: [] })),
@@ -294,10 +350,11 @@ function RealDashboard() {
   }
 
   const activeTokens = tokens.filter((t) => t.status === "active");
-  const totalRevenue = runs.reduce((a, r) => a + r.gross, 0);
+  const sales = computeSales(tokens);
+  const sellableCount = endpoints.filter((e) => e.pricePerCall > 0).length;
   const counts: Record<Pane, number | null> = {
-    add: null, apis: endpoints.length, paytoken: activeTokens.length,
-    test: runs.length, revenue: null, blocked: blocked.length, account: null,
+    add: null, apis: endpoints.length, buylinks: sellableCount || null, paytoken: activeTokens.length,
+    test: runs.length, revenue: sales.count || null, blocked: blocked.length, account: null,
   };
 
   // Returning from Stripe-hosted onboarding lands on /app?stripe=return|refresh.
@@ -305,8 +362,12 @@ function RealDashboard() {
   // (AccountPane refreshes from Stripe + clears the query param on mount).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const sp = new URL(window.location.href).searchParams.get("stripe");
+    const params = new URL(window.location.href).searchParams;
+    const sp = params.get("stripe");
     if (sp === "return" || sp === "refresh") setActivePane("account");
+    // Returning from a magic link or OAuth round-trip lands on ?auth=... —
+    // jump to the Account pane so the sign-in result is visible.
+    if (params.get("auth")) setActivePane("account");
   }, []);
 
   /* Mutations — all hit the API, then refetch */
@@ -347,7 +408,7 @@ function RealDashboard() {
 
   return (
     <div>
-      <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} endpoints={endpoints} activeTokensCount={activeTokens.length} runs={runs} blocked={blocked} totalRevenue={totalRevenue} setActivePane={(p) => goTo(p)} />
+      <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} endpoints={endpoints} activeTokensCount={activeTokens.length} runs={runs} blocked={blocked} sales={sales} setActivePane={(p) => goTo(p)} />
 
       <div className="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[228px_1fr] gap-8">
         <Sidebar activePane={activePane} counts={counts} onSelect={(p) => goTo(p)} />
@@ -355,11 +416,12 @@ function RealDashboard() {
         <main className="min-w-0">
           {!loaded ? <p className="text-[12px] text-[#1a0f00]/40 py-12 text-center">Loading workspace…</p> : (
             <>
-              {activePane === "add"      && <AddPane endpoints={endpoints} goTo={goTo} api={api} />}
-              {activePane === "apis"     && <ApisPane endpoints={endpoints} tokens={tokens} runs={runs} api={api} goTo={goTo} />}
+              {activePane === "add"      && <AddPane endpoints={endpoints} goTo={goTo} api={api} paymentsReady={paymentsReady} />}
+              {activePane === "apis"     && <ApisPane endpoints={endpoints} tokens={tokens} runs={runs} api={api} goTo={goTo} paymentsReady={paymentsReady} />}
+              {activePane === "buylinks" && <BuyLinksPane endpoints={endpoints} tokens={tokens} goTo={goTo} paymentsReady={paymentsReady} />}
               {activePane === "paytoken" && <PayTokenPane endpoints={endpoints} tokens={tokens} jwtById={jwtById} api={api} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
               {activePane === "test"     && <TestPane endpoints={endpoints} tokens={tokens} jwtById={jwtById} runs={runs} api={api} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
-              {activePane === "revenue"  && <RevenuePane endpoints={endpoints} runs={runs} />}
+              {activePane === "revenue"  && <RevenuePane endpoints={endpoints} runs={runs} tokens={tokens} sales={sales} stripe={stripe} goTo={goTo} />}
               {activePane === "blocked"  && <BlockedPane blocked={blocked} endpoints={endpoints} api={api} />}
               {activePane === "account"  && <AccountPane />}
             </>
@@ -383,10 +445,10 @@ type Api = {
   refetch: () => Promise<void>;
 };
 
-function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blocked, totalRevenue, setActivePane }: {
+function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blocked, sales, setActivePane }: {
   menuOpen: boolean; setMenuOpen: (b: boolean | ((p: boolean) => boolean)) => void;
   endpoints: Endpoint[]; activeTokensCount: number; runs: TestRun[]; blocked: BlockedReq[];
-  totalRevenue: number; setActivePane: (p: Pane) => void;
+  sales: Sales; setActivePane: (p: Pane) => void;
 }) {
   // Fetched profile (incl. email if claimed). Refetched whenever the
   // dropdown re-opens so a magic-link sign-in is reflected immediately.
@@ -432,9 +494,10 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
                   <dl className="text-[11.5px] space-y-1.5 mb-3">
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Endpoints</dt><dd className="font-mono font-semibold">{endpoints.length}</dd></div>
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Active Pay Tokens</dt><dd className="font-mono font-semibold">{activeTokensCount}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Buyer purchases</dt><dd className="font-mono font-semibold">{sales.count}</dd></div>
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Paid calls</dt><dd className="font-mono font-semibold">{runs.length}</dd></div>
                     <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Blocked</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Earned (net)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(totalRevenue * 0.97)}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Sales (net 97%)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(sales.net)}</dd></div>
                   </dl>
 
                   {/* Sign-in, Stripe Connect and Owner ID now live in the
@@ -493,8 +556,8 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
           <p className="text-[11px] font-bold text-[#1a0f00]/80"><span className="font-mono">$0</span>/mo</p>
         </div>
         <ul className="space-y-1 text-[10.5px] text-[#1a0f00]/65 mb-2">
-          <li>3,000 API calls free</li>
-          <li>3% when settlement goes live</li>
+          <li>3,000 API calls free / mo</li>
+          <li>Then 3% platform fee</li>
           <li>No fixed transaction fee</li>
         </ul>
         <Link href="/pricing" className="text-[10.5px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] hover:underline">View pricing →</Link>
@@ -683,7 +746,7 @@ function AccountPane() {
   );
 }
 
-function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; api: Api }) {
+function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; api: Api; paymentsReady: boolean }) {
   // Empty by default — the placeholder shows the example. The user types
   // their own. (Pricing / budget / rate keep real defaults since those are
   // sensible starting values, not example labels.)
@@ -799,6 +862,8 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
     return (
       <CreatedSuccess
         endpoint={created}
+        paymentsReady={paymentsReady}
+        onConnectStripe={() => goTo("account")}
         onIssueToken={() => goTo("paytoken", { endpointId: created.id })}
         onTest={() => goTo("test", { endpointId: created.id })}
         onCreateAnother={() => { setCreated(null); setVerify(null); }}
@@ -815,19 +880,15 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
       />
 
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {["Metering live", "Pay Tokens live", "Usage ledger live"].map((label) => (
+        {["Metering live", "Pay Tokens live", "Usage ledger live", "Access control live", "Buyer prepay checkout live"].map((label) => (
           <span key={label} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
             <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#16A34A]/15 text-[#16A34A] text-[9px] font-black">✓</span>
             {label}
           </span>
         ))}
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1a0f00]/45" />
-          Access control live · Settlement optional
-        </span>
       </div>
       <p className="mb-6 text-[10.5px] text-[#1a0f00]/45 leading-snug">
-        Stripe / x402 settlement can be enabled later — endpoint, metering, and ledger work without it.
+        Everything works end-to-end: create an endpoint, share its buy link, and buyers prepay via Stripe to get a Pay Token automatically. Connect Stripe in Account so those payments land in your balance — 97% to you, 3% to LemonCake, taken once at checkout.
       </p>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
@@ -932,7 +993,7 @@ function AddPane({ endpoints, goTo, api }: { endpoints: Endpoint[]; goTo: (p: Pa
             {ctaLabel}
           </button>
           <p className="mt-2.5 text-center text-[11px] text-[#1a0f00]/55">
-            Next: issue Pay Token → send test request → watch ledger update
+            Next: create endpoint → share its buy link → buyers prepay → sales land
           </p>
         </div>
 
@@ -1049,8 +1110,8 @@ function PreviewPanel({
           <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
         </div>
         <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/50">
-          <Icon.Lock className="w-3 h-3" />
-          Ledger only. Stripe / x402 settlement comes next.
+          <Icon.Bank className="w-3 h-3" />
+          Usage meter. Connect Stripe in Account to enable payouts.
         </p>
       </div>
     </aside>
@@ -1072,14 +1133,18 @@ function PreviewStep({ n, title, children }: { n: number; title: string; childre
 /* ─── Post-create success state ─── */
 
 function CreatedSuccess({
-  endpoint, onIssueToken, onTest, onCreateAnother,
+  endpoint, paymentsReady, onConnectStripe, onIssueToken, onTest, onCreateAnother,
 }: {
   endpoint: Endpoint;
+  paymentsReady: boolean;
+  onConnectStripe: () => void;
   onIssueToken: () => void;
   onTest: () => void;
   onCreateAnother: () => void;
 }) {
   const url = gatewayUrlOf(endpoint.shortId);
+  const buyUrl = buyUrlOf(endpoint.shortId);
+  const isPriced = endpoint.pricePerCall > 0;
   return (
     <>
       <div className="mb-6 flex items-start gap-3">
@@ -1088,15 +1153,40 @@ function CreatedSuccess({
           <p className="text-[11px] font-bold text-[#16A34A] uppercase tracking-widest mb-1">Live</p>
           <h1 className="text-[26px] md:text-[30px] font-black leading-[1.15] tracking-tight">Your paid-access endpoint is live</h1>
           <p className="mt-2 text-[13px] text-[#1a0f00]/60">
-            <code className="font-mono text-[12px] bg-[#1a0f00]/6 px-1.5 py-0.5 rounded">{endpoint.name}</code> is ready to take paid requests.
-            Hand the gateway URL + a Pay Token to your buyer.
+            <code className="font-mono text-[12px] bg-[#1a0f00]/6 px-1.5 py-0.5 rounded">{endpoint.name}</code> is ready.
+            Share its buy link — buyers prepay and get a Pay Token automatically.
           </p>
         </div>
       </div>
 
+      {isPriced && (
+        <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
+            <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/15 px-3 py-3">
+            <code className="font-mono text-[13px] text-[#1a0f00] break-all">{buyUrl}</code>
+            <div className="flex-shrink-0 flex items-center gap-1.5">
+              <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
+              <a href={buyUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> Open</a>
+            </div>
+          </div>
+          {!paymentsReady && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-3">
+              <Icon.Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/40" />
+              <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">
+                The link is live, but buyers can&apos;t pay until you connect Stripe.{" "}
+                <button type="button" onClick={onConnectStripe} className="font-semibold text-[#1a0f00] underline underline-offset-2">Connect Stripe in Account →</button>
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Gateway URL</p>
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/15 px-3 py-3 mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Gateway URL <span className="font-normal normal-case tracking-normal text-[#1a0f00]/45">— what Pay Tokens call</span></p>
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] px-3 py-3 mb-5">
           <code className="font-mono text-[13px] text-[#1a0f00] break-all">{url}</code>
           <button
             type="button"
@@ -1127,14 +1217,16 @@ function CreatedSuccess({
 
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Next step</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={onIssueToken} className="inline-flex items-center gap-2 px-4 py-2 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[13px] rounded-lg transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)]">
-            <Icon.Key className="w-4 h-4" /> Issue Pay Token
-          </button>
+          {isPriced && (
+            <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[13px] rounded-lg transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)]">
+              <Icon.Copy className="w-3.5 h-3.5" /> Copy buy link
+            </button>
+          )}
           <button type="button" onClick={onTest} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
             <Icon.Play className="w-3.5 h-3.5" /> Send test request
           </button>
-          <button type="button" onClick={() => navigator.clipboard?.writeText(url)} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
-            <Icon.Copy className="w-3.5 h-3.5" /> Copy Gateway URL
+          <button type="button" onClick={onIssueToken} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
+            <Icon.Key className="w-3.5 h-3.5" /> Issue test token
           </button>
           <div className="flex-1" />
           <button type="button" onClick={onCreateAnother} className="text-[12px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">
@@ -1156,7 +1248,7 @@ function CreatedSuccess({
   );
 }
 
-function ApisPane({ endpoints, tokens, runs, api, goTo }: { endpoints: Endpoint[]; tokens: PayToken[]; runs: TestRun[]; api: Api; goTo: (p: Pane, opts?: { endpointId?: string }) => void }) {
+function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpoints: Endpoint[]; tokens: PayToken[]; runs: TestRun[]; api: Api; goTo: (p: Pane, opts?: { endpointId?: string }) => void; paymentsReady: boolean }) {
   if (endpoints.length === 0) {
     return (
       <>
@@ -1175,10 +1267,14 @@ function ApisPane({ endpoints, tokens, runs, api, goTo }: { endpoints: Endpoint[
       />
       <div className="space-y-3">
         {endpoints.map((e) => {
-          const tokensForThis = tokens.filter((t) => t.endpointId === e.id && t.status === "active").length;
-          const callsForThis  = runs.filter((r) => r.endpointId === e.id).length;
-          const earned        = runs.filter((r) => r.endpointId === e.id).reduce((a, r) => a + r.net, 0);
-          const url           = gatewayUrlOf(e.shortId);
+          const tokensForThis    = tokens.filter((t) => t.endpointId === e.id && t.status === "active").length;
+          const callsForThis     = runs.filter((r) => r.endpointId === e.id).length;
+          const purchasedForThis = tokens.filter((t) => t.endpointId === e.id && t.source === "purchase");
+          const soldGross        = purchasedForThis.reduce((a, t) => a + t.budget, 0);
+          const soldNet          = soldGross * 0.97;
+          const url              = gatewayUrlOf(e.shortId);
+          const buyUrl           = buyUrlOf(e.shortId);
+          const isPriced         = e.pricePerCall > 0;
           return (
             <div key={e.id} className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1203,6 +1299,34 @@ function ApisPane({ endpoints, tokens, runs, api, goTo }: { endpoints: Endpoint[
                   <IconButton title="Delete" tone="danger" onClick={() => { if (confirm(`Delete "${e.name}" and all its Pay Tokens?`)) api.deleteEndpoint(e.id); }}><Icon.Trash className="w-3.5 h-3.5" /></IconButton>
                 </div>
               </div>
+
+              {/* Buy link — the post-pivot share artifact. Buyers prepay here and
+                  get a Pay Token automatically; the seller never hand-issues. */}
+              {isPriced ? (
+                <div className="mt-4 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-3.5">
+                  <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
+                    <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
+                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+                  </div>
+                  {!paymentsReady && (
+                    <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
+                      <Icon.Lock className="w-3 h-3 flex-shrink-0" />
+                      Connect Stripe to start taking payments —
+                      <button type="button" onClick={() => goTo("account")} className="font-semibold text-[#1a0f00] underline underline-offset-2">finish in Account →</button>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-xl border border-[#1a0f00]/10 bg-[#fafaf7] px-3.5 py-2.5 text-[11px] text-[#1a0f00]/55 leading-snug">
+                  Free endpoint — no prepay needed. Set a price per call to enable a buy link for paying buyers.
+                </p>
+              )}
+
               <dl className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <Stat label="Price" v={fmtUsd(e.pricePerCall)} suf="/ call" />
                 <Stat label="Rate limit" v={String(e.rateLimit)} suf="req/min" />
@@ -1211,17 +1335,121 @@ function ApisPane({ endpoints, tokens, runs, api, goTo }: { endpoints: Endpoint[
                 <Stat label="Created" v={timeAgo(e.createdAt)} />
               </dl>
               <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-[#1a0f00]/65">
-                <span><span className="font-semibold text-[#1a0f00]">{tokensForThis}</span> active Pay {tokensForThis === 1 ? "Token" : "Tokens"}</span>
-                <span><span className="font-semibold text-[#1a0f00]">{callsForThis}</span> paid {callsForThis === 1 ? "call" : "calls"}</span>
-                <span><span className="font-semibold text-[#16A34A]">{fmtUsd(earned)}</span> earned</span>
+                <span><span className="font-semibold text-[#1a0f00]">{purchasedForThis.length}</span> {purchasedForThis.length === 1 ? "purchase" : "purchases"}</span>
+                <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> earned (net)</span>
+                <span><span className="font-semibold text-[#1a0f00]">{tokensForThis}</span> active {tokensForThis === 1 ? "token" : "tokens"}</span>
+                <span><span className="font-semibold text-[#1a0f00]">{callsForThis}</span> {callsForThis === 1 ? "call" : "calls"}</span>
                 <div className="flex-1" />
-                <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Issue Pay Token →</button>
+                <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Issue test token →</button>
                 <button type="button" onClick={() => goTo("test", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Test request →</button>
               </div>
             </div>
           );
         })}
       </div>
+    </>
+  );
+}
+
+/* Buy links — the post-pivot go-to-market surface. One public prepaid-purchase
+   page per priced endpoint; sellers copy/share these and buyers self-serve. */
+function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: Endpoint[]; tokens: PayToken[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; paymentsReady: boolean }) {
+  const priced = endpoints.filter((e) => e.pricePerCall > 0);
+  const free   = endpoints.filter((e) => e.pricePerCall <= 0);
+
+  if (endpoints.length === 0) {
+    return (
+      <>
+        <PaneHeading eyebrow="Share" title="Buy links" subtitle="Create a paid API and you get a link to share with buyers. They prepay on it and receive a Pay Token automatically — no manual issuing." />
+        <EmptyState actionLabel="Add your first API" onAction={() => goTo("add")} hint="Every paid endpoint gets its own buy link." />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PaneHeading
+        eyebrow="Share"
+        title="Buy links"
+        subtitle="One shareable page per paid endpoint. Buyers prepay with a card; a Pay Token is minted and delivered automatically. You keep 97% — the 3% platform fee is taken once at checkout."
+        action={<button type="button" onClick={() => goTo("add")} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">+ Add API</button>}
+      />
+
+      {!paymentsReady && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[#635BFF]/25 bg-[#635BFF]/6 p-4">
+          <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#635BFF]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[12.5px] font-bold text-[#1a0f00]">Connect Stripe to start taking payments</p>
+            <p className="text-[11.5px] text-[#1a0f00]/60 leading-snug mt-0.5">You can share buy links now, but checkout can&apos;t collect money until your Stripe payouts are connected.</p>
+          </div>
+          <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">Connect Stripe →</button>
+        </div>
+      )}
+
+      {priced.length > 0 ? (
+        <div className="space-y-3">
+          {priced.map((e) => {
+            const buyUrl    = buyUrlOf(e.shortId);
+            const purchases = tokens.filter((t) => t.endpointId === e.id && t.source === "purchase");
+            const soldGross = purchases.reduce((a, t) => a + t.budget, 0);
+            const soldNet   = soldGross * 0.97;
+            const isLive    = e.status === "live";
+            return (
+              <div key={e.id} className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <h3 className="text-[15px] font-bold">{e.name}</h3>
+                  <StatusPill status={e.status} />
+                  <span className="text-[11px] text-[#1a0f00]/50">{fmtUsd(e.pricePerCall)} / call</span>
+                </div>
+
+                {!isLive && (
+                  <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 leading-snug">
+                    This endpoint is paused — the buy link shows buyers a temporarily-unavailable message until you resume it in Gateway.
+                  </p>
+                )}
+
+                <div className="rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-3.5">
+                  <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
+                    <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
+                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-[#1a0f00]/65">
+                  <span><span className="font-semibold text-[#1a0f00]">{purchases.length}</span> {purchases.length === 1 ? "purchase" : "purchases"}</span>
+                  <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> earned (net)</span>
+                  <div className="flex-1" />
+                  <button type="button" onClick={() => goTo("revenue")} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">View sales →</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white border border-dashed border-[#1a0f00]/15 p-8 text-center">
+          <p className="text-[13px] font-semibold text-[#1a0f00]/70">No sellable endpoints yet</p>
+          <p className="mt-1.5 text-[11.5px] text-[#1a0f00]/50 leading-relaxed max-w-[440px] mx-auto">Buy links exist only for endpoints with a price per call. Add a price when you create an API to get a prepaid purchase page.</p>
+        </div>
+      )}
+
+      {free.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-[#1a0f00]/10 bg-[#fafaf7] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Free endpoints · no buy link</p>
+          <div className="flex flex-wrap gap-2">
+            {free.map((e) => (
+              <span key={e.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#1a0f00]/10 text-[11.5px] text-[#1a0f00]/65">
+                {e.name} <span className="text-[#1a0f00]/35">free</span>
+              </span>
+            ))}
+          </div>
+          <p className="mt-2.5 text-[10.5px] text-[#1a0f00]/45 leading-snug">These have no price per call, so there is nothing to prepay. Set a price to enable a buy link.</p>
+        </div>
+      )}
     </>
   );
 }
@@ -1241,6 +1469,11 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
   useEffect(() => {
     if (endpoints.length > 0 && !endpoints.find((e) => e.id === endpointId)) setEndpointId(endpoints[0].id);
   }, [endpoints, endpointId]);
+
+  const selectedEp = endpoints.find((e) => e.id === endpointId);
+  const buyUrl = selectedEp ? buyUrlOf(selectedEp.shortId) : "";
+  const purchasedCount = tokens.filter((t) => t.source === "purchase").length;
+  const testCount = tokens.length - purchasedCount;
 
   if (endpoints.length === 0) {
     return (<>
@@ -1268,11 +1501,27 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
 
   return (
     <>
-      <PaneHeading eyebrow="Pay Token" title="Issue & manage Pay Tokens" subtitle="Each token is a spend-capped, expirable JWT your buyer attaches as Bearer auth. Decremented server-side on every paid call." />
+      <PaneHeading eyebrow="Pay Token" title="Pay Tokens" subtitle="Buyers get a Pay Token automatically when they prepay on your buy link — you don't issue those by hand. The form below mints a test / comp token for trying out your own gateway." />
+
+      {selectedEp && selectedEp.pricePerCall > 0 && (
+        <section className="rounded-2xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">How buyers actually get tokens</p>
+            <span className="text-[10px] text-[#1a0f00]/45">{selectedEp.name}</span>
+          </div>
+          <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed mb-2">Share this buy link. Buyers prepay via Stripe and a Pay Token is minted + handed to them automatically — no manual issuing.</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
+            <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
+            <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
-          <h3 className="text-[14px] font-bold mb-4">Issue a new Pay Token</h3>
+          <h3 className="text-[14px] font-bold mb-1">Issue a test / comp token</h3>
+          <p className="text-[11.5px] text-[#1a0f00]/55 leading-snug mb-4">For testing your gateway or comping access. No payment is taken — use the buy link above for real buyers.</p>
           <div className="space-y-4">
             <Field label="Endpoint">
               <Select value={endpointId} onChange={setEndpointId}>
@@ -1286,11 +1535,11 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
             </div>
           </div>
           {err && <p className="mt-4 text-[12px] text-[#DC2626] bg-[#DC2626]/8 border border-[#DC2626]/25 rounded-lg px-3 py-2">{err}</p>}
-          <button type="button" onClick={issue} disabled={busy} className="mt-5 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">{busy ? "Issuing…" : "Issue Pay Token"}</button>
+          <button type="button" onClick={issue} disabled={busy} className="mt-5 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">{busy ? "Issuing…" : "Issue test token"}</button>
 
           {justIssued && (
             <div className="mt-4 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/30 p-3">
-              <p className="text-[12px] font-bold text-[#16A34A] mb-2">Issued. Give this JWT to your buyer.</p>
+              <p className="text-[12px] font-bold text-[#16A34A] mb-2">Test token issued. Use it in Test Request or hand it to a tester.</p>
               <code className="block font-mono text-[10.5px] text-[#1a0f00]/85 break-all bg-white/60 border border-[#1a0f00]/8 rounded p-2 select-all">{justIssued.jwt}</code>
               <button type="button" onClick={() => navigator.clipboard?.writeText(justIssued.jwt)} className="mt-2 text-[11px] font-semibold text-[#1a0f00] hover:underline">Copy JWT</button>
               <p className="mt-2 text-[10.5px] text-[#1a0f00]/55">Token id <code className="font-mono">{justIssued.token.id}</code>. Shown once — the dashboard keeps it in memory until you reload.</p>
@@ -1298,23 +1547,23 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
           )}
         </div>
         <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">How tokens are used</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">How tokens work</p>
           <ol className="text-[12px] text-[#1a0f00]/70 space-y-1.5 list-decimal pl-4">
-            <li>Issue here. Hand the JWT to your buyer / agent.</li>
+            <li><span className="font-semibold">Buyers prepay</span> on your buy link → a Pay Token is minted automatically and shown to them once.</li>
             <li>They send <code className="font-mono text-[11px] bg-[#fafaf7] px-1 rounded">Authorization: Bearer &lt;jwt&gt;</code> to your gateway URL.</li>
             <li>Gateway verifies signature, looks up the token in Postgres, decrements budget + calls, forwards to your origin.</li>
-            <li>Revoke instantly — next request fails closed.</li>
+            <li>Revoke any token instantly — next request fails closed. The form on the left mints test / comp tokens only.</li>
           </ol>
         </aside>
       </section>
 
       <section className="mt-8">
-        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">All Pay Tokens ({tokens.length})</h3>
-        {tokens.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">No tokens issued yet.</p> : (
+        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">All Pay Tokens ({tokens.length}) <span className="font-normal text-[#1a0f00]/45">· {purchasedCount} purchased · {testCount} test</span></h3>
+        {tokens.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">No tokens yet — share your buy link to land your first purchase, or issue a test token above.</p> : (
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">Token</th><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Budget left</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Expires</th><th className="text-right px-4 py-2.5 font-semibold">Status</th><th className="px-2"></th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">Token</th><th className="text-left px-4 py-2.5 font-semibold">Source</th><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Budget left</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Expires</th><th className="text-right px-4 py-2.5 font-semibold">Status</th><th className="px-2"></th></tr>
               </thead>
               <tbody>
                 {tokens.map((t) => {
@@ -1326,6 +1575,16 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
                       <td className="px-4 py-2.5">
                         <code className="font-mono text-[11px]">{t.id}</code>
                         {hasJwt && <button type="button" onClick={() => navigator.clipboard?.writeText(jwtById[t.id])} className="ml-2 text-[10px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline">Copy JWT</button>}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {t.source === "purchase" ? (
+                          <div className="min-w-0">
+                            <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#635BFF] bg-[#635BFF]/10">Purchased</span>
+                            {t.buyerEmail && <p className="mt-0.5 text-[10.5px] text-[#1a0f00]/50 truncate max-w-[160px]" title={t.buyerEmail}>{t.buyerEmail}</p>}
+                          </div>
+                        ) : (
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#1a0f00]/55 bg-[#1a0f00]/6">Test</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-[#1a0f00]/75">{ep?.name ?? "—"}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{fmtUsd(left)} <span className="text-[#1a0f00]/40">/ {fmtUsd(t.budget)}</span></td>
@@ -1588,10 +1847,17 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
   );
 }
 
-function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun[] }) {
-  const gross = runs.reduce((a, r) => a + r.gross, 0);
-  const fee   = runs.reduce((a, r) => a + r.fee, 0);
-  const net   = runs.reduce((a, r) => a + r.net, 0);
+function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoints: Endpoint[]; runs: TestRun[]; tokens: PayToken[]; sales: Sales; stripe: StripeStatus | null; goTo: (p: Pane, opts?: { endpointId?: string }) => void }) {
+  // `sales` is the real money (buyer prepayments). The per-call `runs` are how
+  // buyers consume that prepaid credit through the gateway — no money moves per
+  // call, since the 3% platform fee is taken once at checkout. `stripe` is
+  // lifted from the parent so we don't refetch status here; a null value
+  // (Stripe not configured on this deployment) simply hides the banner.
+  const receiveSub =
+    stripe?.payoutsEnabled ? "Settles to your Stripe balance"
+      : stripe?.connected   ? "Finish Stripe onboarding to receive"
+        : stripe === null   ? "Net after the 3% fee"
+          : "Connect Stripe to receive";
 
   // Free-tier counter: paid calls in the current UTC month, capped display at 3,000
   const FREE_TIER = 3000;
@@ -1612,11 +1878,55 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
 
   return (
     <>
-      <PaneHeading eyebrow="Usage Ledger" title="What your APIs have earned" subtitle="All numbers are read directly from Postgres — every charge is a real paid request that went through the gateway. Ledger only for now; Stripe / x402 settlement layer next." />
+      <PaneHeading eyebrow="Revenue" title="Sales & usage" subtitle="Buyers prepay on your buy links — LemonCake takes 3% once at checkout, 97% lands in your Stripe balance. Below: what you've sold, plus how buyers are metering their prepaid credit through the gateway." />
+
+      {/* Settlement readiness — reflects the seller's live Stripe Connect state */}
+      {stripe && (
+        stripe.payoutsEnabled ? (
+          <section className="rounded-2xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-4 mb-6 flex items-start gap-3">
+            <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#16A34A]" />
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-bold text-[#16A34A]">Payouts enabled{stripe.country ? ` · ${stripe.country}` : ""}</p>
+              <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Your Stripe account is ready. Buyer prepayments settle to your Stripe balance on Stripe&apos;s payout schedule.</p>
+            </div>
+          </section>
+        ) : stripe.connected ? (
+          <section className="rounded-2xl bg-[#fffd43]/15 border border-[#1a0f00]/10 p-4 mb-6 flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 min-w-0">
+              <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/55" />
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-bold">Stripe onboarding incomplete</p>
+                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Your account is created but KYC / bank details are still pending. Finish it so this metered total can pay out.</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#1a0f00] text-white font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors">Finish in Account →</button>
+          </section>
+        ) : (
+          <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-4 mb-6 flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 min-w-0">
+              <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#635BFF]" />
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-bold">Not payout-ready yet</p>
+                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Buyers can&apos;t prepay on your buy links until you connect Stripe. Connect now — LemonCake keeps 3%, 97% lands in your Stripe balance.</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">Connect Stripe →</button>
+          </section>
+        )
+      )}
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Prepaid sales</p>
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <BigStat label="Sold (prepaid)" v={fmtUsd(sales.gross)} sub={`${sales.count} ${sales.count === 1 ? "purchase" : "purchases"}`} />
+        <BigStat label="Platform fee (3%)" v={fmtUsd(sales.gross * 0.03)} sub="Collected once at checkout" muted />
+        <BigStat label="You receive (97%)" v={fmtUsd(sales.net)} sub={receiveSub} highlight />
+      </section>
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Credit usage</p>
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <BigStat label="Gross" v={fmtUsd(gross)} sub={`${runs.length} paid ${runs.length === 1 ? "call" : "calls"}`} />
-        <BigStat label="LemonCake fee (3%)" v={fmtUsd(fee)} sub="What we collect" muted />
-        <BigStat label="You receive" v={fmtUsd(net)} sub="Settles to your wallet (Q3 2026)" highlight />
+        <BigStat label="Calls served" v={runs.length.toLocaleString()} sub="through the gateway" muted />
+        <BigStat label="Credit consumed" v={fmtUsd(sales.consumed)} sub="of prepaid balances" muted />
+        <BigStat label="Credit outstanding" v={fmtUsd(sales.outstanding)} sub="unspent buyer balances" muted />
       </section>
 
       {/* Free-tier progress */}
@@ -1644,7 +1954,7 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
         </p>
       </section>
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 mb-6">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">Last 14 days · gross</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">Last 14 days · metered volume</p>
         <div className="flex items-end gap-1 h-32">
           {days.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -1656,25 +1966,26 @@ function RevenuePane({ endpoints, runs }: { endpoints: Endpoint[]; runs: TestRun
       </section>
       <section>
         <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">Per endpoint</h3>
-        {endpoints.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">Add an endpoint to start tracking revenue.</p> : (
+        {endpoints.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">Add an endpoint to start selling access.</p> : (
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Gross</th><th className="text-right px-4 py-2.5 font-semibold">Fee</th><th className="text-right px-4 py-2.5 font-semibold">You receive</th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Purchases</th><th className="text-right px-4 py-2.5 font-semibold">Sold</th><th className="text-right px-4 py-2.5 font-semibold">You receive</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Credit left</th></tr>
               </thead>
               <tbody>
                 {endpoints.map((e) => {
-                  const rows = runs.filter((r) => r.endpointId === e.id);
-                  const g = rows.reduce((a, r) => a + r.gross, 0);
-                  const f = rows.reduce((a, r) => a + r.fee, 0);
-                  const n = rows.reduce((a, r) => a + r.net, 0);
+                  const purchased  = tokens.filter((t) => t.source === "purchase" && t.endpointId === e.id);
+                  const soldG      = purchased.reduce((a, t) => a + t.budget, 0);
+                  const calls      = runs.filter((r) => r.endpointId === e.id).length;
+                  const creditLeft = purchased.reduce((a, t) => a + Math.max(0, t.budget - t.spent), 0);
                   return (
                     <tr key={e.id} className="border-b border-[#1a0f00]/6 last:border-0">
                       <td className="px-4 py-2.5">{e.name}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{rows.length}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{fmtUsd(g)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[#1a0f00]/55">-{fmtUsd(f)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-bold text-[#16A34A]">{fmtUsd(n)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono">{purchased.length}</td>
+                      <td className="px-4 py-2.5 text-right font-mono">{fmtUsd(soldG)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-bold text-[#16A34A]">{fmtUsd(soldG * 0.97)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-[#1a0f00]/55">{calls}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-[#1a0f00]/55">{fmtUsd(creditLeft)}</td>
                     </tr>
                   );
                 })}
