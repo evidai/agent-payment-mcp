@@ -1,8 +1,13 @@
 "use client";
 
 /**
- * /admin/funnel — DB グラウンドトゥルース由来の conversion funnel。
- * GA4 に依存せず、自前の DB だけで「LP → Provider 登録 → Sub 開始 → 課金」を可視化。
+ * /admin/funnel — DB グラウンドトゥルース由来の LP 活性度ダッシュボード。
+ * GA4 に依存せず、自前の DB だけで「LP 訪問・デモ実行の活性度 + 流入源」を可視化。
+ *
+ * NOTE (pivot 後): Provider 登録 / 有料サブスク / 実課金の各段階は、旧 (pivot 前)
+ * の providerV2 / subscription / permitCharge モデル依存で、現行のプリペイド課金
+ * には繋がっていないため UI から撤去した。現行の売上・Provider・ゲートウェイ
+ * 呼び出しはオペレータコンソール (/admin) を参照。
  *
  * 参照 API: GET /api/telemetry/funnel?days=N (admin Bearer 必須)
  */
@@ -11,7 +16,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Legend,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { AdminShell } from "../_components/AdminPageNav";
 
@@ -61,14 +66,6 @@ interface TrafficSourcesResponse {
   byCountry:  Array<{ country: string;  views: number; uniqueIps: number }>;
 }
 
-const PLAN_COLOR: Record<string, string> = {
-  FREE:       "#9ca3af",
-  PRO:        "#f59e0b",
-  BUSINESS:   "#8b5cf6",
-  SCALE:      "#ef4444",
-  ENTERPRISE: "#1f2937",
-};
-
 export default function FunnelPage() {
   const router = useRouter();
   const [data,    setData]    = useState<FunnelResponse | null>(null);
@@ -114,9 +111,9 @@ export default function FunnelPage() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Conversion Funnel</h1>
+            <h1 className="text-2xl font-bold text-gray-900">LP 活性度</h1>
             <p className="text-sm text-gray-500 mt-1">
-              LP 訪問 → /sellers 登録 → サブスク → 実課金 の各段階を DB から直接集計
+              LP 訪問 → デモ実行 の活性度と流入源を DB から直接集計
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -153,8 +150,18 @@ export default function FunnelPage() {
 
         {data && t && !loading && (
           <>
-            {/* Funnel stages — 5 cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+            {/* pivot 前モデル依存の段階 (登録/サブスク/課金) は撤去。LP 活性度のみ。 */}
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+              <span className="font-bold">表示範囲について：</span>
+              Provider 登録 / 有料サブスク / 実課金は旧 (pivot 前) の subscription・PermitCharge
+              モデル依存で、現行のプリペイド課金には繋がっていないため撤去しました。
+              現行の売上・Provider・ゲートウェイ呼び出しは{" "}
+              <a href="/admin" className="underline font-semibold">オペレータコンソール</a>
+              {" "}を参照してください。ここでは LP の活性度（訪問・デモ実行）と流入源のみを集計します。
+            </div>
+
+            {/* LP activity — 2 cards */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <FunnelCard
                 step="01"
                 title="LP 訪問者"
@@ -170,34 +177,6 @@ export default function FunnelPage() {
                 color="gray"
                 rate={t.lpUniqueVisitors > 0 ? t.lpDemoRuns / t.lpUniqueVisitors : 0}
                 rateLabel="回 / 訪問者"
-              />
-              <FunnelCard
-                step="03"
-                title="登録 Provider"
-                value={t.providersRegistered}
-                sub="/sellers 登録完了"
-                color="amber"
-                rate={data.rates.visitorToProvider}
-                rateLabel="訪問者 → 登録"
-              />
-              <FunnelCard
-                step="04"
-                title="有料サブスク"
-                value={t.subscriptionsCreated}
-                sub="PRO プラン以上"
-                color="violet"
-                rate={data.rates.providerToSubscriber}
-                rateLabel="Provider → 有料化"
-              />
-              <FunnelCard
-                step="05"
-                title="売上"
-                value={`$${parseFloat(t.permitChargesUsdc).toFixed(2)}`}
-                sub={`課金 ${t.permitChargesCount.toLocaleString()} 件`}
-                color="emerald"
-                isMonetary
-                rate={data.rates.providerToCharger}
-                rateLabel="Provider → 課金あり"
               />
             </div>
 
@@ -217,13 +196,9 @@ export default function FunnelPage() {
                         <stop offset="5%"  stopColor="#9ca3af" stopOpacity={0.4}/>
                         <stop offset="95%" stopColor="#9ca3af" stopOpacity={0}/>
                       </linearGradient>
-                      <linearGradient id="g_providers" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="g_demo" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.5}/>
                         <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="g_subs" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.6}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
@@ -236,63 +211,10 @@ export default function FunnelPage() {
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }}/>
-                    <Area type="monotone" dataKey="lpUniqueVisitors"     name="LP 訪問者"      stroke="#9ca3af" fill="url(#g_visitors)"  strokeWidth={1.5}/>
-                    <Area type="monotone" dataKey="providersRegistered"  name="登録 Provider"  stroke="#f59e0b" fill="url(#g_providers)" strokeWidth={2}/>
-                    <Area type="monotone" dataKey="subscriptionsCreated" name="有料サブスク"    stroke="#8b5cf6" fill="url(#g_subs)"      strokeWidth={2}/>
+                    <Area type="monotone" dataKey="lpUniqueVisitors" name="LP 訪問者" stroke="#9ca3af" fill="url(#g_visitors)" strokeWidth={1.5}/>
+                    <Area type="monotone" dataKey="lpDemoRuns"       name="デモ実行"  stroke="#f59e0b" fill="url(#g_demo)"      strokeWidth={2}/>
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Plan breakdown bar */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-sm font-bold text-gray-900 mb-3">プラン内訳</h2>
-                {data.byPlan.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-8 text-center">この期間に有料サブスクなし</p>
-                ) : (
-                  <div style={{ width: "100%", height: 180 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={data.byPlan} layout="vertical" margin={{ top: 5, right: 16, left: 8, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
-                        <XAxis type="number" tick={{ fontSize: 10, fill: "#6b7280" }} allowDecimals={false} />
-                        <YAxis type="category" dataKey="plan" tick={{ fontSize: 11, fill: "#374151", fontWeight: 600 }} width={80}/>
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }}/>
-                        <Bar dataKey="count" name="サブスク数" radius={[0, 6, 6, 0]}>
-                          {data.byPlan.map((p) => (
-                            <Cell key={p.plan} fill={PLAN_COLOR[p.plan] ?? "#6b7280"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </div>
-
-              {/* Conversion rates */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-sm font-bold text-gray-900 mb-3">転換率</h2>
-                <div className="space-y-3">
-                  <RateBar
-                    label="LP 訪問者 → /sellers 登録"
-                    rate={data.rates.visitorToProvider}
-                    color="bg-amber-500"
-                  />
-                  <RateBar
-                    label="Provider → 有料サブスク"
-                    rate={data.rates.providerToSubscriber}
-                    color="bg-violet-500"
-                  />
-                  <RateBar
-                    label="Provider → 実課金あり（課金者数 / Provider 数）"
-                    rate={data.rates.providerToCharger}
-                    color="bg-emerald-500"
-                  />
-                </div>
-                <p className="mt-4 text-[10px] text-gray-400 leading-relaxed">
-                  ※ 課金は <code>PermitCharge.status = COMPLETED</code> をカウント。<br/>
-                  ※ 訪問者は <code>PlaygroundLog.ipHash</code> のユニーク数（playground を踏んだ訪問者のみ。素通り訪問者は GA4 で別途）。
-                </p>
               </div>
             </div>
 
@@ -318,9 +240,6 @@ export default function FunnelPage() {
                     <th className="px-3 py-2 text-left font-bold">日付</th>
                     <th className="px-3 py-2 text-right font-bold">訪問者</th>
                     <th className="px-3 py-2 text-right font-bold">デモ実行</th>
-                    <th className="px-3 py-2 text-right font-bold">登録</th>
-                    <th className="px-3 py-2 text-right font-bold">有料化</th>
-                    <th className="px-3 py-2 text-right font-bold">課金</th>
                   </tr>
                 </thead>
                 <tbody className="text-gray-700 font-mono">
@@ -329,13 +248,10 @@ export default function FunnelPage() {
                       <td className="px-3 py-2">{d.date}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{d.lpUniqueVisitors}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{d.lpDemoRuns}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{d.providersRegistered}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{d.subscriptionsCreated}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{d.permitChargesCount}</td>
                     </tr>
                   ))}
                   {data.daily.length === 0 && (
-                    <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-400">データなし</td></tr>
+                    <tr><td colSpan={3} className="px-3 py-8 text-center text-gray-400">データなし</td></tr>
                   )}
                 </tbody>
               </table>
@@ -388,21 +304,6 @@ function FunnelCard({ step, title, value, sub, color, isMonetary, rate, rateLabe
           <span>{rateLabel}</span>
         </div>
       )}
-    </div>
-  );
-}
-
-function RateBar({ label, rate, color }: { label: string; rate: number; color: string }) {
-  const pct = Math.min(100, Math.max(0, rate * 100));
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-[11px] mb-1">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-mono font-bold text-gray-900">{pct.toFixed(1)}%</span>
-      </div>
-      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-        <div className={`h-full ${color}`} style={{ width: `${pct}%` }}/>
-      </div>
     </div>
   );
 }

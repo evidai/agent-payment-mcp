@@ -1,33 +1,20 @@
 "use client";
 
+/**
+ * /admin/telemetry — クライアント / トラフィックの兆候ダッシュボード。
+ *
+ * NOTE (pivot 後): 旧 Pay Token / Charge ベースのクライアント内訳
+ * (User-Agent 別 Token/Charge/USDC) は pivot 前の m2m モデル依存で、現行の
+ * プリペイド課金には繋がっていないため UI から撤去した。現行の購入・呼び出しは
+ * オペレータコンソール (/admin) を参照。ここでは外部トラフィックの兆候
+ * (glance / pageView)・LP playground・SDK/MCP アクセスのみを集計する。
+ */
+
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AdminShell } from "../_components/AdminPageNav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
-
-interface ClientBucket {
-  client:       string;
-  family:       string;
-  version:      string | null;
-  tokenCount:   number;
-  chargeCount:  number;
-  totalUsdc:    string;
-  buyerCount:   number;
-  firstSeen:    string;
-  lastSeen:     string;
-}
-
-interface UsageResponse {
-  windowDays:  number;
-  generatedAt: string;
-  totals: {
-    identifiedTokens:   number;
-    unidentifiedTokens: number;
-    totalClients:       number;
-  };
-  clients: ClientBucket[];
-}
 
 interface McpFamilyBucket {
   family:        string;
@@ -93,7 +80,6 @@ interface GlanceResponse {
 
 export default function TelemetryPage() {
   const router = useRouter();
-  const [data,        setData]        = useState<UsageResponse | null>(null);
   const [mcpData,     setMcpData]     = useState<McpAccessResponse | null>(null);
   const [playData,    setPlayData]    = useState<PlaygroundResponse | null>(null);
   const [glance,      setGlance]      = useState<GlanceResponse | null>(null);
@@ -119,21 +105,16 @@ export default function TelemetryPage() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const glanceUrl = `${API_URL}/api/telemetry/glance${selfIpHash ? `?selfIp=${encodeURIComponent(selfIpHash)}` : ""}`;
-      const [usageRes, mcpRes, playRes, glanceRes] = await Promise.all([
-        fetch(`${API_URL}/api/telemetry/client-usage?days=${d}`,                  { headers }),
+      const [mcpRes, playRes, glanceRes] = await Promise.all([
         fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`,      { headers }),
         fetch(`${API_URL}/api/telemetry/playground?days=${d}`,                    { headers }),
         fetch(glanceUrl,                                                          { headers }),
       ]);
-      if (usageRes.status === 401 || mcpRes.status === 401 || playRes.status === 401 || glanceRes.status === 401) {
+      if (mcpRes.status === 401 || playRes.status === 401 || glanceRes.status === 401) {
         localStorage.removeItem("admin_token");
         router.push("/admin/login");
         return;
       }
-      const usageJson = await usageRes.json();
-      if (!usageRes.ok) throw new Error(usageJson.error ?? "failed (usage)");
-      setData(usageJson);
-
       if (mcpRes.ok)    setMcpData(await mcpRes.json());     else setMcpData(null);
       if (playRes.ok)   setPlayData(await playRes.json());   else setPlayData(null);
       if (glanceRes.ok) setGlance(await glanceRes.json());   else setGlance(null);
@@ -156,29 +137,7 @@ export default function TelemetryPage() {
     setSelfIp("");
   }
 
-  const familyTotals = (() => {
-    if (!data) return [];
-    const byFamily = new Map<string, { tokens: number; charges: number; buyers: number; usdc: number; versions: Set<string> }>();
-    for (const c of data.clients) {
-      const f = byFamily.get(c.family) ?? { tokens: 0, charges: 0, buyers: 0, usdc: 0, versions: new Set() };
-      f.tokens  += c.tokenCount;
-      f.charges += c.chargeCount;
-      f.buyers  += c.buyerCount;
-      f.usdc    += Number(c.totalUsdc);
-      if (c.version) f.versions.add(c.version);
-      byFamily.set(c.family, f);
-    }
-    return Array.from(byFamily.entries())
-      .map(([family, v]) => ({
-        family,
-        tokens: v.tokens,
-        charges: v.charges,
-        buyers: v.buyers,
-        usdc: v.usdc.toFixed(4),
-        versions: Array.from(v.versions).sort().join(", ") || "—",
-      }))
-      .sort((a, b) => b.tokens - a.tokens);
-  })();
+  const generatedAt = playData?.generatedAt ?? mcpData?.generatedAt ?? null;
 
   return (
     <AdminShell title="Client Telemetry">
@@ -329,88 +288,25 @@ export default function TelemetryPage() {
           </div>
         </div>
 
+        {/* pivot 前モデル依存のクライアント内訳は撤去した旨の注記 */}
+        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+          <span className="font-bold">表示範囲について：</span>
+          旧 Pay Token / Charge ベースのクライアント内訳（User-Agent 別 Token/Charge/USDC）は
+          pivot 前の m2m モデル依存で、現行のプリペイド課金には繋がっていないため撤去しました。
+          現行の購入・呼び出しは{" "}
+          <a href="/admin" className="underline font-semibold">オペレータコンソール</a>
+          {" "}を参照してください。ここでは外部トラフィックの兆候（ヒーロー）・LP playground・SDK/MCP アクセスのみ集計します。
+        </div>
+
         {loading && <div className="text-gray-400 text-sm">読み込み中…</div>}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">{error}</div>
         )}
 
-        {data && !loading && (
+        {!loading && !error && (
           <>
-            {/* KPI */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <Kpi label="Identified Tokens" value={data.totals.identifiedTokens} sub={`UA 有り (過去${data.windowDays}日)`} />
-              <Kpi label="Unidentified" value={data.totals.unidentifiedTokens} sub="UA 無し（直接 API 呼出）" />
-              <Kpi label="Unique Clients" value={data.totals.totalClients} sub="UA 文字列の種類" />
-            </div>
-
-            {/* Family rollup */}
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">クライアント種別 (Family)</h2>
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-8">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs">
-                  <tr>
-                    <th className="text-left px-4 py-2.5 font-medium">Family</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Versions</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Tokens</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Charges</th>
-                    <th className="text-right px-4 py-2.5 font-medium">USDC</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Buyers</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {familyTotals.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-6 text-gray-400">データなし</td></tr>
-                  )}
-                  {familyTotals.map(f => (
-                    <tr key={f.family}>
-                      <td className="px-4 py-2.5 font-medium text-gray-800">{f.family}</td>
-                      <td className="px-4 py-2.5 text-gray-500 text-xs font-mono">{f.versions}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{f.tokens}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{f.charges}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{f.usdc}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{f.buyers}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Detail per UA string */}
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">User-Agent 別（詳細）</h2>
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs">
-                  <tr>
-                    <th className="text-left px-4 py-2.5 font-medium">User-Agent</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Tokens</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Charges</th>
-                    <th className="text-right px-4 py-2.5 font-medium">USDC</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Buyers</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Last Seen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.clients.length === 0 && (
-                    <tr><td colSpan={6} className="text-center py-6 text-gray-400">データなし</td></tr>
-                  )}
-                  {data.clients.map(c => (
-                    <tr key={c.client}>
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-600 break-all max-w-[420px]">{c.client}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{c.tokenCount}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{c.chargeCount}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{c.totalUsdc}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{c.buyerCount}</td>
-                      <td className="px-4 py-2.5 text-right text-xs text-gray-400">
-                        {new Date(c.lastSeen).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
             {/* ─── /start LP Playground (PlaygroundLog ベース) ─── */}
-            <div className="mt-12">
+            <div>
               <div className="flex items-baseline justify-between mb-3">
                 <h2 className="text-sm font-semibold text-gray-700">/start LP Playground</h2>
                 <span className="text-[10px] text-gray-400">DemoPlayground 経由の Run クリック · npm install 前段の活性指標</span>
@@ -567,9 +463,11 @@ export default function TelemetryPage() {
               )}
             </div>
 
-            <p className="text-xs text-gray-400 mt-8">
-              Generated: {new Date(data.generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
-            </p>
+            {generatedAt && (
+              <p className="text-xs text-gray-400 mt-8">
+                Generated: {new Date(generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
+              </p>
+            )}
           </>
         )}
       </div>
