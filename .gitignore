@@ -51,3 +51,8 @@ create-lemon-agent/
 .vercel
 # MCP registry publisher CLI binary (downloaded tool, not source)
 mcp-publisher
+# Internal — must NOT leak to the public repo (regulator drafts, legal, credential-touching scripts)
+legal/
+fsa-reply-draft.md
+api/scripts/freee-reauth.ts
+api/scripts/freee-extract-from-db.ts
