@@ -15,7 +15,7 @@ const CreateProviderV2Body = z.object({
   baseWalletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Base wallet address"),
   apiEndpointUrl:    z.string().url().optional(),
   pricePerCallUsdc:  z.string().regex(/^\d+(\.\d{1,6})?$/).default("0.005"),
-  freeCallsPerMonth: z.coerce.number().int().min(0).max(1_000_000).default(1000),
+  freeCallsPerMonth: z.coerce.number().int().min(0).max(1_000_000).default(3000),
   // 適格請求書発行事業者登録番号（T + 13桁）。日本のインボイス制度。
   registrationNumber: z.string().regex(/^T\d{13}$/, "Must be T + 13 digits").optional(),
   // 月末 cron が前月分のインボイスを自動発行するか

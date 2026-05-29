@@ -123,17 +123,23 @@ export interface PermitParams {
 export interface ExecutePermitTransferParams {
   permit:          PermitParams;
   toAddress:       Address;   // provider の受取ウォレット
-  amountRaw:       bigint;    // 送金額 USDC units（permit.value 以下）
+  amountRaw:       bigint;    // provider へ送る USDC units（permit.value 以下）
+  feeAddress?:     Address;   // LemonCake 手数料受取ウォレット（任意）
+  feeAmountRaw?:   bigint;    // 手数料 USDC units（0 / 未指定なら手数料送金をスキップ）
 }
 
 export interface PermitTransferResult {
   permitTxHash:   Hex;
   transferTxHash: Hex;
+  feeTxHash:      Hex | null;   // 手数料 transferFrom の tx（スキップ時は null）
 }
 
 /**
- * permit() → transferFrom() を順に実行する。
- * 両 tx が確定するまで await する（Base は ~2 秒/ブロック）。
+ * permit() → transferFrom(provider) → transferFrom(fee) を順に実行する。
+ * 手数料は同一 permit allowance の枠内で 2 件目の transferFrom として送るため、
+ * owner の再署名は不要。資金は常に owner → 受取先へ直接移動し、LemonCake は
+ * 自分の手数料分も自ウォレットへ直接受け取る（非カストディを維持）。
+ * 全 tx が確定するまで await する（Base は ~2 秒/ブロック）。
  */
 export async function executePermitTransfer(
   params: ExecutePermitTransferParams,
@@ -151,7 +157,7 @@ export async function executePermitTransfer(
     transport: http(rpcUrl),
   });
 
-  const { permit, toAddress, amountRaw } = params;
+  const { permit, toAddress, amountRaw, feeAddress, feeAmountRaw } = params;
 
   // ── Step 1: permit() ──────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,7 +193,26 @@ export async function executePermitTransfer(
 
   await publicClient.waitForTransactionReceipt({ hash: transferTxHash });
 
-  return { permitTxHash, transferTxHash };
+  // ── Step 3: 手数料 transferFrom()（任意）─────────────────────
+  // 同一 permit allowance の残枠から LemonCake 手数料ウォレットへ送る。
+  let feeTxHash: Hex | null = null;
+  if (feeAddress && feeAmountRaw && feeAmountRaw > 0n) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    feeTxHash = await (walletClient.writeContract as any)({
+      address:      BASE_USDC_ADDRESS,
+      abi:          USDC_ABI,
+      functionName: "transferFrom",
+      args: [
+        permit.owner,
+        getAddress(feeAddress),
+        feeAmountRaw,
+      ],
+    }) as Hex;
+
+    await publicClient.waitForTransactionReceipt({ hash: feeTxHash });
+  }
+
+  return { permitTxHash, transferTxHash, feeTxHash };
 }
 
 // ─── ERC-3009 transferWithAuthorization ──────────────────────

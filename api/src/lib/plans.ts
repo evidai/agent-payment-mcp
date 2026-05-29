@@ -42,7 +42,7 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, PlanConfig> = {
   FREE: {
     monthlyJpy:         0,
     monthlyUsd:         0,
-    freeCallsPerMonth:  1000,
+    freeCallsPerMonth:  3000,
     features: {
       accountingIntegration: false,
       invoiceGeneration:     false,

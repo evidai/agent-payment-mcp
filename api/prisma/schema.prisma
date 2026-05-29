@@ -737,11 +737,17 @@ model PermitCharge {
   // サービス識別子（/api/providers 配下の Provider.id or slug）
   serviceId String
 
-  // 実際に transferFrom した USDC 量（小数点以下 6 桁、Base USDC と一致）
+  // バイヤーが支払った総額（gross。小数点以下 6 桁、Base USDC と一致）
   amountUsdc Decimal @db.Decimal(38, 18)
 
-  // on-chain txHash（実行後に埋まる）
+  // うち LemonCake 手数料（売れた時だけ徴収する 3% 分。無料枠内/徴収スキップ時は 0）
+  feeUsdc Decimal? @db.Decimal(38, 18)
+
+  // provider への送金 txHash（実行後に埋まる）
   txHash String?
+
+  // 手数料 transferFrom の txHash（徴収した場合のみ）
+  feeTxHash String?
 
   // PENDING → COMPLETED | FAILED
   status PermitChargeStatus @default(PENDING)
@@ -758,6 +764,7 @@ model PermitCharge {
   @@index([ownerAddress, serviceId, createdAt])
   @@index([ownerAddress, createdAt])
   @@index([status])
+  @@index([serviceId, status])   // セラー通算の無料枠カウント用
   @@map("permit_charges")
 }
 
@@ -785,8 +792,8 @@ model ProviderV2 {
   apiEndpointUrl String?
   pricePerCallUsdc Decimal @default(0.005) @db.Decimal(38, 18)
 
-  // 月間無料枠（デフォルト 1,000 call）
-  freeCallsPerMonth Int @default(1000)
+  // 月間無料枠（デフォルト 3,000 call）
+  freeCallsPerMonth Int @default(3000)
 
   // 発行されたシークレット（MCP 設定に貼る API KEY）
   apiKey String @unique @default(cuid())

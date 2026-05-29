@@ -26,7 +26,22 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { prisma } from "../lib/prisma.js";
 import { executePermitTransfer, type PermitParams } from "../lib/usdc-base-permit.js";
 import { resolvePlanFromName } from "../lib/plans.js";
-import { type Address, type Hex, parseUnits } from "viem";
+import { type Address, type Hex, parseUnits, getAddress, isAddress } from "viem";
+import { Decimal } from "@prisma/client/runtime/library";
+
+// ─── 手数料設定（売れた時だけ徴収。初回無料枠を超えたコールに適用）──────
+//   LEMONCAKE_FEE_BPS       手数料率 bps（デフォルト 300 = 3%）
+//   LEMONCAKE_FEE_WALLET    手数料受取ウォレット（Base, 0x...）。未設定なら徴収しない
+//   LEMONCAKE_MIN_FEE_USDC  手数料の下限しきい値（デフォルト 0.001 USDC）。
+//                           算出手数料がこれ未満なら、ガス代割れ回避のため徴収をスキップ。
+function feeConfig() {
+  const bps    = parseInt(process.env.LEMONCAKE_FEE_BPS ?? "300", 10);
+  const wallet = process.env.LEMONCAKE_FEE_WALLET;
+  const minFee = new Decimal(process.env.LEMONCAKE_MIN_FEE_USDC ?? "0.001");
+  const validBps    = Number.isFinite(bps) && bps >= 0 && bps <= 10000 ? bps : 300;
+  const validWallet = wallet && isAddress(wallet) ? (getAddress(wallet) as Address) : null;
+  return { bps: validBps, wallet: validWallet, minFee };
+}
 
 export const chargesPermitRouter = new OpenAPIHono();
 
@@ -110,22 +125,19 @@ chargesPermitRouter.openapi(
       : "FREE";
     const planCfg = resolvePlanFromName(planName);
 
-    // ── メータリング: 今月の call 数（冪等性チェック前に計算）─
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    const monthlyCallCount = await prisma.permitCharge.count({
+    // ── メータリング: セラー（serviceId）の通算 call 数（冪等性チェック前に計算）─
+    //   料金モデル: セラーごとに「初回 freeCallsPerMonth コールだけ無料」（一度きり・
+    //   月リセットなし・全バイヤー合算）。それ以降は pricePerCallUsdc を徴収し、
+    //   うち手数料 bps を LemonCake が受け取る（97% セラー / 3% LemonCake）。
+    const sellerCallCount = await prisma.permitCharge.count({
       where: {
-        ownerAddress: permit.owner,
         serviceId,
-        createdAt: { gte: monthStart },
         status: "COMPLETED",
       },
     });
 
-    const quotaRemaining = Math.max(0, planCfg.freeCallsPerMonth - monthlyCallCount);
-    const isFree = monthlyCallCount < planCfg.freeCallsPerMonth;
+    const quotaRemaining = Math.max(0, planCfg.freeCallsPerMonth - sellerCallCount);
+    const isFree = sellerCallCount < planCfg.freeCallsPerMonth;
 
     // ── 冪等性チェック ────────────────────────────────────────
     // 既存レコードがある場合は現在のクォータを計算し直して返す
@@ -176,6 +188,17 @@ chargesPermitRouter.openapi(
       });
     }
 
+    // ── 手数料計算（売れた時だけ徴収）──────────────────────────
+    //   total（= pricePerCallUsdc）を 97% セラー / 3% LemonCake に分割。
+    //   算出手数料が下限しきい値未満、または受取ウォレット未設定なら徴収せず
+    //   100% セラーへ（極小単価でガス代割れの赤字送金を避ける）。
+    const { bps: feeBps, wallet: feeWallet, minFee } = feeConfig();
+    const totalDecimal = new Decimal(effectiveAmount);
+    let feeDecimal     = totalDecimal.mul(feeBps).div(10000).toDecimalPlaces(6, Decimal.ROUND_DOWN);
+    const takeFee      = !!feeWallet && feeDecimal.gte(minFee);
+    if (!takeFee) feeDecimal = new Decimal(0);
+    const providerDecimal = totalDecimal.sub(feeDecimal);
+
     // ── 有料: Base 上で permit + transferFrom を実行 ──────────
     try {
       const permitParams: PermitParams = {
@@ -188,13 +211,16 @@ chargesPermitRouter.openapi(
         s:        permit.s as Hex,
       };
 
-      // overage の単価で transferFrom（client の amountUsdc は無視）
-      const amountRaw = parseUnits(effectiveAmount, 6);
+      // overage の単価を 97/3 に分割して transferFrom（client の amountUsdc は無視）
+      const amountRaw = parseUnits(providerDecimal.toFixed(6), 6);
+      const feeRaw    = takeFee ? parseUnits(feeDecimal.toFixed(6), 6) : 0n;
 
-      const { permitTxHash, transferTxHash } = await executePermitTransfer({
-        permit:    permitParams,
-        toAddress: provider.baseWalletAddress as Address,
+      const { permitTxHash, transferTxHash, feeTxHash } = await executePermitTransfer({
+        permit:       permitParams,
+        toAddress:    provider.baseWalletAddress as Address,
         amountRaw,
+        feeAddress:   takeFee ? feeWallet! : undefined,
+        feeAmountRaw: feeRaw,
       });
 
       const completed = await prisma.permitCharge.update({
@@ -202,6 +228,8 @@ chargesPermitRouter.openapi(
         data: {
           status:         "COMPLETED",
           txHash:         transferTxHash,
+          feeUsdc:        feeDecimal,
+          feeTxHash:      feeTxHash,
           completedAt:    new Date(),
         },
       });
@@ -265,28 +293,34 @@ chargesPermitRouter.openapi(
   }),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (c: any) => {
-    const { ownerAddress, serviceId } = c.req.valid("query");
+    // ownerAddress はクエリ互換のため残すが、通算セラー単位の集計では未使用。
+    const { serviceId } = c.req.valid("query");
 
-    const provider = await prisma.providerV2.findUnique({ where: { id: serviceId } });
+    const provider = await prisma.providerV2.findUnique({
+      where: { id: serviceId },
+      include: { subscription: true },
+    });
     if (!provider) return c.json({ error: "Provider not found" }, 404);
 
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    // 無料枠は課金判定と同一ソース（planCfg）から算出し、表示=実挙動を一致させる。
+    const planName = provider.subscription?.status === "ACTIVE"
+      ? provider.subscription.plan
+      : "FREE";
+    const planCfg = resolvePlanFromName(planName);
 
-    const monthlyCallCount = await prisma.permitCharge.count({
+    // 通算セラー単位の COMPLETED 件数（課金判定と同一ロジック。月リセットなし・
+    // 全バイヤー合算）。レスポンスの monthlyCallCount は互換維持のため名前据え置き。
+    const sellerCallCount = await prisma.permitCharge.count({
       where: {
-        ownerAddress,
         serviceId,
-        createdAt: { gte: monthStart },
         status: "COMPLETED",
       },
     });
 
     return c.json({
-      monthlyCallCount,
-      freeCallsPerMonth: provider.freeCallsPerMonth,
-      quotaRemaining:    Math.max(0, provider.freeCallsPerMonth - monthlyCallCount),
+      monthlyCallCount:  sellerCallCount,
+      freeCallsPerMonth: planCfg.freeCallsPerMonth,
+      quotaRemaining:    Math.max(0, planCfg.freeCallsPerMonth - sellerCallCount),
       pricePerCallUsdc:  provider.pricePerCallUsdc.toString(),
     });
   },
