@@ -7,12 +7,23 @@
  *   routes bypass the owner-cookie scoping that the public /api/lc/* routes
  *   use, so they MUST be gated to operators only.
  *
- * Auth model (same pattern as /api/admin/killswitch):
+ * Auth model:
  *   The browser holds an admin session token (localStorage.admin_token,
- *   issued by the Express backend's /api/auth/login). It is sent as a
- *   Bearer header. We validate it server-side against the Express
- *   /api/auth/me endpoint and require role === "admin". The token is never
- *   trusted on its own — Express is the source of truth for the role.
+ *   issued by the Express backend's POST /api/auth/login → signAdminToken,
+ *   signed with ADMIN_JWT_SECRET, iss "kyapay-admin", { role: "admin" }).
+ *   It is sent as a Bearer header.
+ *
+ *   We validate it server-side by probing an admin-gated Express endpoint
+ *   (GET /api/admin/stats), which runs the backend's verifyAdminToken()
+ *   guard. A 2xx means the token is a valid admin token; anything else
+ *   (401/403/network) means it is not. Express is the single source of
+ *   truth for the admin secret, so the secret never has to be mirrored
+ *   onto Vercel and the two can never drift out of sync.
+ *
+ *   NOTE: we deliberately do NOT use /api/auth/me — that endpoint verifies
+ *   *buyer* tokens (verifyBuyerToken / JWT_SECRET) and never returns a
+ *   `role`, so an admin token can never pass it. Validating against it was
+ *   the reason the operator console always 401'd.
  */
 
 import { NextRequest } from "next/server";
@@ -24,12 +35,12 @@ export async function requireAdmin(req: NextRequest): Promise<boolean> {
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return false;
   try {
-    const me = await fetch(`${API_URL}/api/auth/me`, {
+    const probe = await fetch(`${API_URL}/api/admin/stats`, {
       headers: { Authorization: auth },
+      // never cache the auth probe
+      cache: "no-store",
     });
-    if (!me.ok) return false;
-    const data = (await me.json()) as { role?: string };
-    return data.role === "admin";
+    return probe.ok;
   } catch {
     return false;
   }
