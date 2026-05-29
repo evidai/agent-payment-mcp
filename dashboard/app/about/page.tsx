@@ -5,7 +5,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — AI API を数分で有料化する従量課金レイヤー（オープンコア）",
-  description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%（毎月 3,000 コール無料）。サブセント計測・支出上限付き Pay Token・組込みウォレット・暴走防止まで標準装備。SDK は MIT のオープンコア。Stripe Connect が使えない国でも動作。",
+  description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%（初回 3,000 コール無料）。サブセント計測・支出上限付き Pay Token・組込みウォレット・暴走防止まで標準装備。SDK は MIT のオープンコア。Stripe Connect が使えない国でも動作。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -39,7 +39,7 @@ const faqJsonLd = {
       name: "料金はいくらですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "月額費用はありません。あなたの AI API が実際に売れた時だけ 3%（97% があなたの取り分）。毎月 3,000 API コールまで無料で、Gateway・Pay Token 発行・支出上限・使用量計測まで全部込みです。",
+        text: "月額費用はありません。セラーごとに最初の 3,000 API コールは無料（アカウント通算・月リセットなし）。それ以降は売れた時だけ 3%（97% があなたの取り分）。Gateway・Pay Token 発行・支出上限・使用量計測まで全部込みです。",
       },
     },
     {
@@ -179,7 +179,7 @@ export default function AboutPage() {
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
               <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 3%。</strong><br />
-              毎月 3,000 API calls まで無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
+              初回 3,000 API calls まで無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
               <strong>今出荷中:</strong> SDK (lc.charge / lc.protect) — MIT、npm 公開済。<br />
@@ -226,7 +226,7 @@ export default function AboutPage() {
             </pre>
           </div>
           <p className="mt-4 text-center text-[12px] text-[#1a0f00]/50">
-            MCP にそのまま挿せるミドルウェア。どの MCP SDK でも動作。月 3,000 calls まで無料。
+            MCP にそのまま挿せるミドルウェア。どの MCP SDK でも動作。初回 3,000 calls 無料。
           </p>
         </section>
       </div>
@@ -343,7 +343,7 @@ export default function AboutPage() {
                   ["1 コール サブセント",                "実質 $0.30 下限",     "可能だが Stripe 課金",        "$0.005"],
                   ["MCP / agent ミドルウェア",           "—",                   "—",                           "そのまま挿せる"],
                   ["API キー管理不要",                   "キー必須",            "キー必須",                    "組込み認証"],
-                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "月 3,000 件・ガス代込み"],
+                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "初回 3,000 件無料・以降ガス代込み"],
                   ["OSS の SDK",                         "クローズド",          "クローズド",                  "MIT"],
                   ["導入時間",                           "Connect オンボーディング", "実装エンジニアが必要",    "env var 1 つ"],
                 ].map(([f, s, o, lc]) => (
@@ -533,7 +533,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
             月額無料。API が売れた時だけ 3%。
-            毎月 3,000 API calls まで無料 — Gateway・Pay Token・利用制御・使用量計測まで全部込み。
+            初回 3,000 API calls まで無料 — Gateway・Pay Token・利用制御・使用量計測まで全部込み。
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link

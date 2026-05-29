@@ -118,7 +118,7 @@ export default function PricingPage() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-2">Free</p>
                 <p className="text-2xl font-black mb-1">3,000</p>
-                <p className="text-[12px] text-[#1a0f00]/55">API calls / month included</p>
+                <p className="text-[12px] text-[#1a0f00]/55">API calls free to start (one-time, per account)</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-2">Monetization fee</p>
@@ -236,11 +236,11 @@ export default function PricingPage() {
             },
             {
               q: "What is included for free?",
-              a: "The first 3,000 API calls per month, plus all the core features: basic Gateway, Pay Token issuance, spend limits, rate limits, usage metering, and the basic dashboard.",
+              a: "Your first 3,000 API calls — a one-time allowance per seller account, not a monthly reset — plus all the core features: basic Gateway, Pay Token issuance, spend limits, rate limits, usage metering, and the basic dashboard.",
             },
             {
               q: "What happens after 3,000 API calls?",
-              a: "Today, nothing changes — keep going. We may introduce an overage fee for high-volume free traffic in the future, but it won't apply retroactively to any account on the Launch Plan.",
+              a: "From then on, the 3% Monetization fee applies to your paid calls: when a call earns revenue, you keep 97% and LemonCake takes 3%. There's still no setup fee, no monthly fee, and no fixed per-transaction fee.",
             },
             {
               q: "Why 3% — that sounds higher than Stripe?",

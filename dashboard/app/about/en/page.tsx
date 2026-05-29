@@ -5,7 +5,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — Turn any AI API into a paid API (open core, private beta)",
-  description: "Usage-based billing for AI APIs and MCP servers. No monthly fee — pay 3% only when your API earns, free for the first 3,000 calls every month. Sub-cent metering, spend-limited Pay Tokens, embedded wallet, abuse prevention. Open core, MIT SDK. Works where Stripe Connect doesn't.",
+  description: "Usage-based billing for AI APIs and MCP servers. No monthly fee — pay 3% only when your API earns, free for your first 3,000 calls. Sub-cent metering, spend-limited Pay Tokens, embedded wallet, abuse prevention. Open core, MIT SDK. Works where Stripe Connect doesn't.",
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -40,7 +40,7 @@ const faqJsonLd = {
       name: "How much does LemonCake cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "There is no monthly fee. You pay 3% only when your AI API actually earns — 97% goes to you. The first 3,000 API calls each month are free, with gateway, Pay Token issuance, spend limits, and usage metering all included.",
+        text: "There is no monthly fee. Your first 3,000 API calls are free — a one-time allowance per seller account, not a monthly reset. After that, you pay 3% only when your AI API actually earns — 97% goes to you. Gateway, Pay Token issuance, spend limits, and usage metering are all included.",
       },
     },
     {
@@ -184,7 +184,7 @@ export default function AboutPageEn() {
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
               <strong className="text-[#1a0f00]">No monthly fee. Pay 3% only when your AI API earns.</strong><br />
-              Start free — 3,000 calls every month, with gateway, Pay Token, spend limits, and metering all included.
+              Start free — your first 3,000 calls, with gateway, Pay Token, spend limits, and metering all included.
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
               <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br />
@@ -231,7 +231,7 @@ export default function AboutPageEn() {
             </pre>
           </div>
           <p className="mt-4 text-center text-[12px] text-[#1a0f00]/50">
-            Drop-in MCP middleware. Works with any MCP SDK. Free up to 3,000 calls / month.
+            Drop-in MCP middleware. Works with any MCP SDK. Free for your first 3,000 calls.
           </p>
         </section>
       </div>
@@ -611,7 +611,7 @@ export default function AboutPageEn() {
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
             No monthly fee. Pay 3% only when your API earns.
-            Start free — 3,000 calls every month, with gateway, Pay Token, spend limits, and metering all included.
+            Start free — your first 3,000 calls, with gateway, Pay Token, spend limits, and metering all included.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
