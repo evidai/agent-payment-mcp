@@ -13,6 +13,17 @@ import postgres, { type Sql } from "postgres";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 
+/* ──────────────── platform economics ──────────────── */
+
+/**
+ * One-time free gateway calls per owner (lifetime, NOT a monthly reset).
+ * Single source of truth shared by the gateway (/g/[shortId], waives its 3%
+ * cut while under this) and prepaid checkout (waives the 3% Stripe application
+ * fee on a provider's buyers' top-ups until the provider crosses this). After
+ * FREE_TIER_CALLS lifetime calls, LemonCake's 3% take-rate kicks in.
+ */
+export const FREE_TIER_CALLS = 3000;
+
 /* ──────────────── env ──────────────── */
 
 function pgUrl(): string | undefined {

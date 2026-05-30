@@ -18,7 +18,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { backendEnvReady, sql } from "@/lib/lc-backend";
+import { backendEnvReady, sql, FREE_TIER_CALLS } from "@/lib/lc-backend";
 import { stripe, stripeReady, applicationFeeAmount } from "@/lib/lc-stripe";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +78,19 @@ export async function POST(req: Request) {
   const url = new URL(req.url);
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${url.protocol}//${url.host}`;
 
+  // Free tier: while this provider is still inside their one-time
+  // FREE_TIER_CALLS lifetime gateway calls, LemonCake waives its 3% platform
+  // fee on their buyers' prepaid top-ups (full amount stays with the seller).
+  // Once the provider crosses the threshold, the 3% application fee kicks in.
+  // Measured here, at checkout time, from the provider's lifetime call count —
+  // this is the SINGLE place LemonCake's cut is collected (no provider billing,
+  // no double-charge: the per-call lc_test_runs.fee is a ledger figure only).
+  const usedRow = await sql()<{ count: string }[]>`
+    select count(*)::text as count from lc_test_runs where owner_id = ${ep.owner_id}
+  `;
+  const usedLifetime = Number(usedRow[0]?.count ?? 0);
+  const feeAmount = usedLifetime < FREE_TIER_CALLS ? 0 : applicationFeeAmount(amountCents);
+
   try {
     const session = await stripe().checkout.sessions.create(
       {
@@ -95,9 +108,9 @@ export async function POST(req: Request) {
             },
           },
         ],
-        payment_intent_data: {
-          application_fee_amount: applicationFeeAmount(amountCents),
-        },
+        // Omit application_fee_amount entirely when waived (0 is not a valid
+        // Direct-Charge fee) — the whole charge then stays on the connected acct.
+        ...(feeAmount > 0 ? { payment_intent_data: { application_fee_amount: feeAmount } } : {}),
         // Metadata the webhook + success page read to mint the Pay Token.
         metadata: {
           lc_endpoint_id: ep.id,
