@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm ci",
+  "crons": [
+    { "path": "/api/lc/billing/rollup", "schedule": "0 2 1 * *" }
+  ]
+}

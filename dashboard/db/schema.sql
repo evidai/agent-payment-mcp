@@ -185,3 +185,50 @@ create table if not exists lc_share_events (
 );
 create index if not exists lc_share_events_endpoint_idx on lc_share_events(endpoint_id, created_at desc);
 create index if not exists lc_share_events_type_idx on lc_share_events(share_type, created_at desc);
+
+-- ───────────────────────────────────────────────────────────────────────
+-- Phase 5: provider usage billing (Pattern 4)
+-- A SaaS gateway-usage fee charged to the PROVIDER (lc_owner): the first
+-- FREE_CALLS_PER_MONTH (3,000) metered gateway calls per owner per UTC month
+-- are free, then a small per-call overage (default $0.001/call, env
+-- LC_OVERAGE_RATE_USD) is invoiced via Stripe by a month-end Vercel cron
+-- (/api/lc/billing/rollup). This is DISTINCT from the 3% buyer take-rate
+-- collected at prepaid Stripe Connect checkout (lc_test_runs.fee) — we never
+-- re-bill that fee here, or buyers would be double-charged.
+--
+-- These columns/tables are ALSO applied lazily from the server
+-- (ensureBillingSchema in lc-billing.ts), so a fresh deploy works even before
+-- this file is re-run in Supabase. Every statement is idempotent.
+-- ───────────────────────────────────────────────────────────────────────
+
+-- Provider-as-payer Stripe state on each owner. Distinct from the
+-- stripe_account_id (Connect, seller-RECEIVES) columns: stripe_customer_id is
+-- the platform Customer whose saved card LemonCake CHARGES for overage.
+alter table lc_owners add column if not exists stripe_customer_id   text;
+alter table lc_owners add column if not exists billing_status       text not null default 'none';
+alter table lc_owners add column if not exists billing_method_saved boolean not null default false;
+alter table lc_owners add column if not exists billing_setup_at      timestamptz;
+create unique index if not exists lc_owners_stripe_customer_unq
+  on lc_owners(stripe_customer_id) where stripe_customer_id is not null;
+
+-- One billing run per owner per month (period_start). Idempotent upsert keyed
+-- (owner_id, period_start) so a cron retry never double-charges. status:
+-- pending → invoiced → paid (via webhook), or skipped_no_method / failed / error.
+create table if not exists lc_billing_runs (
+  id                uuid primary key default gen_random_uuid(),
+  owner_id          text not null references lc_owners(id) on delete cascade,
+  period_start      date not null,
+  period_end        date not null,
+  calls             int not null default 0,
+  free_calls        int not null default 0,
+  billable_calls    int not null default 0,
+  rate_usd          numeric(12,6) not null default 0,
+  amount_usd        numeric(12,6) not null default 0,
+  stripe_invoice_id text,
+  status            text not null default 'pending',
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+create unique index if not exists lc_billing_runs_owner_period_unq on lc_billing_runs(owner_id, period_start);
+create index if not exists lc_billing_runs_owner_idx on lc_billing_runs(owner_id, period_start desc);
+create index if not exists lc_billing_runs_invoice_idx on lc_billing_runs(stripe_invoice_id) where stripe_invoice_id is not null;

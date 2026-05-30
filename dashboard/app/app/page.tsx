@@ -33,7 +33,7 @@ import {
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
-type Pane = "add" | "apis" | "buylinks" | "paytoken" | "test" | "revenue" | "blocked" | "account";
+type Pane = "add" | "apis" | "buylinks" | "paytoken" | "test" | "revenue" | "blocked" | "account" | "billing";
 
 type Endpoint = {
   id: string;
@@ -225,6 +225,7 @@ const Icon = {
   Refresh: (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5" /></svg>),
   Bank:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 10 12 4l9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18" /></svg>),
   Link:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>),
+  Card:    (p: SVGProps<SVGSVGElement>) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></svg>),
 };
 
 /* ────────────────────────────  sidebar  ──────────────────────────── */
@@ -244,6 +245,7 @@ const SIDEBAR: { heading: string; items: NavItem[] }[] = [
   ]},
   { heading: "Account", items: [
     { label: "Sign-in & Payouts", icon: "Bank", pane: "account" },
+    { label: "Usage Billing",     icon: "Card", pane: "billing" },
   ]},
 ];
 
@@ -381,7 +383,7 @@ function RealDashboard() {
   const sellableCount = endpoints.filter((e) => e.pricePerCall > 0).length;
   const counts: Record<Pane, number | null> = {
     add: null, apis: endpoints.length, buylinks: sellableCount || null, paytoken: activeTokens.length,
-    test: runs.length, revenue: sales.count || null, blocked: blocked.length, account: null,
+    test: runs.length, revenue: sales.count || null, blocked: blocked.length, account: null, billing: null,
   };
 
   // Returning from Stripe-hosted onboarding lands on /app?stripe=return|refresh.
@@ -395,6 +397,9 @@ function RealDashboard() {
     // Returning from a magic link or OAuth round-trip lands on ?auth=... —
     // jump to the Account pane so the sign-in result is visible.
     if (params.get("auth")) setActivePane("account");
+    // Returning from the usage-billing card setup lands on ?billing=saved|cancel —
+    // jump to the Billing pane so the updated state is visible.
+    if (params.get("billing")) setActivePane("billing");
   }, []);
 
   // ── First-run sign-in gate ──────────────────────────────────────────────
@@ -415,7 +420,7 @@ function RealDashboard() {
     try { if (sessionStorage.getItem("lc:skipSignin")) setBypassGate(true); } catch {}
     // Just came back from an OAuth / Stripe / magic-link round-trip → never gate.
     const params = new URL(window.location.href).searchParams;
-    if (params.get("auth") || params.get("stripe")) setBypassGate(true);
+    if (params.get("auth") || params.get("stripe") || params.get("billing")) setBypassGate(true);
   }, []);
   const showGate = claimedEmail === null && !bypassGate;
 
@@ -489,6 +494,7 @@ function RealDashboard() {
               {activePane === "revenue"  && <RevenuePane endpoints={endpoints} runs={runs} tokens={tokens} sales={sales} stripe={stripe} goTo={goTo} />}
               {activePane === "blocked"  && <BlockedPane blocked={blocked} endpoints={endpoints} api={api} />}
               {activePane === "account"  && <AccountPane />}
+              {activePane === "billing"  && <BillingPane />}
             </>
           )}
 
@@ -987,6 +993,179 @@ function AccountPane() {
                 </div>
               )}
               {stripeErr && <p className="mt-3 text-[12px] text-[#DC2626] break-words">Stripe error: {stripeErr}</p>}
+            </>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
+
+/* ────────────────────────────  usage billing (Pattern 4)  ──────────────────────────── */
+// Provider-facing SaaS fee: the first `freeCallsPerMonth` metered gateway calls
+// per UTC month are free, then a small per-call overage is invoiced via Stripe.
+// This is DISTINCT from the 3% buyer take-rate (that's collected at prepaid
+// checkout on the Connect account, handled in AccountPane).
+function BillingPane() {
+  type ThisMonth = {
+    calls: number;
+    freeRemaining: number;
+    billableCalls: number;
+    estAmountUsd: number;
+    periodStart: string;
+    periodEnd: string;
+  };
+  type BillingStatus = {
+    billingStatus: string;
+    methodSaved: boolean;
+    stripeReady: boolean;
+    freeCallsPerMonth: number;
+    rateUsd: number;
+    thisMonth: ThisMonth | null;
+  };
+  const [status, setStatus] = useState<BillingStatus | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const r = await fetch("/api/lc/billing/status");
+      const j = await r.json();
+      if (r.ok) setStatus(j);
+    } catch { /* ignore */ } finally { setLoaded(true); }
+  }, []);
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // Returning from the hosted card-setup lands on ?billing=saved|cancel — show a
+  // banner, refresh status on success, then clean the query param.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const b = url.searchParams.get("billing");
+    if (!b) return;
+    setNote(b);
+    if (b === "saved") fetchStatus();
+    url.searchParams.delete("billing");
+    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+  }, [fetchStatus]);
+
+  async function startSetup() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/lc/billing/setup", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok || !j.url) { setErr(j.message || j.error || "setup_failed"); return; }
+      window.location.href = j.url;
+    } catch {
+      setErr("network_error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const tm = status?.thisMonth ?? null;
+  const rate = status?.rateUsd ?? 0.001;
+  const free = status?.freeCallsPerMonth ?? 3000;
+  const active = !!status?.methodSaved && status?.billingStatus === "active";
+  const pastDue = status?.billingStatus === "past_due";
+  const usedPct = tm ? Math.min(100, Math.round((tm.calls / free) * 100)) : 0;
+  const overFree = !!tm && tm.calls > free;
+
+  const noteBanner: { tone: "ok" | "err"; text: string } | null =
+    note === "saved" ? { tone: "ok", text: "Payment method saved — overage will be invoiced at month-end." }
+    : note === "cancel" ? { tone: "err", text: "Card setup was cancelled." }
+    : null;
+
+  return (
+    <>
+      <PaneHeading
+        eyebrow="Account"
+        title="Usage billing"
+        subtitle={`Your first ${free.toLocaleString()} gateway calls each month are free. Beyond that, calls are billed at $${rate}/call and invoiced to your card at month-end. This is LemonCake's gateway-usage fee — separate from the 3% buyer take-rate.`}
+      />
+
+      {noteBanner && (
+        <div className={`mb-4 px-3.5 py-2.5 rounded-lg text-[12.5px] font-medium border ${noteBanner.tone === "ok" ? "bg-[#16A34A]/8 border-[#16A34A]/25 text-[#15803D]" : "bg-[#DC2626]/8 border-[#DC2626]/25 text-[#B91C1C]"}`}>
+          {noteBanner.text}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Card 1 — this month's usage */}
+        <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon.Bolt className="w-4 h-4 text-[#1a0f00]/55" />
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45">This month</p>
+          </div>
+
+          {!loaded ? (
+            <p className="text-[12px] text-[#1a0f00]/40">Loading…</p>
+          ) : !tm ? (
+            <p className="text-[12.5px] text-[#1a0f00]/55 leading-relaxed">No usage recorded yet this month. Calls metered through your gateway show up here.</p>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-[28px] font-black tracking-tight text-[#1a0f00]">{tm.calls.toLocaleString()}</span>
+                <span className="text-[12px] text-[#1a0f00]/50">calls</span>
+              </div>
+              <p className="text-[11px] text-[#1a0f00]/45 mb-3 font-mono">{tm.periodStart} → {tm.periodEnd}</p>
+
+              {/* free-tier progress */}
+              <div className="h-2 rounded-full bg-[#1a0f00]/8 overflow-hidden mb-1.5">
+                <div className={`h-full rounded-full ${overFree ? "bg-[#1a0f00]" : "bg-[#16A34A]"}`} style={{ width: `${usedPct}%` }} />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-[#1a0f00]/55 mb-4">
+                <span>{tm.freeRemaining.toLocaleString()} free calls left</span>
+                <span className="font-mono">{free.toLocaleString()} / mo free</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/8 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Billable</p>
+                  <p className="text-[16px] font-black text-[#1a0f00]">{tm.billableCalls.toLocaleString()}</p>
+                  <p className="text-[10px] text-[#1a0f00]/45">calls over free tier</p>
+                </div>
+                <div className="rounded-xl bg-[#fffd43]/20 border border-[#1a0f00]/8 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Est. charge</p>
+                  <p className="text-[16px] font-black text-[#1a0f00]">${tm.estAmountUsd.toFixed(2)}</p>
+                  <p className="text-[10px] text-[#1a0f00]/45">at ${rate}/call</p>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Card 2 — payment method */}
+        <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon.Card className="w-4 h-4 text-[#635BFF]" />
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45">Payment method</p>
+          </div>
+
+          {loaded && status && !status.stripeReady ? (
+            <div className="rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-4 flex items-start gap-2.5">
+              <Icon.Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/40" />
+              <p className="text-[12.5px] text-[#1a0f00]/65 leading-relaxed">Billing isn&apos;t configured on this deployment yet. You won&apos;t be charged.</p>
+            </div>
+          ) : active ? (
+            <div className="rounded-xl bg-[#635BFF]/8 border border-[#635BFF]/25 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#635BFF] mb-1">Card on file</p>
+              <p className="text-[12.5px] text-[#1a0f00]/65 leading-relaxed">Overage above the free tier is invoiced automatically at the end of each UTC month. No charge if you stay within {free.toLocaleString()} calls.</p>
+              <button type="button" onClick={startSetup} disabled={busy} className="mt-3 text-[12px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2 disabled:opacity-50">{busy ? "Opening Stripe…" : "Update card"}</button>
+            </div>
+          ) : (
+            <>
+              {pastDue && (
+                <div className="mb-3 rounded-xl bg-[#DC2626]/8 border border-[#DC2626]/25 p-3">
+                  <p className="text-[12px] text-[#B91C1C] font-medium leading-relaxed">A recent invoice failed. Add a working card to keep your gateway active.</p>
+                </div>
+              )}
+              <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">Save a card so overage beyond the {free.toLocaleString()}-call free tier can be invoiced at month-end. Nothing is charged now, and nothing is charged if you stay within the free tier.</p>
+              <button type="button" onClick={startSetup} disabled={busy} className="px-4 py-2 bg-[#635BFF] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#7A73FF] transition-colors disabled:opacity-50">{busy ? "Opening Stripe…" : "Set up billing →"}</button>
+              {err && <p className="mt-3 text-[12px] text-[#DC2626] break-words">{err === "email_required" ? "Claim this workspace with an email first (Account → Sign-in & payouts)." : `Error: ${err}`}</p>}
             </>
           )}
         </section>

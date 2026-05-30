@@ -44,6 +44,7 @@ __pycache__/
 !glama.json
 !mcp.json
 !mcp-server/claude_desktop_config.example.json
+!dashboard/vercel.json
 scraper.py
 lemon_cake_slides.js
 job_leads.*
