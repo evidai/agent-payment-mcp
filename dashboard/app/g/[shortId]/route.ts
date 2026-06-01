@@ -54,28 +54,77 @@ function jsonErr(req: Request, status: number, code: string, extra?: Record<stri
   return NextResponse.json({ error: code, ...extra }, { status, headers: corsHeaders(req) });
 }
 
+/**
+ * x402-style payment challenge (HTTP 402).
+ *
+ * Returned whenever a caller has no usable Pay Token for a priced endpoint —
+ * missing / invalid / expired / exhausted / over-cap. Instead of a dead-end
+ * 401/402, we hand back a machine-readable description of HOW to pay and retry,
+ * so an autonomous agent can self-serve:
+ *
+ *   call → 402 {accepts:[…]} → obtain a Pay Token → retry with Bearer <token>
+ *
+ * `buyUrl`  = the human-facing Stripe checkout (live today).
+ * `mintUrl` = the programmatic funding endpoint (Agent Funding API — an agent
+ *             mints/tops-up a Pay Token off-session with a Buyer Key). It is
+ *             advertised here so the gateway is already x402-native; the route
+ *             itself ships in the funding-API phase.
+ */
+function paymentChallenge(req: Request, shortId: string, charge: number, code: string) {
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
+  const resource = `${origin}/g/${shortId}`;
+  return NextResponse.json(
+    {
+      error: code,
+      message:
+        "Payment required. Prepay to receive a Pay Token, then retry with `Authorization: Bearer <token>`.",
+      accepts: [
+        {
+          scheme: "lemoncake-prepaid",
+          resource,
+          method: "POST",
+          pricePerCall: charge,
+          currency: "usd",
+          buyUrl: `${origin}/buy/${shortId}`,
+          mintUrl: `${origin}/api/lc/agent/tokens`,
+          docs: `${origin}/docs/pay-token`,
+        },
+      ],
+    },
+    {
+      status: 402,
+      headers: {
+        ...corsHeaders(req),
+        "WWW-Authenticate": `Lemoncake-Prepaid resource="${resource}", buy="${origin}/buy/${shortId}"`,
+      },
+    },
+  );
+}
+
 async function handle(req: Request, { params }: Ctx) {
   if (!backendEnvReady()) return jsonErr(req, 503, "backend_not_configured");
 
   const { shortId } = await params;
 
-  const auth = req.headers.get("authorization") ?? "";
-  const m = auth.match(/^Bearer\s+(.+)$/i);
-  if (!m) return jsonErr(req, 401, "missing_pay_token");
-  const jwt = m[1].trim();
-
-  const claims = await verifyPayToken(jwt);
-  if (!claims) return jsonErr(req, 401, "invalid_pay_token");
-
+  // Resolve the endpoint first so even a token-less request can be answered
+  // with a *priced* x402 payment challenge (how to pay + retry) instead of a
+  // dead-end 401. One indexed lookup; cost is negligible.
   const eps = await sql()<EndpointRow[]>`
     select * from lc_endpoints where short_id = ${shortId} limit 1
   `;
   if (eps.length === 0) return jsonErr(req, 404, "endpoint_not_found");
   const ep = eps[0];
+  const charge = Number(ep.price_per_call);
+
+  const auth = req.headers.get("authorization") ?? "";
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (!m) return paymentChallenge(req, shortId, charge, "missing_pay_token");
+  const jwt = m[1].trim();
+
+  const claims = await verifyPayToken(jwt);
+  if (!claims) return paymentChallenge(req, shortId, charge, "invalid_pay_token");
 
   if (claims.sub !== ep.id) return jsonErr(req, 403, "token_endpoint_mismatch");
-
-  const charge = Number(ep.price_per_call);
 
   if (ep.status !== "live") {
     await sql()`
@@ -106,7 +155,7 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_expired', ${charge})
     `;
-    return jsonErr(req, 401, "token_expired");
+    return paymentChallenge(req, shortId, charge, "token_expired");
   }
   if (tok.calls_used >= tok.max_calls) {
     if (tok.status !== "exhausted") {
@@ -116,14 +165,14 @@ async function handle(req: Request, { params }: Ctx) {
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
     `;
-    return jsonErr(req, 402, "token_exhausted");
+    return paymentChallenge(req, shortId, charge, "token_exhausted");
   }
   if (Number(tok.spent) + charge > Number(tok.budget)) {
     await sql()`
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
     `;
-    return jsonErr(req, 402, "spend_cap_exceeded");
+    return paymentChallenge(req, shortId, charge, "spend_cap_exceeded");
   }
 
   // Rate limit: paid calls for this endpoint in the last 60s
