@@ -45,12 +45,60 @@ export async function POST(req: Request) {
   if (!owner.email) {
     return NextResponse.json({ error: "email_required", message: "Claim your workspace with an email first." }, { status: 403 });
   }
+  const ownerEmail = owner.email; // narrowed to string for the closures below
 
   // Determine the return / refresh origin for AccountLink callbacks.
   const url = new URL(req.url);
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${url.protocol}//${url.host}`;
 
   let accountId = owner.stripe_account_id;
+
+  // Create a brand-new Express account and persist its id on the owner row.
+  async function createFreshAccount(): Promise<string> {
+    const account = await stripe().accounts.create({
+      type: "express",
+      country: "JP",  // Hiroto's platform country; Stripe asks the seller for theirs in onboarding
+      email: ownerEmail,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers:     { requested: true },
+      },
+      business_type: undefined, // let Stripe collect via onboarding
+      metadata: { lc_owner_id: owner.id },
+    });
+    await sql()`
+      update lc_owners
+      set stripe_account_id = ${account.id}
+      where id = ${ownerId}
+    `;
+    return account.id;
+  }
+
+  function freshLink(account: string) {
+    // AccountLinks are single-use + expire fast, so we always mint a new one.
+    return stripe().accountLinks.create({
+      account,
+      refresh_url: `${origin}/app?stripe=refresh`,
+      return_url:  `${origin}/app?stripe=return`,
+      type: "account_onboarding",
+    });
+  }
+
+  // A stored account id created in the *other* Stripe mode (classic case: a
+  // test account left behind after the platform flipped to live keys) can't be
+  // used with the current key — Stripe 400s with a message mentioning
+  // "testmode"/"live mode". When that happens we drop the stale id and onboard
+  // a fresh account so the seller is never permanently stuck.
+  function isModeMismatch(e: { message?: string; code?: string }): boolean {
+    const m = (e?.message ?? "").toLowerCase();
+    return (
+      m.includes("testmode") ||
+      m.includes("test mode") ||
+      m.includes("live mode") ||
+      m.includes("test account") ||
+      e?.code === "account_invalid"
+    );
+  }
 
   // Wrap all Stripe calls so a Stripe-side failure (e.g. Connect not yet
   // enabled on the platform) surfaces as a structured JSON error the UI can
@@ -59,35 +107,22 @@ export async function POST(req: Request) {
   try {
     if (!accountId) {
       // First time — create the Express account.
-      const account = await stripe().accounts.create({
-        type: "express",
-        country: "JP",  // Hiroto's platform country; Stripe asks the seller for theirs in onboarding
-        email: owner.email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers:     { requested: true },
-        },
-        business_type: undefined, // let Stripe collect via onboarding
-        metadata: {
-          lc_owner_id: owner.id,
-        },
-      });
-
-      accountId = account.id;
-      await sql()`
-        update lc_owners
-        set stripe_account_id = ${accountId}
-        where id = ${ownerId}
-      `;
+      accountId = await createFreshAccount();
     }
 
-    // Always mint a fresh AccountLink — they're single-use + expire fast.
-    const link = await stripe().accountLinks.create({
-      account: accountId,
-      refresh_url: `${origin}/app?stripe=refresh`,
-      return_url:  `${origin}/app?stripe=return`,
-      type: "account_onboarding",
-    });
+    let link;
+    try {
+      link = await freshLink(accountId);
+    } catch (linkErr) {
+      const le = linkErr as { message?: string; code?: string };
+      if (isModeMismatch(le)) {
+        console.warn("[stripe/connect] stale account id, re-onboarding fresh:", accountId, le?.message);
+        accountId = await createFreshAccount();
+        link = await freshLink(accountId);
+      } else {
+        throw linkErr;
+      }
+    }
 
     return NextResponse.json({
       accountId,

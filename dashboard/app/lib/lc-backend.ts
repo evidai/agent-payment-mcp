@@ -268,6 +268,21 @@ export function ensureGrowthSchema(): Promise<void> {
   if (!_growthSchemaReady) {
     _growthSchemaReady = (async () => {
       try {
+        // Fast path: once the schema is applied (the steady state in prod) the
+        // DDL is pure overhead — re-running idempotent ALTER/CREATE statements
+        // is harmless but floods Postgres NOTICE logs ("… already exists,
+        // skipping") on every cold start, which buries real errors. Gate on a
+        // sentinel (last column added + last table created); skip if present.
+        const probe = await sql()<{ ready: boolean }[]>`
+          select (
+            exists(select 1 from information_schema.columns
+                   where table_name = 'lc_endpoints' and column_name = 'public_page_views')
+            and exists(select 1 from information_schema.tables
+                       where table_name = 'lc_share_events')
+          ) as ready
+        `;
+        if (probe[0]?.ready) return;
+
         // Run each statement individually — pgbouncer (prepare:false) + the
         // extended protocol can't run multi-statement strings, and none of
         // our DDL statements contain embedded semicolons, so a plain split is
