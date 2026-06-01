@@ -187,6 +187,61 @@ create index if not exists lc_share_events_endpoint_idx on lc_share_events(endpo
 create index if not exists lc_share_events_type_idx on lc_share_events(share_type, created_at desc);
 
 -- ───────────────────────────────────────────────────────────────────────
+-- Agent Funding API (Phase 0) — autonomous x402 funding for AI agents.
+-- Mirrored by lib/lc-agent-wallet.ts -> ensureAgentSchema() so a fresh deploy
+-- self-applies before this file is re-run by hand. Custody-free: there is NO
+-- pooled balance — "wallet balance" is virtual (Σ unspent Pay Tokens), and each
+-- mint/top-up is its own charge (a Direct Charge to the seller in Phase 1).
+--
+-- lc_wallets:      one per buyer workspace; holds spend caps + low-balance %.
+-- lc_buyer_keys:   bk_… secret (stored hashed), scoped to one seller endpoint.
+--                  stripe_customer_id / stripe_pm_id are references only (never
+--                  raw card data) and stay null in Phase 0 (StubAdapter).
+-- lc_agent_charges: append-only charge log → powers daily/monthly cap windows
+--                  and idempotency (charge_ref unique).
+-- ───────────────────────────────────────────────────────────────────────
+create table if not exists lc_wallets (
+  id                 text primary key,
+  workspace_id       text not null unique references lc_owners(id) on delete cascade,
+  per_mint_cap_cents int  not null default 500,
+  daily_cap_cents    int  not null default 5000,
+  monthly_cap_cents  int  not null default 30000,
+  low_threshold_pct  int  not null default 20,
+  status             text not null default 'active',
+  created_at         timestamptz not null default now()
+);
+create table if not exists lc_buyer_keys (
+  id                 text primary key,
+  key_hash           text not null unique,
+  key_prefix         text not null,
+  wallet_id          text not null references lc_wallets(id) on delete cascade,
+  workspace_id       text not null references lc_owners(id) on delete cascade,
+  endpoint_id        uuid not null references lc_endpoints(id) on delete cascade,
+  seller_owner_id    text not null references lc_owners(id) on delete cascade,
+  label              text,
+  stripe_customer_id text,
+  stripe_pm_id       text,
+  status             text not null default 'active',
+  created_at         timestamptz not null default now(),
+  last_used_at       timestamptz
+);
+create index if not exists lc_buyer_keys_wallet_idx on lc_buyer_keys(wallet_id);
+create table if not exists lc_agent_charges (
+  id            uuid primary key default gen_random_uuid(),
+  charge_ref    text not null unique,
+  buyer_key_id  text references lc_buyer_keys(id) on delete set null,
+  wallet_id     text references lc_wallets(id) on delete cascade,
+  token_id      text,
+  endpoint_id   uuid,
+  amount_cents  int  not null,
+  kind          text not null,
+  adapter       text not null default 'stub',
+  created_at    timestamptz not null default now()
+);
+create index if not exists lc_agent_charges_wallet_time_idx on lc_agent_charges(wallet_id, created_at desc);
+alter table lc_pay_tokens add column if not exists buyer_key_id text;
+
+-- ───────────────────────────────────────────────────────────────────────
 -- Monetization model (single collection point — no separate provider billing)
 --
 -- LemonCake's ONLY revenue is its 3% platform fee, collected ONCE at the
