@@ -133,3 +133,92 @@ export async function storePaymentMethodForKey(
   await sql()`update lc_buyer_keys set stripe_pm_id = ${pm} where id = ${keyId}`;
   return { ok: true, paymentMethodId: pm };
 }
+
+/* ──────────────── hosted card-save (Stripe Checkout, mode: setup) ──────────────── */
+
+/**
+ * Create a hosted Stripe Checkout Session in `setup` mode on the seller's
+ * connected account so the buyer can save a card on a Stripe-hosted page
+ * (3DS handled there — no Stripe.js / publishable key needed on our side).
+ * Mirrors /api/lc/stripe/checkout. The Buyer Key ROW id (not the secret) rides
+ * in the success URL so the result page can finalize without re-auth.
+ */
+export async function createSetupCheckoutForKey(
+  keyId: string,
+  origin: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const kRows = await sql()<{ seller_owner_id: string; stripe_customer_id: string | null }[]>`
+    select seller_owner_id, stripe_customer_id from lc_buyer_keys where id = ${keyId} limit 1
+  `;
+  const k = kRows[0];
+  if (!k) return { ok: false, error: "key_not_found" };
+
+  const oRows = await sql()<{ stripe_account_id: string | null }[]>`
+    select stripe_account_id from lc_owners where id = ${k.seller_owner_id} limit 1
+  `;
+  const acct = oRows[0]?.stripe_account_id;
+  if (!acct) return { ok: false, error: "seller_not_ready" };
+
+  let customerId = k.stripe_customer_id;
+  if (!customerId) {
+    const c = await stripe().customers.create({ metadata: { lc_buyer_key_id: keyId } }, { stripeAccount: acct });
+    customerId = c.id;
+    await sql()`update lc_buyer_keys set stripe_customer_id = ${customerId} where id = ${keyId}`;
+  }
+
+  try {
+    const session = await stripe().checkout.sessions.create(
+      {
+        mode: "setup",
+        payment_method_types: ["card"],
+        customer: customerId,
+        metadata: { lc_buyer_key_id: keyId },
+        success_url: `${origin}/agent/card-saved?session_id={CHECKOUT_SESSION_ID}&key=${keyId}`,
+        cancel_url: `${origin}/agent/fund?canceled=1`,
+      },
+      { stripeAccount: acct },
+    );
+    if (!session.url) return { ok: false, error: "checkout_failed" };
+    return { ok: true, url: session.url };
+  } catch (err) {
+    const e = err as StripeErr;
+    return { ok: false, error: e?.code ?? "stripe_error" };
+  }
+}
+
+/**
+ * Finalize a hosted card-save: read the completed setup-mode Checkout Session
+ * on the connected account, pull the saved PaymentMethod, store its id on the
+ * Buyer Key. Knowing the (single-use) session id is the capability here.
+ */
+export async function finalizeCardFromSession(
+  keyId: string,
+  sessionId: string,
+): Promise<{ ok: true; paymentMethodId: string } | { ok: false; error: string }> {
+  const kRows = await sql()<{ seller_owner_id: string }[]>`
+    select seller_owner_id from lc_buyer_keys where id = ${keyId} limit 1
+  `;
+  const k = kRows[0];
+  if (!k) return { ok: false, error: "key_not_found" };
+
+  const oRows = await sql()<{ stripe_account_id: string | null }[]>`
+    select stripe_account_id from lc_owners where id = ${k.seller_owner_id} limit 1
+  `;
+  const acct = oRows[0]?.stripe_account_id;
+  if (!acct) return { ok: false, error: "seller_not_ready" };
+
+  try {
+    const session = await stripe().checkout.sessions.retrieve(sessionId, { expand: ["setup_intent"] }, { stripeAccount: acct });
+    const si = session.setup_intent;
+    const pm =
+      si && typeof si !== "string"
+        ? (typeof si.payment_method === "string" ? si.payment_method : si.payment_method?.id ?? null)
+        : null;
+    if (!pm) return { ok: false, error: "no_payment_method" };
+    await sql()`update lc_buyer_keys set stripe_pm_id = ${pm} where id = ${keyId}`;
+    return { ok: true, paymentMethodId: pm };
+  } catch (err) {
+    const e = err as StripeErr;
+    return { ok: false, error: e?.message ?? "retrieve_failed" };
+  }
+}
