@@ -27,6 +27,7 @@ import {
   type PayTokenRow,
 } from "@/lib/lc-backend";
 import { mintPrepaidToken } from "@/lib/lc-credits";
+import { StripeOffSessionAdapter } from "@/lib/lc-agent-stripe";
 
 const MAX_INT4 = 2_000_000_000;
 const PREPAID_TOKEN_DAYS = 365;
@@ -138,8 +139,14 @@ export const StubAdapter: PaymentAdapter = {
   },
 };
 
-/** Phase 1 will return a StripeOffSessionAdapter when LC_PAYMENT_ADAPTER=stripe. */
+/**
+ * Adapter selection. Default = Stub (mock currency). Set env
+ * `LC_PAYMENT_ADAPTER=stripe` to switch to real off-session card charges
+ * (Phase 1). Until that flag is set, nothing charges a real card — so this
+ * file can ship/deploy with zero behaviour change.
+ */
 export function getPaymentAdapter(): PaymentAdapter {
+  if (process.env.LC_PAYMENT_ADAPTER === "stripe") return StripeOffSessionAdapter;
   return StubAdapter;
 }
 
