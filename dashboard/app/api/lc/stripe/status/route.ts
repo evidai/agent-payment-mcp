@@ -10,6 +10,7 @@
  */
 
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { backendEnvReady, ensureOwnerId, sql } from "@/lib/lc-backend";
 import { stripe, stripeReady } from "@/lib/lc-stripe";
 
@@ -48,8 +49,56 @@ export async function GET() {
     });
   }
 
-  // Pull fresh state from Stripe.
-  const account = await stripe().accounts.retrieve(cached.stripe_account_id);
+  // Pull fresh state from Stripe. A stored id from the *other* Stripe mode
+  // (classic case: a test account left behind after the platform flipped to
+  // live keys) throws here with a "testmode"/"test account" message. Rather
+  // than 500 on every /app load, we self-heal: drop the stale id so the seller
+  // re-onboards cleanly (the connect route then mints a fresh live account).
+  let account: Stripe.Account;
+  try {
+    account = await stripe().accounts.retrieve(cached.stripe_account_id);
+  } catch (err) {
+    const e = err as { message?: string; code?: string };
+    const m = (e?.message ?? "").toLowerCase();
+    const modeMismatch =
+      m.includes("testmode") ||
+      m.includes("test mode") ||
+      m.includes("live mode") ||
+      m.includes("test account") ||
+      e?.code === "account_invalid";
+    if (modeMismatch) {
+      console.warn("[stripe/status] stale account id cleared:", cached.stripe_account_id, e?.message);
+      await sql()`
+        update lc_owners
+        set stripe_account_id        = null,
+            stripe_charges_enabled   = false,
+            stripe_payouts_enabled   = false,
+            stripe_details_submitted = false,
+            stripe_country           = null
+        where id = ${ownerId}
+      `;
+      return NextResponse.json({
+        connected: false,
+        accountId: null,
+        chargesEnabled: false,
+        payoutsEnabled: false,
+        detailsSubmitted: false,
+        country: null,
+      });
+    }
+    // Any other Stripe-side error: degrade to the last-known cached state
+    // instead of throwing a 500 that breaks the dashboard.
+    console.error("[stripe/status] retrieve failed:", e?.code, e?.message);
+    return NextResponse.json({
+      connected: true,
+      accountId: cached.stripe_account_id,
+      chargesEnabled:   cached.stripe_charges_enabled,
+      payoutsEnabled:   cached.stripe_payouts_enabled,
+      detailsSubmitted: cached.stripe_details_submitted,
+      country:          cached.stripe_country,
+      stale: true,
+    });
+  }
 
   const next = {
     chargesEnabled:   account.charges_enabled,

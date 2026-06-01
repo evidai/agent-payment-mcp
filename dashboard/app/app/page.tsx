@@ -30,6 +30,8 @@ import {
   mcpListingText,
   CATEGORIES,
 } from "@/lib/lc-growth";
+import { LocaleProvider, useT, LanguageSelector } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/messages/en";
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
@@ -230,21 +232,21 @@ const Icon = {
 
 /* ────────────────────────────  sidebar  ──────────────────────────── */
 
-type NavItem = { label: string; icon: keyof typeof Icon; pane: Pane };
-const SIDEBAR: { heading: string; items: NavItem[] }[] = [
-  { heading: "Setup", items: [
-    { label: "Add API",      icon: "Plus", pane: "add" },
-    { label: "Gateway",      icon: "Code", pane: "apis" },
-    { label: "Buy links",    icon: "Link", pane: "buylinks" },
-    { label: "Pay Tokens",   icon: "Key",  pane: "paytoken" },
-    { label: "Test Request", icon: "Play", pane: "test" },
+type NavItem = { labelKey: MessageKey; icon: keyof typeof Icon; pane: Pane };
+const SIDEBAR: { headingKey: MessageKey; items: NavItem[] }[] = [
+  { headingKey: "nav.setup", items: [
+    { labelKey: "nav.addApi",      icon: "Plus", pane: "add" },
+    { labelKey: "nav.gateway",     icon: "Code", pane: "apis" },
+    { labelKey: "nav.buyLinks",    icon: "Link", pane: "buylinks" },
+    { labelKey: "nav.payTokens",   icon: "Key",  pane: "paytoken" },
+    { labelKey: "nav.testRequest", icon: "Play", pane: "test" },
   ]},
-  { heading: "Monitor", items: [
-    { label: "Usage Ledger",     icon: "Dollar", pane: "revenue" },
-    { label: "Blocked Requests", icon: "Shield", pane: "blocked" },
+  { headingKey: "nav.monitor", items: [
+    { labelKey: "nav.usageLedger",     icon: "Dollar", pane: "revenue" },
+    { labelKey: "nav.blockedRequests", icon: "Shield", pane: "blocked" },
   ]},
-  { heading: "Account", items: [
-    { label: "Sign-in & Payouts", icon: "Bank", pane: "account" },
+  { headingKey: "nav.account", items: [
+    { labelKey: "nav.signinPayouts", icon: "Bank", pane: "account" },
   ]},
 ];
 
@@ -259,12 +261,21 @@ export default function Page() {
       .catch(() => setReady(false));
   }, []);
 
-  if (ready === null) return <Shell><LoadingShell /></Shell>;
-  if (ready === false) return <Shell><SetupNotice /></Shell>;
-  return <RealDashboard />;
+  return (
+    <LocaleProvider>
+      {ready === null ? (
+        <Shell><LoadingShell /></Shell>
+      ) : ready === false ? (
+        <Shell><SetupNotice /></Shell>
+      ) : (
+        <RealDashboard />
+      )}
+    </LocaleProvider>
+  );
 }
 
 function Shell({ children }: { children: ReactNode }) {
+  const { t } = useT();
   return (
     <div className="min-h-screen bg-[#fafaf7] text-[#1a0f00] font-sans antialiased">
       <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
@@ -272,13 +283,14 @@ function Shell({ children }: { children: ReactNode }) {
           <Link href="/about/en" className="flex items-center gap-2.5">
             <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
             <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
-            <span className="ml-2 px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">Private Beta</span>
+            <span className="ml-2 px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
           </Link>
           <div className="flex items-center gap-5 text-[13px]">
-            <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">Docs</Link>
+            <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
             <Link href="/docs/pay-token" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors inline-flex items-center gap-1">
-              <Icon.External className="w-3.5 h-3.5" /> API Reference
+              <Icon.External className="w-3.5 h-3.5" /> {t("header.apiRef")}
             </Link>
+            <LanguageSelector />
           </div>
         </div>
       </header>
@@ -288,7 +300,8 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 function LoadingShell() {
-  return <p className="text-[12px] text-[#1a0f00]/40 py-16 text-center">Loading workspace…</p>;
+  const { t } = useT();
+  return <p className="text-[12px] text-[#1a0f00]/40 py-16 text-center">{t("common.loadingWorkspace")}</p>;
 }
 
 function SetupNotice() {
@@ -523,6 +536,7 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
   // + a shortcut into that pane.
   type Me = { id: string; email: string | null; email_verified_at: string | null };
   const [me, setMe] = useState<Me | null>(null);
+  const { t } = useT();
   useEffect(() => {
     if (menuOpen) {
       fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null));
@@ -537,12 +551,12 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
             <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
             <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
           </Link>
-          <span className="px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">Private Beta</span>
+          <span className="px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
         </div>
         <div className="flex items-center gap-5 text-[13px]">
-          <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">Docs</Link>
+          <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
           <Link href="/docs/pay-token" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors inline-flex items-center gap-1">
-            <Icon.External className="w-3.5 h-3.5" /> API Reference
+            <Icon.External className="w-3.5 h-3.5" /> {t("header.apiRef")}
           </Link>
           <div className="relative ml-1">
             <button type="button" onClick={() => setMenuOpen((o) => !o)} className="inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-white border border-[#1a0f00]/10 hover:bg-[#1a0f00]/[0.03] transition-colors" aria-label="Workspace menu" aria-expanded={menuOpen}>
@@ -553,17 +567,17 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
               <>
                 <button type="button" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-30 cursor-default" aria-hidden tabIndex={-1} />
                 <div className="absolute top-full right-0 mt-2 w-[320px] rounded-xl bg-white border border-[#1a0f00]/12 shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-4 z-40">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">Workspace</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">{t("header.workspace")}</p>
                   <p className="text-[12.5px] font-bold mb-3 leading-tight">
-                    {me?.email ? me.email : "Anonymous · Private Beta"}
+                    {me?.email ? me.email : t("header.anonymous")}
                   </p>
                   <dl className="text-[11.5px] space-y-1.5 mb-3">
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Endpoints</dt><dd className="font-mono font-semibold">{endpoints.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Active Pay Tokens</dt><dd className="font-mono font-semibold">{activeTokensCount}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Buyer purchases</dt><dd className="font-mono font-semibold">{sales.count}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Paid calls</dt><dd className="font-mono font-semibold">{runs.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">Blocked</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">Sales (net 97%)</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(sales.net)}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.endpoints")}</dt><dd className="font-mono font-semibold">{endpoints.length}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.activePayTokens")}</dt><dd className="font-mono font-semibold">{activeTokensCount}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.buyerPurchases")}</dt><dd className="font-mono font-semibold">{sales.count}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.paidCalls")}</dt><dd className="font-mono font-semibold">{runs.length}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.blocked")}</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
+                    <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">{t("header.salesNet")}</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(sales.net)}</dd></div>
                   </dl>
 
                   {/* Sign-in, Stripe Connect and Owner ID now live in the
@@ -573,10 +587,10 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
                     onClick={() => { setActivePane("account"); setMenuOpen(false); }}
                     className="w-full mb-3 px-2.5 py-2 bg-[#1a0f00] text-white font-bold text-[11.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors"
                   >
-                    {me?.email ? "Manage account & payouts →" : "Sign in & connect Stripe →"}
+                    {me?.email ? t("header.manageAccount") : t("header.signInConnect")}
                   </button>
 
-                  <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">Talk to us →</a>
+                  <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">{t("header.talkToUs")}</a>
                 </div>
               </>
             )}
@@ -590,21 +604,22 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
 /* ────────────────────────────  sidebar  ──────────────────────────── */
 
 function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: Record<Pane, number | null>; onSelect: (p: Pane) => void }) {
+  const { t } = useT();
   return (
     <aside className="md:sticky md:top-20 self-start space-y-5">
       {SIDEBAR.map((group) => (
-        <div key={group.heading}>
-          <p className="text-[10px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-2 px-1">{group.heading}</p>
+        <div key={group.headingKey}>
+          <p className="text-[10px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-2 px-1">{t(group.headingKey)}</p>
           <ul className="space-y-0.5">
             {group.items.map((item) => {
               const Ico = Icon[item.icon];
               const isActive = item.pane === activePane;
               const badge = counts[item.pane];
               return (
-                <li key={item.label}>
+                <li key={item.labelKey}>
                   <button type="button" onClick={() => onSelect(item.pane)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${isActive ? "bg-[#fffd43] text-[#1a0f00] font-semibold" : "text-[#1a0f00]/65 hover:bg-[#1a0f00]/4 hover:text-[#1a0f00]"}`}>
                     <Ico className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className="flex-1 text-left">{t(item.labelKey)}</span>
                     {badge !== null && badge > 0 && (
                       <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isActive ? "bg-[#1a0f00]/15 text-[#1a0f00]" : "bg-[#1a0f00]/8 text-[#1a0f00]/60"}`}>{badge}</span>
                     )}
@@ -618,15 +633,15 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
 
       <div className="rounded-xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-3">
         <div className="flex items-baseline justify-between mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Launch Plan</p>
-          <p className="text-[11px] font-bold text-[#1a0f00]/80"><span className="font-mono">$0</span>/mo</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("launch.plan")}</p>
+          <p className="text-[11px] font-bold text-[#1a0f00]/80"><span className="font-mono">$0</span>{t("launch.perMonth")}</p>
         </div>
         <ul className="space-y-1 text-[10.5px] text-[#1a0f00]/65 mb-2">
-          <li>3,000 API calls free / mo</li>
-          <li>Then 3% platform fee</li>
-          <li>No fixed transaction fee</li>
+          <li>{t("launch.freeCalls")}</li>
+          <li>{t("launch.thenFee")}</li>
+          <li>{t("launch.noFixed")}</li>
         </ul>
-        <Link href="/pricing" className="text-[10.5px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] hover:underline">View pricing →</Link>
+        <Link href="/pricing" className="text-[10.5px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] hover:underline">{t("launch.viewPricing")}</Link>
       </div>
     </aside>
   );
@@ -645,6 +660,7 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
       .catch(() => setProviders({ google: false, github: false }));
   }, []);
 
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -672,16 +688,16 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
   return (
     <div className="max-w-[420px] mx-auto py-16">
       <div className="text-center mb-8">
-        <h1 className="text-[26px] font-black leading-tight mb-2">ワークスペースにサインイン</h1>
+        <h1 className="text-[26px] font-black leading-tight mb-2">{t("signin.title")}</h1>
         <p className="text-[13px] text-[#1a0f00]/55 leading-relaxed">
-          ログインすると、どのブラウザからでも同じワークスペースに戻れます。
+          {t("signin.subtitle")}
         </p>
       </div>
 
       {sent ? (
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 text-center">
-          <p className="text-[13px] text-[#16A34A] font-semibold mb-1">✓ メールを送信しました</p>
-          <p className="text-[12.5px] text-[#1a0f00]/60 leading-relaxed">受信トレイのマジックリンクを開いて、サインインを完了してください。</p>
+          <p className="text-[13px] text-[#16A34A] font-semibold mb-1">{t("signin.sent.title")}</p>
+          <p className="text-[12.5px] text-[#1a0f00]/60 leading-relaxed">{t("signin.sent.body")}</p>
         </div>
       ) : (
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
@@ -695,7 +711,7 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
                     <path fill="#FBBC05" d="M5.27 14.32a7.2 7.2 0 0 1 0-4.62V6.61H1.29a12 12 0 0 0 0 10.8l3.98-3.09z" />
                     <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.61l3.98 3.09C6.22 6.85 8.87 4.75 12 4.75z" />
                   </svg>
-                  Continue with Google
+                  {t("auth.google")}
                 </a>
               )}
               {providers.github && (
@@ -703,12 +719,12 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
                     <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z" />
                   </svg>
-                  Continue with GitHub
+                  {t("auth.github")}
                 </a>
               )}
               <div className="flex items-center gap-3 pt-1">
                 <span className="h-px flex-1 bg-[#1a0f00]/10" />
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">or email</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">{t("auth.orEmail")}</span>
                 <span className="h-px flex-1 bg-[#1a0f00]/10" />
               </div>
             </div>
@@ -720,7 +736,7 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t("common.emailPlaceholder")}
               className="w-full px-3.5 py-2.5 rounded-lg border border-[#1a0f00]/15 text-[13px] focus:outline-none focus:border-[#1a0f00]/40"
             />
             <button
@@ -728,16 +744,16 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
               disabled={busy}
               className="w-full px-4 py-2.5 bg-[#fffd43] text-[#1a0f00] rounded-lg text-[13px] font-semibold hover:bg-[#fffd43]/90 transition-colors disabled:opacity-50"
             >
-              {busy ? "送信中…" : "メールでログインリンクを受け取る"}
+              {busy ? t("signin.sending") : t("signin.emailButton")}
             </button>
           </form>
-          {err && <p className="text-[12px] text-[#B91C1C] mt-2">送信に失敗しました。もう一度お試しください。</p>}
+          {err && <p className="text-[12px] text-[#B91C1C] mt-2">{t("signin.error")}</p>}
         </div>
       )}
 
       <div className="text-center mt-5">
         <button type="button" onClick={onSkip} className="text-[12.5px] text-[#1a0f00]/45 hover:text-[#1a0f00]/80 underline">
-          あとで（スキップして試す）
+          {t("signin.skip")}
         </button>
       </div>
     </div>
@@ -745,6 +761,7 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
 }
 
 function AccountPane() {
+  const { t } = useT();
   // ── Identity: anonymous owner cookie + claimed email ──
   const [ownerId, setOwnerId] = useState<string>("");
   type Me = { id: string; email: string | null; email_verified_at: string | null };
@@ -845,22 +862,22 @@ function AccountPane() {
   const authBanner: { tone: "ok" | "err"; text: string } | null = (() => {
     if (!authNote) return null;
     switch (authNote) {
-      case "signed_in": return { tone: "ok", text: "Signed in." };
-      case "oauth_denied": return { tone: "err", text: "Sign-in was cancelled." };
+      case "signed_in": return { tone: "ok", text: t("auth.banner.signed_in") };
+      case "oauth_denied": return { tone: "err", text: t("auth.banner.oauth_denied") };
       case "bad_state":
-      case "missing_code": return { tone: "err", text: "Sign-in session expired — please try again." };
+      case "missing_code": return { tone: "err", text: t("auth.banner.session_expired") };
       case "oauth_exchange_failed":
-      case "owner_resolve_failed": return { tone: "err", text: "Couldn't complete sign-in — please try again." };
-      case "invalid_or_expired": return { tone: "err", text: "That link is invalid or expired." };
-      case "missing_token": return { tone: "err", text: "That sign-in link is incomplete." };
-      case "backend_not_configured": return { tone: "err", text: "Backend isn't configured yet." };
-      default: return authNote.endsWith("_not_configured") ? { tone: "err", text: "That sign-in method isn't configured yet." } : null;
+      case "owner_resolve_failed": return { tone: "err", text: t("auth.banner.complete_failed") };
+      case "invalid_or_expired": return { tone: "err", text: t("auth.banner.invalid_or_expired") };
+      case "missing_token": return { tone: "err", text: t("auth.banner.missing_token") };
+      case "backend_not_configured": return { tone: "err", text: t("auth.banner.backend_not_configured") };
+      default: return authNote.endsWith("_not_configured") ? { tone: "err", text: t("auth.banner.method_not_configured") } : null;
     }
   })();
 
   return (
     <>
-      <PaneHeading eyebrow="Account" title="Sign-in & payouts" subtitle="Claim this workspace with an email so you can recover it from any browser, then connect Stripe to accept buyer payments. LemonCake takes 3%; the rest settles straight to your Stripe balance." />
+      <PaneHeading eyebrow={t("account.eyebrow")} title={t("account.title")} subtitle={t("account.subtitle")} />
 
       {authBanner && (
         <div className={`mb-4 px-3.5 py-2.5 rounded-lg text-[12.5px] font-medium border ${authBanner.tone === "ok" ? "bg-[#16A34A]/8 border-[#16A34A]/25 text-[#15803D]" : "bg-[#DC2626]/8 border-[#DC2626]/25 text-[#B91C1C]"}`}>
@@ -868,25 +885,36 @@ function AccountPane() {
         </div>
       )}
 
+      {/* Language — the seller switches the dashboard's display language here. */}
+      <section className="mb-4 rounded-2xl bg-white border border-[#1a0f00]/10 p-5 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">{t("lang.label")}</p>
+          <p className="text-[12.5px] text-[#1a0f00]/60 leading-relaxed">{t("account.languageHint")}</p>
+        </div>
+        <div className="flex-shrink-0 rounded-lg border border-[#1a0f00]/15 px-3 py-2">
+          <LanguageSelector />
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Card 1 — workspace identity */}
         <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-3">Workspace</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-3">{t("account.workspace")}</p>
           {!meLoaded ? (
-            <p className="text-[12px] text-[#1a0f00]/40">Loading…</p>
+            <p className="text-[12px] text-[#1a0f00]/40">{t("common.loading")}</p>
           ) : me?.email ? (
             <div className="rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-4">
               <div className="flex items-baseline justify-between gap-2 mb-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#16A34A]">Signed in</p>
-                <button type="button" onClick={signOut} className="text-[11px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">Sign out</button>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#16A34A]">{t("account.signedIn")}</p>
+                <button type="button" onClick={signOut} className="text-[11px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">{t("account.signOut")}</button>
               </div>
               <p className="text-[14px] font-semibold text-[#1a0f00] break-all">{me.email}</p>
-              <p className="mt-1 text-[11px] text-[#1a0f00]/55">Recoverable from any browser via a magic link to this address.</p>
+              <p className="mt-1 text-[11px] text-[#1a0f00]/55">{t("account.recoverable")}</p>
             </div>
           ) : (
             <div>
               <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">
-                Sign in to claim this workspace so you can reach it from any browser — required before connecting Stripe.
+                {t("account.claimPrompt")}
               </p>
 
               {providers && (providers.google || providers.github) && (
@@ -899,7 +927,7 @@ function AccountPane() {
                         <path fill="#FBBC05" d="M5.27 14.32a7.2 7.2 0 0 1 0-4.62V6.61H1.29a12 12 0 0 0 0 10.8l3.98-3.09z" />
                         <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.61l3.98 3.09C6.22 6.85 8.87 4.75 12 4.75z" />
                       </svg>
-                      Continue with Google
+                      {t("auth.google")}
                     </a>
                   )}
                   {providers.github && (
@@ -907,46 +935,46 @@ function AccountPane() {
                       <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
                         <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z" />
                       </svg>
-                      Continue with GitHub
+                      {t("auth.github")}
                     </a>
                   )}
                   <div className="flex items-center gap-3 pt-1">
                     <span className="h-px flex-1 bg-[#1a0f00]/10" />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">or email</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1a0f00]/35">{t("auth.orEmail")}</span>
                     <span className="h-px flex-1 bg-[#1a0f00]/10" />
                   </div>
                 </div>
               )}
 
               {claimResult?.ok && (claimResult.sent ? (
-                <p className="text-[12px] text-[#16A34A] mb-3">✓ Check your inbox for the magic link.</p>
+                <p className="text-[12px] text-[#16A34A] mb-3">{t("account.checkInbox")}</p>
               ) : (
                 <div className="mb-3 rounded-lg bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-3">
-                  <p className="text-[11.5px] text-[#1a0f00]/65 mb-1.5">Email delivery isn&apos;t wired up yet — use this one-time link to finish signing in:</p>
+                  <p className="text-[11.5px] text-[#1a0f00]/65 mb-1.5">{t("account.noEmailDelivery")}</p>
                   {claimResult.previewUrl && (
                     <div className="flex items-center gap-2">
-                      <a href={claimResult.previewUrl} className="flex-1 text-[11px] text-[#1a0f00] underline break-all">Open sign-in link</a>
-                      <button type="button" onClick={() => navigator.clipboard?.writeText(claimResult.previewUrl!)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+                      <a href={claimResult.previewUrl} className="flex-1 text-[11px] text-[#1a0f00] underline break-all">{t("account.openSigninLink")}</a>
+                      <button type="button" onClick={() => navigator.clipboard?.writeText(claimResult.previewUrl!)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">{t("common.copy")}</button>
                     </div>
                   )}
                 </div>
               ))}
               {claimResult && !claimResult.ok && (
-                <p className="text-[12px] text-[#DC2626] mb-3">Error: {claimResult.error}</p>
+                <p className="text-[12px] text-[#DC2626] mb-3">{t("account.errorPrefix", { error: claimResult.error })}</p>
               )}
               <div className="flex gap-2">
-                <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="you@example.com" onKeyDown={(e) => { if (e.key === "Enter") submitClaim(); }} className="flex-1 min-w-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" />
-                <button type="button" onClick={submitClaim} disabled={claimBusy || !emailInput.trim()} className="flex-shrink-0 px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{claimBusy ? "…" : "Send link"}</button>
+                <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t("common.emailPlaceholder")} onKeyDown={(e) => { if (e.key === "Enter") submitClaim(); }} className="flex-1 min-w-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" />
+                <button type="button" onClick={submitClaim} disabled={claimBusy || !emailInput.trim()} className="flex-shrink-0 px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{claimBusy ? "…" : t("account.sendLink")}</button>
               </div>
             </div>
           )}
 
           {ownerId && (
             <details className="mt-4">
-              <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 hover:text-[#1a0f00]/65">Owner ID</summary>
+              <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 hover:text-[#1a0f00]/65">{t("account.ownerId")}</summary>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <code className="font-mono text-[11px] text-[#1a0f00]/75 truncate">{ownerId}</code>
-                <button type="button" onClick={() => navigator.clipboard?.writeText(ownerId)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">Copy</button>
+                <button type="button" onClick={() => navigator.clipboard?.writeText(ownerId)} className="flex-shrink-0 text-[11px] font-semibold text-[#1a0f00]/65 hover:text-[#1a0f00] underline">{t("common.copy")}</button>
               </div>
             </details>
           )}
@@ -956,38 +984,38 @@ function AccountPane() {
         <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Icon.Bank className="w-4 h-4 text-[#635BFF]" />
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45">Accept buyer payments</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45">{t("account.acceptPayments")}</p>
           </div>
 
           {!me?.email ? (
             <div className="rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-4 flex items-start gap-2.5">
               <Icon.Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/40" />
-              <p className="text-[12.5px] text-[#1a0f00]/65 leading-relaxed">Claim this workspace with an email first (left). Stripe needs a stable identity that survives a cookie wipe.</p>
+              <p className="text-[12.5px] text-[#1a0f00]/65 leading-relaxed">{t("account.claimFirst")}</p>
             </div>
           ) : (
             <>
               {stripeStatus?.chargesEnabled ? (
                 <div className="rounded-xl bg-[#635BFF]/8 border border-[#635BFF]/25 p-4">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#635BFF]">Stripe connected</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#635BFF]">{t("account.stripeConnected")}</p>
                     <span className="text-[10px] font-mono text-[#1a0f00]/50">{stripeStatus.country ?? "—"}</span>
                   </div>
                   <code className="block font-mono text-[11.5px] text-[#1a0f00]/75 break-all mb-1">{stripeStatus.accountId}</code>
-                  <p className="text-[11.5px] text-[#1a0f00]/55">Buyers can prepay credits to your account. Payouts settle on Stripe&apos;s schedule.</p>
+                  <p className="text-[11.5px] text-[#1a0f00]/55">{t("account.buyersCanPrepay")}</p>
                 </div>
               ) : stripeStatus?.connected ? (
                 <div className="rounded-xl bg-[#fffd43]/15 border border-[#1a0f00]/10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1.5">Onboarding incomplete</p>
-                  <p className="text-[12px] text-[#1a0f00]/65 leading-relaxed mb-3">Account created, but KYC / bank details are still pending. Resume to start accepting payments.</p>
-                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{stripeBusy ? "Opening Stripe…" : "Resume Stripe onboarding →"}</button>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1.5">{t("account.onboardingIncomplete")}</p>
+                  <p className="text-[12px] text-[#1a0f00]/65 leading-relaxed mb-3">{t("account.kycPending")}</p>
+                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#1a0f00] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-50">{stripeBusy ? t("account.openingStripe") : t("account.resumeOnboarding")}</button>
                 </div>
               ) : (
                 <div>
-                  <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">Connect a Stripe account so buyers can prepay credits. LemonCake never holds funds — 97% lands in your Stripe balance, we keep a 3% platform fee.</p>
-                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#635BFF] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#7A73FF] transition-colors disabled:opacity-50">{stripeBusy ? "Opening Stripe…" : "Connect Stripe →"}</button>
+                  <p className="text-[12.5px] text-[#1a0f00]/70 leading-relaxed mb-3">{t("account.connectIntro")}</p>
+                  <button type="button" onClick={startStripeConnect} disabled={stripeBusy} className="px-4 py-2 bg-[#635BFF] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#7A73FF] transition-colors disabled:opacity-50">{stripeBusy ? t("account.openingStripe") : t("account.connectStripe")}</button>
                 </div>
               )}
-              {stripeErr && <p className="mt-3 text-[12px] text-[#DC2626] break-words">Stripe error: {stripeErr}</p>}
+              {stripeErr && <p className="mt-3 text-[12px] text-[#DC2626] break-words">{t("account.stripeErrorPrefix", { error: stripeErr })}</p>}
             </>
           )}
         </section>
@@ -1000,6 +1028,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
   // Empty by default — the placeholder shows the example. The user types
   // their own. (Pricing / budget / rate keep real defaults since those are
   // sensible starting values, not example labels.)
+  const { t } = useT();
   const [apiName,      setApiName]      = useState("");
   const [apiUrl,       setApiUrl]       = useState("");
   const [pricePerCall, setPricePerCall] = useState("0.01");
@@ -1020,7 +1049,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
   const [verify, setVerify] = useState<VerifyState>(null);
   async function verifyUrl() {
     if (!/^https?:\/\//.test(apiUrl)) {
-      setVerify({ kind: "error", message: "Enter a full http(s) URL first." });
+      setVerify({ kind: "error", message: t("add.verifyEnterUrl") });
       return;
     }
     setVerify({ kind: "loading" });
@@ -1035,7 +1064,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
       const ms = Math.round(performance.now() - t0);
       setVerify(res.ok ? { kind: "ok", status: res.status, ms } : { kind: "fail", status: res.status, ms });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Network error";
+      const message = e instanceof Error ? e.message : t("test.networkError");
       setVerify({ kind: "error", message });
     }
   }
@@ -1065,9 +1094,9 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
 
   async function create() {
     setErr(null);
-    if (!apiName.trim()) return setErr("API name is required.");
-    if (!/^https?:\/\//.test(apiUrl)) return setErr("API URL must start with http(s)://");
-    if (priceNum <= 0) return setErr("Price per call must be greater than 0.");
+    if (!apiName.trim()) return setErr(t("add.errName"));
+    if (!/^https?:\/\//.test(apiUrl)) return setErr(t("add.errUrl"));
+    if (priceNum <= 0) return setErr(t("add.errPrice"));
     setBusy(true);
     try {
       const ep = await api.createEndpoint({
@@ -1080,7 +1109,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
       });
       setCreated(ep);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Create failed.");
+      setErr(e instanceof Error ? e.message : t("add.errCreate"));
     } finally {
       setBusy(false);
     }
@@ -1097,10 +1126,10 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
         ? "needs_verify"
         : "ready";
   const ctaLabel = busy
-    ? "Creating…"
-    : ctaState === "no_url"        ? "Enter API URL to continue"
-      : ctaState === "needs_verify" ? "Verify origin"
-        : "Create Paid-Access Endpoint";
+    ? t("add.creating")
+    : ctaState === "no_url"        ? t("add.ctaNoUrl")
+      : ctaState === "needs_verify" ? t("add.ctaVerify")
+        : t("add.ctaCreate");
   const ctaDisabled = busy || ctaState === "no_url" || verify?.kind === "loading";
   async function onCtaClick() {
     if (ctaState === "needs_verify") await verifyUrl();
@@ -1124,30 +1153,30 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
   return (
     <>
       <PaneHeading
-        eyebrow={endpoints.length === 0 ? "Welcome" : "New endpoint"}
-        title={endpoints.length === 0 ? "Create your first paid-access API" : "Create another paid-access endpoint"}
-        subtitle="Turn any HTTP API into a protected endpoint with price rules, Pay Tokens, spend caps, and real-time usage logs."
+        eyebrow={endpoints.length === 0 ? t("add.eyebrowWelcome") : t("add.eyebrowNew")}
+        title={endpoints.length === 0 ? t("add.titleFirst") : t("add.titleAnother")}
+        subtitle={t("add.subtitle")}
       />
 
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {["Metering live", "Pay Tokens live", "Usage ledger live", "Access control live", "Buyer prepay checkout live"].map((label) => (
-          <span key={label} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
+        {(["add.chipMetering", "add.chipPayTokens", "add.chipLedger", "add.chipAccess", "add.chipCheckout"] as const).map((key) => (
+          <span key={key} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
             <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#16A34A]/15 text-[#16A34A] text-[9px] font-black">✓</span>
-            {label}
+            {t(key)}
           </span>
         ))}
       </div>
       <p className="mb-6 text-[10.5px] text-[#1a0f00]/45 leading-snug">
-        Everything works end-to-end: create an endpoint, share its buy link, and buyers prepay via Stripe to get a Pay Token automatically. Connect Stripe in Account so those payments land in your balance — 97% to you, 3% to LemonCake, taken once at checkout.
+        {t("add.intro")}
       </p>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
           <div className="space-y-5">
-            <Field label="API name">
-              <input type="text" value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder="AI Search API" className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
+            <Field label={t("add.fieldName")}>
+              <input type="text" value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder={t("add.phName")} className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
             </Field>
-            <Field label="Original API URL">
+            <Field label={t("add.fieldUrl")}>
               <div className="flex items-stretch gap-2">
                 <input
                   type="url"
@@ -1162,26 +1191,26 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
                   disabled={verify?.kind === "loading"}
                   className="flex-shrink-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-xl text-[12px] font-semibold text-[#1a0f00]/75 hover:bg-[#1a0f00]/[0.03] hover:text-[#1a0f00] transition-colors disabled:opacity-60"
                 >
-                  {verify?.kind === "loading" ? "…" : "Verify"}
+                  {verify?.kind === "loading" ? "…" : t("add.verify")}
                 </button>
               </div>
               <p className="mt-1.5 text-[11px] leading-relaxed">
-                {!verify && <span className="text-[#1a0f00]/45">We&apos;ll connect to this endpoint on every paid request.</span>}
-                {verify?.kind === "ok" && <span className="text-[#16A34A]">✓ Origin reachable · {verify.status} · {verify.ms}ms</span>}
-                {verify?.kind === "fail" && <span className="text-[#DC2626]">{verify.status} from origin · {verify.ms}ms. Check URL or upstream auth.</span>}
-                {verify?.kind === "error" && <span className="text-[#DC2626]">Origin unreachable — {verify.message}. CORS / DNS likely; production gateway is server-to-server and unaffected.</span>}
+                {!verify && <span className="text-[#1a0f00]/45">{t("add.verifyHint")}</span>}
+                {verify?.kind === "ok" && <span className="text-[#16A34A]">{t("add.verifyOk", { status: verify.status, ms: verify.ms })}</span>}
+                {verify?.kind === "fail" && <span className="text-[#DC2626]">{t("add.verifyFail", { status: verify.status, ms: verify.ms })}</span>}
+                {verify?.kind === "error" && <span className="text-[#DC2626]">{t("add.verifyError", { message: verify.message })}</span>}
               </p>
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Price per call">
+              <Field label={t("add.fieldPrice")}>
                 <DollarInput value={pricePerCall} onChange={setPricePerCall} step="0.001" />
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] text-[#1a0f00]/45 self-center mr-1">Suggested:</span>
+                  <span className="text-[10px] text-[#1a0f00]/45 self-center mr-1">{t("add.suggested")}</span>
                   {([
-                    ["0.001", "log/tool"],
-                    ["0.01",  "search"],
-                    ["0.05",  "extraction"],
-                    ["0.20",  "deep research"],
+                    ["0.001", "add.tagLog"],
+                    ["0.01",  "add.tagSearch"],
+                    ["0.05",  "add.tagExtraction"],
+                    ["0.20",  "add.tagResearch"],
                   ] as const).map(([v, label]) => (
                     <button
                       key={v}
@@ -1193,27 +1222,27 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
                           : "bg-white text-[#1a0f00]/70 border-[#1a0f00]/15 hover:border-[#1a0f00]/35 hover:text-[#1a0f00]"
                       }`}
                     >
-                      ${v} <span className="font-sans font-normal opacity-65">{label}</span>
+                      ${v} <span className="font-sans font-normal opacity-65">{t(label)}</span>
                     </button>
                   ))}
                 </div>
               </Field>
-              <Field label="Max buyer spend per Pay Token" hintBelow="Maximum amount each Pay Token can spend before it stops working."><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
+              <Field label={t("add.fieldBudget")} hintBelow={t("add.fieldBudgetHint")}><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
             </div>
-            <Field label="Rate limit" hintBelow="Max requests allowed per minute, per endpoint">
+            <Field label={t("add.fieldRate")} hintBelow={t("add.fieldRateHint")}>
               <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-xl focus-within:border-[#1a0f00]/55 transition-colors">
                 <input
                   type="number" step="10" min="1" value={rateLimit}
                   onChange={(e) => setRateLimit(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-transparent text-[13.5px] focus:outline-none"
                 />
-                <span className="pr-3.5 text-[12.5px] text-[#1a0f00]/45 font-mono whitespace-nowrap">requests / min</span>
+                <span className="pr-3.5 text-[12.5px] text-[#1a0f00]/45 font-mono whitespace-nowrap">{t("add.requestsPerMin")}</span>
               </div>
             </Field>
             <Field
-              label="Upstream auth"
-              hint="optional for open APIs"
-              hintBelow="If your origin requires auth (e.g. OpenAI, Anthropic, internal services), paste the full header here. Stored server-side, never shown to buyers."
+              label={t("add.fieldAuth")}
+              hint={t("add.fieldAuthHint")}
+              hintBelow={t("add.fieldAuthHintBelow")}
             >
               <input
                 type="text"
@@ -1243,7 +1272,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
             {ctaLabel}
           </button>
           <p className="mt-2.5 text-center text-[11px] text-[#1a0f00]/55">
-            Next: create endpoint → share its buy link → buyers prepay → sales land
+            {t("add.nextHint")}
           </p>
         </div>
 
@@ -1289,42 +1318,42 @@ function PreviewPanel({
   estFee: number;
   estNet: number;
 }) {
+  const { t } = useT();
   return (
     <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 lg:sticky lg:top-20 self-start">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Live preview</p>
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> Ready to go</span>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("preview.title")}</p>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> {t("preview.ready")}</span>
       </div>
 
       {/* Step 1 — Gateway endpoint */}
-      <PreviewStep n={1} title="Gateway endpoint">
+      <PreviewStep n={1} title={t("preview.step1")}>
         <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 px-3 py-2.5">
           <code className="font-mono text-[11.5px] text-[#1a0f00] break-all truncate">{previewUrl}</code>
-          <button type="button" onClick={() => navigator.clipboard?.writeText(previewUrl)} className="flex-shrink-0 p-1 rounded hover:bg-[#1a0f00]/8 transition-colors text-[#1a0f00]/55" aria-label="Copy gateway URL">
+          <button type="button" onClick={() => navigator.clipboard?.writeText(previewUrl)} className="flex-shrink-0 p-1 rounded hover:bg-[#1a0f00]/8 transition-colors text-[#1a0f00]/55" aria-label={t("apis.copyGatewayTitle")}>
             <Icon.Copy className="w-3.5 h-3.5" />
           </button>
         </div>
         <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
-          Slug “{previewSlug}”{slugConflict ? ` (auto-renamed from “${rawSlug}”)` : ""}. Real short ID assigned on create.
-          {" "}Proxies to <code className="font-mono">{apiUrl || "—"}</code>.
+          {t("preview.slugNote", { slug: previewSlug })}{slugConflict ? t("preview.slugRenamed", { raw: rawSlug }) : ""}{t("preview.slugAssigned")}<code className="font-mono">{apiUrl || "—"}</code>{t("preview.proxiesEnd")}
         </p>
       </PreviewStep>
 
       {/* Step 2 — Pay Token rules */}
-      <PreviewStep n={2} title="Pay Token rules">
+      <PreviewStep n={2} title={t("preview.step2")}>
         <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
-          <RevRow k="Max buyer spend" v={fmtUsd(tokenBudget)} />
-          <RevRow k="Rate limit" v={`${rateLimit} req/min`} />
-          <RevRow k="Per-call price" v={fmtUsd(pricePerCall)} />
-          <RevRow k="Expires in" v="24h (default)" muted />
+          <RevRow k={t("preview.maxSpend")} v={fmtUsd(tokenBudget)} />
+          <RevRow k={t("preview.rateLimit")} v={t("test.rateLimitFmt", { n: rateLimit })} />
+          <RevRow k={t("preview.perCallPrice")} v={fmtUsd(pricePerCall)} />
+          <RevRow k={t("preview.expiresIn")} v={t("preview.expiresVal")} muted />
         </div>
         <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
-          HS256-signed JWT. Buyer attaches as <code className="font-mono">Authorization: Bearer</code>. Revocable instantly.
+          {t("preview.jwtNotePre")}<code className="font-mono">Authorization: Bearer</code>{t("preview.jwtNotePost")}
         </p>
       </PreviewStep>
 
       {/* Step 3 — Test call */}
-      <PreviewStep n={3} title="Test call">
+      <PreviewStep n={3} title={t("preview.step3")}>
         <div className="rounded-lg bg-[#1a0f00] text-white p-2.5 text-[10.5px] font-mono leading-relaxed">
           curl -X POST {previewUrl} \<br />
           &nbsp;&nbsp;-H &quot;Authorization: Bearer &lt;PAY_TOKEN&gt;&quot;
@@ -1332,36 +1361,35 @@ function PreviewPanel({
         <div className="mt-2 rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-3 space-y-1 font-mono text-[11px]">
           <RevRow k="HTTP" v="200 OK" highlight />
           <RevRow k="x-lemoncake-charge" v={fmtUsd(pricePerCall)} />
-          <RevRow k="remaining budget" v={fmtUsd(Math.max(0, tokenBudget - pricePerCall))} muted />
+          <RevRow k={t("preview.remainingBudget")} v={fmtUsd(Math.max(0, tokenBudget - pricePerCall))} muted />
         </div>
         <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
-          Recorded to usage ledger. Settlement can be enabled later. On block: 402 / 429 / 401 with{" "}
-          <code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>.
+          {t("preview.ledgerNotePre")}<code className="font-mono text-[10px] bg-[#1a0f00]/6 px-1 rounded">{"{\"error\": \"spend_cap_exceeded\"}"}</code>{t("preview.ledgerNotePost")}
         </p>
       </PreviewStep>
 
       {/* Usage ledger estimate */}
       <div className="mt-5 pt-4 border-t border-[#1a0f00]/8">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">Usage ledger estimate</p>
+          <p className="text-[11.5px] font-semibold text-[#1a0f00]/75">{t("preview.estTitle")}</p>
           <div className="relative">
             <select value={estCalls} onChange={(e) => setEstCalls(Number(e.target.value) as 1000 | 10000 | 100000)} className="appearance-none pl-3 pr-7 py-1 bg-white border border-[#1a0f00]/15 rounded-lg text-[11px] focus:outline-none focus:border-[#1a0f00]/55">
-              <option value={1000}>1,000 calls / month</option>
-              <option value={10000}>10,000 calls / month</option>
-              <option value={100000}>100,000 calls / month</option>
+              <option value={1000}>{t("preview.calls1k")}</option>
+              <option value={10000}>{t("preview.calls10k")}</option>
+              <option value={100000}>{t("preview.calls100k")}</option>
             </select>
             <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
         <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
-          <RevRow k="Gross" v={fmtUsd(estRev)} />
-          <RevRow k="LemonCake fee (3%, after free 3k)" v={`-${fmtUsd(estFee)}`} muted />
+          <RevRow k={t("preview.gross")} v={fmtUsd(estRev)} />
+          <RevRow k={t("preview.feeRow")} v={`-${fmtUsd(estFee)}`} muted />
           <div className="h-px bg-[#1a0f00]/8 my-1" />
-          <RevRow k="You receive" v={fmtUsd(estNet)} highlight />
+          <RevRow k={t("preview.youReceive")} v={fmtUsd(estNet)} highlight />
         </div>
         <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/50">
           <Icon.Bank className="w-3 h-3" />
-          Usage meter. Connect Stripe in Account to enable payouts.
+          {t("preview.meterNote")}
         </p>
       </div>
     </aside>
@@ -1392,6 +1420,7 @@ function CreatedSuccess({
   onTest: () => void;
   onCreateAnother: () => void;
 }) {
+  const { t } = useT();
   const url = gatewayUrlOf(endpoint.shortId);
   const buyUrl = buyUrlOf(endpoint.shortId);
   const isPriced = endpoint.pricePerCall > 0;
@@ -1400,11 +1429,10 @@ function CreatedSuccess({
       <div className="mb-6 flex items-start gap-3">
         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#16A34A] text-white text-[16px] font-black flex-shrink-0">✓</span>
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-[#16A34A] uppercase tracking-widest mb-1">Live</p>
-          <h1 className="text-[26px] md:text-[30px] font-black leading-[1.15] tracking-tight">Your paid-access endpoint is live</h1>
+          <p className="text-[11px] font-bold text-[#16A34A] uppercase tracking-widest mb-1">{t("created.live")}</p>
+          <h1 className="text-[26px] md:text-[30px] font-black leading-[1.15] tracking-tight">{t("created.title")}</h1>
           <p className="mt-2 text-[13px] text-[#1a0f00]/60">
-            <code className="font-mono text-[12px] bg-[#1a0f00]/6 px-1.5 py-0.5 rounded">{endpoint.name}</code> is ready.
-            Share its buy link — buyers prepay and get a Pay Token automatically.
+            <code className="font-mono text-[12px] bg-[#1a0f00]/6 px-1.5 py-0.5 rounded">{endpoint.name}</code> {t("created.subtitleRest")}
           </p>
         </div>
       </div>
@@ -1412,22 +1440,22 @@ function CreatedSuccess({
       {isPriced && (
         <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
           <div className="flex items-baseline justify-between gap-2 mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
-            <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("apis.buyLink")}</p>
+            <span className="text-[10px] text-[#1a0f00]/45">{t("apis.buyLinkHint")}</span>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/15 px-3 py-3">
             <code className="font-mono text-[13px] text-[#1a0f00] break-all">{buyUrl}</code>
             <div className="flex-shrink-0 flex items-center gap-1.5">
-              <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
-              <a href={buyUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> Open</a>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{t("common.copy")}</button>
+              <a href={buyUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> {t("common.open")}</a>
             </div>
           </div>
           {!paymentsReady && (
             <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#1a0f00]/4 border border-[#1a0f00]/10 p-3">
               <Icon.Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/40" />
               <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">
-                The link is live, but buyers can&apos;t pay until you connect Stripe.{" "}
-                <button type="button" onClick={onConnectStripe} className="font-semibold text-[#1a0f00] underline underline-offset-2">Connect Stripe in Account →</button>
+                {t("created.notReadyText")}{" "}
+                <button type="button" onClick={onConnectStripe} className="font-semibold text-[#1a0f00] underline underline-offset-2">{t("created.connectStripeAccount")}</button>
               </p>
             </div>
           )}
@@ -1435,7 +1463,7 @@ function CreatedSuccess({
       )}
 
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Gateway URL <span className="font-normal normal-case tracking-normal text-[#1a0f00]/45">— what Pay Tokens call</span></p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("created.gatewayUrl")} <span className="font-normal normal-case tracking-normal text-[#1a0f00]/45">{t("created.gatewayUrlSub")}</span></p>
         <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] px-3 py-3 mb-5">
           <code className="font-mono text-[13px] text-[#1a0f00] break-all">{url}</code>
           <button
@@ -1443,17 +1471,17 @@ function CreatedSuccess({
             onClick={() => navigator.clipboard?.writeText(url)}
             className="flex-shrink-0 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"
           >
-            Copy
+            {t("common.copy")}
           </button>
         </div>
 
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Protection</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("created.protection")}</p>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[12.5px] mb-5">
           {[
-            ["Pay Token required",   "Every paid call must attach a signed JWT"],
-            ["Spend cap enforced",   `Max ${fmtUsd(endpoint.tokenBudget)} per Pay Token`],
-            ["Rate limit enforced",  `${endpoint.rateLimit} req/min per endpoint`],
-            ["Usage ledger active",  "Every successful call written to Postgres"],
+            [t("created.protPayToken"),  t("created.protPayTokenSub")],
+            [t("created.protSpendCap"),  t("created.protSpendCapSub", { max: fmtUsd(endpoint.tokenBudget) })],
+            [t("created.protRate"),      t("created.protRateSub", { n: endpoint.rateLimit })],
+            [t("created.protLedger"),    t("created.protLedgerSub")],
           ].map(([label, sub]) => (
             <div key={label} className="flex items-start gap-2">
               <span className="text-[#16A34A] font-black mt-0.5">✓</span>
@@ -1465,22 +1493,22 @@ function CreatedSuccess({
           ))}
         </dl>
 
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Next step</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("created.nextStep")}</p>
         <div className="flex flex-wrap items-center gap-2">
           {isPriced && (
             <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] font-bold text-[13px] rounded-lg transition-colors shadow-[0_1px_0_rgba(26,15,0,0.15)]">
-              <Icon.Copy className="w-3.5 h-3.5" /> Copy buy link
+              <Icon.Copy className="w-3.5 h-3.5" /> {t("created.copyBuyLink")}
             </button>
           )}
           <button type="button" onClick={onTest} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
-            <Icon.Play className="w-3.5 h-3.5" /> Send test request
+            <Icon.Play className="w-3.5 h-3.5" /> {t("created.sendTest")}
           </button>
           <button type="button" onClick={onIssueToken} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[13px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors">
-            <Icon.Key className="w-3.5 h-3.5" /> Issue test token
+            <Icon.Key className="w-3.5 h-3.5" /> {t("created.issueTest")}
           </button>
           <div className="flex-1" />
           <button type="button" onClick={onCreateAnother} className="text-[12px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline underline-offset-2">
-            + Create another
+            {t("created.createAnother")}
           </button>
         </div>
       </section>
@@ -1488,12 +1516,12 @@ function CreatedSuccess({
       <ShareKit endpoint={endpoint} />
 
       <section className="rounded-2xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Endpoint summary</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("created.summary")}</p>
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
-          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Price</dt><dd className="font-bold">{fmtUsd(endpoint.pricePerCall)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">/ call</span></dd></div>
-          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Spend cap</dt><dd className="font-bold">{fmtUsd(endpoint.tokenBudget)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">/ token</span></dd></div>
-          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Rate</dt><dd className="font-bold">{endpoint.rateLimit} <span className="text-[10px] text-[#1a0f00]/45 font-normal">req/min</span></dd></div>
-          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">Upstream auth</dt><dd className="font-bold">{endpoint.upstreamAuth ? "Set ✓" : "—"}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">{t("created.sumPrice")}</dt><dd className="font-bold">{fmtUsd(endpoint.pricePerCall)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">{t("apis.perCall")}</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">{t("created.sumSpendCap")}</dt><dd className="font-bold">{fmtUsd(endpoint.tokenBudget)} <span className="text-[10px] text-[#1a0f00]/45 font-normal">{t("apis.perToken")}</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">{t("created.sumRate")}</dt><dd className="font-bold">{endpoint.rateLimit} <span className="text-[10px] text-[#1a0f00]/45 font-normal">{t("apis.reqMin")}</span></dd></div>
+          <div><dt className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45 mb-0.5">{t("created.sumAuth")}</dt><dd className="font-bold">{endpoint.upstreamAuth ? t("created.setCheck") : "—"}</dd></div>
         </dl>
       </section>
     </>
@@ -1512,6 +1540,7 @@ type GrowthShareType =
   | "submit_directory";
 
 function ShareKit({ endpoint }: { endpoint: Endpoint }) {
+  const { t } = useT();
   const pSlug = endpoint.publicSlug || endpoint.shortId;
   const apiId = endpoint.shortId;
   const publicUrl = publicPageUrl(pSlug);
@@ -1570,47 +1599,47 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setDirError(json?.error || "Could not submit. Try again.");
+        setDirError(json?.error || t("share.errSubmit"));
         return;
       }
       setDirStatus("pending");
     } catch {
-      setDirError("Network error — please retry.");
+      setDirError(t("share.errNetwork"));
     } finally {
       setSubmitting(false);
     }
   }
 
   const fields: { key: string; label: string; text: string; share: GrowthShareType; mono?: boolean }[] = [
-    { key: "readme", label: "1 · README badge", text: snippets.readme, share: "copy_readme_badge", mono: true },
-    { key: "curl", label: "2 · curl example", text: snippets.curl, share: "copy_curl", mono: true },
-    { key: "docs", label: "3 · Docs snippet (Markdown)", text: snippets.docs, share: "copy_docs_snippet", mono: true },
-    { key: "xpost", label: "4 · Launch post (X)", text: snippets.xpost, share: "copy_x_post" },
-    { key: "mcp", label: "5 · Directory / MCP listing text", text: snippets.mcp, share: "copy_mcp_listing" },
+    { key: "readme", label: t("share.fReadme"), text: snippets.readme, share: "copy_readme_badge", mono: true },
+    { key: "curl", label: t("share.fCurl"), text: snippets.curl, share: "copy_curl", mono: true },
+    { key: "docs", label: t("share.fDocs"), text: snippets.docs, share: "copy_docs_snippet", mono: true },
+    { key: "xpost", label: t("share.fXpost"), text: snippets.xpost, share: "copy_x_post" },
+    { key: "mcp", label: t("share.fMcp"), text: snippets.mcp, share: "copy_mcp_listing" },
   ];
 
   return (
     <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6 mb-5">
       {/* Public API page URL */}
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Public API page</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("share.publicPage")}</p>
       <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] px-3 py-3 mb-1.5">
         <code className="font-mono text-[13px] text-[#1a0f00] break-all">{publicUrl}</code>
         <div className="flex-shrink-0 flex items-center gap-1.5">
-          <button type="button" onClick={() => copy(publicUrl, "purl", "copy_gateway_url")} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{copied === "purl" ? "Copied" : "Copy"}</button>
-          <a href={publicUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> Open</a>
+          <button type="button" onClick={() => copy(publicUrl, "purl", "copy_gateway_url")} className="px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{copied === "purl" ? t("common.copied") : t("common.copy")}</button>
+          <a href={publicUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1a0f00]/15 text-[12px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3.5 h-3.5" /> {t("common.open")}</a>
         </div>
       </div>
-      <p className="text-[11px] text-[#1a0f00]/50 mb-6">A shareable page for your API — usage ledger, quickstart, and a Try-it link. Anyone can view it.</p>
+      <p className="text-[11px] text-[#1a0f00]/50 mb-6">{t("share.publicPageNote")}</p>
 
       {/* Share kit */}
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">Share your paid-access API</p>
-      <p className="text-[12px] text-[#1a0f00]/60 mb-4">Add this to your README, docs, or launch post so developers can try your API.</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-1">{t("share.title")}</p>
+      <p className="text-[12px] text-[#1a0f00]/60 mb-4">{t("share.subtitle")}</p>
 
       {/* badge preview */}
       <div className="flex items-center gap-2 mb-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={badge} alt="Paid access powered by LemonCake" className="h-5" />
-        <span className="text-[11px] text-[#1a0f00]/45">← your README badge</span>
+        <span className="text-[11px] text-[#1a0f00]/45">{t("share.badgeHint")}</span>
       </div>
 
       <div className="flex flex-col gap-3 mb-6">
@@ -1619,7 +1648,7 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
             <div className="flex items-center justify-between mb-1">
               <p className="text-[11.5px] font-bold text-[#1a0f00]/70">{f.label}</p>
               <button type="button" onClick={() => copy(f.text, f.key, f.share)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] transition-colors">
-                <Icon.Copy className="w-3.5 h-3.5" />{copied === f.key ? "Copied" : "Copy"}
+                <Icon.Copy className="w-3.5 h-3.5" />{copied === f.key ? t("common.copied") : t("common.copy")}
               </button>
             </div>
             <pre className={`rounded-xl border border-[#1a0f00]/10 bg-[#fafaf7] p-3 text-[10.5px] leading-relaxed overflow-x-auto whitespace-pre-wrap break-words ${f.mono ? "font-mono text-[#1a0f00]/75" : "text-[#1a0f00]/75"}`}>{f.text}</pre>
@@ -1628,36 +1657,36 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
       </div>
 
       {/* Submit to Directory */}
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">Submit to the LemonCake Directory</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("share.dirTitle")}</p>
       {dirStatus === "pending" ? (
         <div className="rounded-xl bg-[#fffbe6] border border-[#1a0f00]/12 px-3 py-3 text-[12.5px] text-[#1a0f00]/70">
-          <b>Submitted — pending review.</b> Once approved, your API appears in the public <Link href="/directory" className="underline underline-offset-2">Directory</Link>.
+          <b>{t("share.dirPendingBold")}</b>{t("share.dirPendingPre")}<Link href="/directory" className="underline underline-offset-2">{t("share.directoryWord")}</Link>{t("share.dirPendingPost")}
         </div>
       ) : dirStatus === "approved" ? (
         <div className="rounded-xl bg-[#F0FDF4] border border-[#16A34A]/20 px-3 py-3 text-[12.5px] text-[#16A34A]">
-          <b>Listed in the Directory.</b> <Link href="/directory" className="underline underline-offset-2 text-[#16A34A]">View it →</Link>
+          <b>{t("share.dirApprovedBold")}</b> <Link href="/directory" className="underline underline-offset-2 text-[#16A34A]">{t("share.dirViewIt")}</Link>
         </div>
       ) : (
         <div className="rounded-xl border border-[#1a0f00]/12 bg-[#fafaf7] p-4">
           <div className="grid sm:grid-cols-[180px_1fr] gap-3 mb-3">
             <div>
-              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">Category</label>
+              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">{t("share.category")}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-[#1a0f00]/15 bg-white text-[13px] text-[#1a0f00] focus:outline-none focus:border-[#1a0f00]/40"
               >
-                <option value="">Select a category…</option>
+                <option value="">{t("share.selectCategory")}</option>
                 {CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
               </select>
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">Short description</label>
+              <label className="text-[11px] font-semibold text-[#1a0f00]/60 block mb-1">{t("share.shortDesc")}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                placeholder="One line on what your API does."
+                placeholder={t("share.descPlaceholder")}
                 className="w-full px-3 py-2 rounded-lg border border-[#1a0f00]/15 bg-white text-[13px] text-[#1a0f00] resize-none focus:outline-none focus:border-[#1a0f00]/40"
               />
             </div>
@@ -1670,9 +1699,9 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
               disabled={!category || submitting}
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a0f00] text-[#fffd43] font-bold text-[13px] rounded-lg hover:bg-[#1a0f00]/85 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {submitting ? "Submitting…" : "Submit to Directory"}
+              {submitting ? t("share.submitting") : t("share.submitButton")}
             </button>
-            <p className="text-[11px] text-[#1a0f00]/45">Approved listings appear publicly. Admin review required.</p>
+            <p className="text-[11px] text-[#1a0f00]/45">{t("share.adminNote")}</p>
           </div>
         </div>
       )}
@@ -1681,21 +1710,22 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
 }
 
 function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpoints: Endpoint[]; tokens: PayToken[]; runs: TestRun[]; api: Api; goTo: (p: Pane, opts?: { endpointId?: string }) => void; paymentsReady: boolean }) {
+  const { t } = useT();
   if (endpoints.length === 0) {
     return (
       <>
-        <PaneHeading eyebrow="Gateway" title="No endpoints yet" subtitle="When you create a paid API, its gateway URL and config land here." />
-        <EmptyState actionLabel="Add your first API" onAction={() => goTo("add")} hint="Real gateway URL provisioned in seconds." />
+        <PaneHeading eyebrow={t("apis.eyebrow")} title={t("apis.emptyTitle")} subtitle={t("apis.emptySubtitle")} />
+        <EmptyState actionLabel={t("apis.emptyAction")} onAction={() => goTo("add")} hint={t("apis.emptyHint")} />
       </>
     );
   }
   return (
     <>
       <PaneHeading
-        eyebrow="Gateway"
-        title="Your endpoints"
-        subtitle={`${endpoints.length} ${endpoints.length === 1 ? "endpoint" : "endpoints"} configured. ${endpoints.filter((e) => e.status === "live").length} live and serving traffic.`}
-        action={<button type="button" onClick={() => goTo("add")} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">+ Add API</button>}
+        eyebrow={t("apis.eyebrow")}
+        title={t("apis.title")}
+        subtitle={t("apis.subtitle", { total: endpoints.length, live: endpoints.filter((e) => e.status === "live").length })}
+        action={<button type="button" onClick={() => goTo("add")} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">{t("apis.addApi")}</button>}
       />
       <div className="space-y-3">
         {endpoints.map((e) => {
@@ -1715,8 +1745,8 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
                     <h3 className="text-[15px] font-bold">{e.name}</h3>
                     <StatusPill status={e.status} />
                     {e.upstreamAuth && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60 bg-[#1a0f00]/6 px-1.5 py-0.5 rounded" title={`Forwarded to origin: ${maskAuth(e.upstreamAuth)}`}>
-                        <Icon.Lock className="w-2.5 h-2.5" /> Auth
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60 bg-[#1a0f00]/6 px-1.5 py-0.5 rounded" title={t("apis.authForwarded", { auth: maskAuth(e.upstreamAuth) })}>
+                        <Icon.Lock className="w-2.5 h-2.5" /> {t("apis.authBadge")}
                       </span>
                     )}
                   </div>
@@ -1724,11 +1754,11 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
                   <p className="font-mono text-[10.5px] text-[#1a0f00]/40 mt-0.5">→ {e.originalUrl}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <IconButton title="Copy gateway URL" onClick={() => navigator.clipboard?.writeText(url)}><Icon.Copy className="w-3.5 h-3.5" /></IconButton>
-                  <IconButton title={e.status === "live" ? "Pause" : "Resume"} onClick={() => api.setStatus(e.id, e.status === "live" ? "paused" : "live")}>
+                  <IconButton title={t("apis.copyGatewayTitle")} onClick={() => navigator.clipboard?.writeText(url)}><Icon.Copy className="w-3.5 h-3.5" /></IconButton>
+                  <IconButton title={e.status === "live" ? t("apis.actionPause") : t("apis.actionResume")} onClick={() => api.setStatus(e.id, e.status === "live" ? "paused" : "live")}>
                     {e.status === "live" ? <Icon.Pause className="w-3.5 h-3.5" /> : <Icon.Refresh className="w-3.5 h-3.5" />}
                   </IconButton>
-                  <IconButton title="Delete" tone="danger" onClick={() => { if (confirm(`Delete "${e.name}" and all its Pay Tokens?`)) api.deleteEndpoint(e.id); }}><Icon.Trash className="w-3.5 h-3.5" /></IconButton>
+                  <IconButton title={t("apis.deleteTitle")} tone="danger" onClick={() => { if (confirm(t("apis.deleteConfirm", { name: e.name }))) api.deleteEndpoint(e.id); }}><Icon.Trash className="w-3.5 h-3.5" /></IconButton>
                 </div>
               </div>
 
@@ -1737,43 +1767,43 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
               {isPriced ? (
                 <div className="mt-4 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-3.5">
                   <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
-                    <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("apis.buyLink")}</p>
+                    <span className="text-[10px] text-[#1a0f00]/45">{t("apis.buyLinkHint")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
-                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
-                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{t("common.copy")}</button>
+                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> {t("common.open")}</a>
                   </div>
                   {!paymentsReady && (
                     <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#1a0f00]/55 leading-snug">
                       <Icon.Lock className="w-3 h-3 flex-shrink-0" />
-                      Connect Stripe to start taking payments —
-                      <button type="button" onClick={() => goTo("account")} className="font-semibold text-[#1a0f00] underline underline-offset-2">finish in Account →</button>
+                      {t("apis.connectStripeCta")}
+                      <button type="button" onClick={() => goTo("account")} className="font-semibold text-[#1a0f00] underline underline-offset-2">{t("apis.finishInAccount")}</button>
                     </p>
                   )}
                 </div>
               ) : (
                 <p className="mt-4 rounded-xl border border-[#1a0f00]/10 bg-[#fafaf7] px-3.5 py-2.5 text-[11px] text-[#1a0f00]/55 leading-snug">
-                  Free endpoint — no prepay needed. Set a price per call to enable a buy link for paying buyers.
+                  {t("apis.freeEndpoint")}
                 </p>
               )}
 
               <dl className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
-                <Stat label="Price" v={fmtUsd(e.pricePerCall)} suf="/ call" />
-                <Stat label="Rate limit" v={String(e.rateLimit)} suf="req/min" />
-                <Stat label="Spend cap" v={fmtUsd(e.tokenBudget)} suf="/ token" />
-                <Stat label="Upstream auth" v={e.upstreamAuth ? "Set" : "—"} suf={e.upstreamAuth ? "✓" : undefined} />
-                <Stat label="Created" v={timeAgo(e.createdAt)} />
+                <Stat label={t("apis.statPrice")} v={fmtUsd(e.pricePerCall)} suf={t("apis.perCall")} />
+                <Stat label={t("apis.statRateLimit")} v={String(e.rateLimit)} suf={t("apis.reqMin")} />
+                <Stat label={t("apis.statSpendCap")} v={fmtUsd(e.tokenBudget)} suf={t("apis.perToken")} />
+                <Stat label={t("apis.statUpstreamAuth")} v={e.upstreamAuth ? t("common.set") : "—"} suf={e.upstreamAuth ? "✓" : undefined} />
+                <Stat label={t("apis.statCreated")} v={timeAgo(e.createdAt)} />
               </dl>
               <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-[#1a0f00]/65">
-                <span><span className="font-semibold text-[#1a0f00]">{purchasedForThis.length}</span> {purchasedForThis.length === 1 ? "purchase" : "purchases"}</span>
-                <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> earned (net)</span>
-                <span><span className="font-semibold text-[#1a0f00]">{tokensForThis}</span> active {tokensForThis === 1 ? "token" : "tokens"}</span>
-                <span><span className="font-semibold text-[#1a0f00]">{callsForThis}</span> {callsForThis === 1 ? "call" : "calls"}</span>
+                <span><span className="font-semibold text-[#1a0f00]">{purchasedForThis.length}</span> {t("apis.purchasesLabel")}</span>
+                <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> {t("apis.earnedNetLabel")}</span>
+                <span><span className="font-semibold text-[#1a0f00]">{tokensForThis}</span> {t("apis.activeTokensLabel")}</span>
+                <span><span className="font-semibold text-[#1a0f00]">{callsForThis}</span> {t("apis.callsLabel")}</span>
                 <div className="flex-1" />
-                <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Issue test token →</button>
-                <button type="button" onClick={() => goTo("test", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">Test request →</button>
+                <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{t("apis.issueTestToken")}</button>
+                <button type="button" onClick={() => goTo("test", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{t("apis.testRequest")}</button>
               </div>
             </div>
           );
@@ -1786,14 +1816,15 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
 /* Buy links — the post-pivot go-to-market surface. One public prepaid-purchase
    page per priced endpoint; sellers copy/share these and buyers self-serve. */
 function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: Endpoint[]; tokens: PayToken[]; goTo: (p: Pane, opts?: { endpointId?: string }) => void; paymentsReady: boolean }) {
+  const { t } = useT();
   const priced = endpoints.filter((e) => e.pricePerCall > 0);
   const free   = endpoints.filter((e) => e.pricePerCall <= 0);
 
   if (endpoints.length === 0) {
     return (
       <>
-        <PaneHeading eyebrow="Share" title="Buy links" subtitle="Create a paid API and you get a link to share with buyers. They prepay on it and receive a Pay Token automatically — no manual issuing." />
-        <EmptyState actionLabel="Add your first API" onAction={() => goTo("add")} hint="Every paid endpoint gets its own buy link." />
+        <PaneHeading eyebrow={t("buy.eyebrow")} title={t("buy.title")} subtitle={t("buy.emptySubtitle")} />
+        <EmptyState actionLabel={t("apis.emptyAction")} onAction={() => goTo("add")} hint={t("buy.emptyHint")} />
       </>
     );
   }
@@ -1801,20 +1832,20 @@ function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: E
   return (
     <>
       <PaneHeading
-        eyebrow="Share"
-        title="Buy links"
-        subtitle="One shareable page per paid endpoint. Buyers prepay with a card; a Pay Token is minted and delivered automatically. You keep 97% — the 3% platform fee is taken once at checkout."
-        action={<button type="button" onClick={() => goTo("add")} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">+ Add API</button>}
+        eyebrow={t("buy.eyebrow")}
+        title={t("buy.title")}
+        subtitle={t("buy.subtitle")}
+        action={<button type="button" onClick={() => goTo("add")} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">{t("apis.addApi")}</button>}
       />
 
       {!paymentsReady && (
         <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[#635BFF]/25 bg-[#635BFF]/6 p-4">
           <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#635BFF]" />
           <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] font-bold text-[#1a0f00]">Connect Stripe to start taking payments</p>
-            <p className="text-[11.5px] text-[#1a0f00]/60 leading-snug mt-0.5">You can share buy links now, but checkout can&apos;t collect money until your Stripe payouts are connected.</p>
+            <p className="text-[12.5px] font-bold text-[#1a0f00]">{t("buy.connectBannerTitle")}</p>
+            <p className="text-[11.5px] text-[#1a0f00]/60 leading-snug mt-0.5">{t("buy.connectBannerBody")}</p>
           </div>
-          <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">Connect Stripe →</button>
+          <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">{t("account.connectStripe")}</button>
         </div>
       )}
 
@@ -1831,32 +1862,32 @@ function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: E
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <h3 className="text-[15px] font-bold">{e.name}</h3>
                   <StatusPill status={e.status} />
-                  <span className="text-[11px] text-[#1a0f00]/50">{fmtUsd(e.pricePerCall)} / call</span>
+                  <span className="text-[11px] text-[#1a0f00]/50">{fmtUsd(e.pricePerCall)} {t("apis.perCall")}</span>
                 </div>
 
                 {!isLive && (
                   <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 leading-snug">
-                    This endpoint is paused — the buy link shows buyers a temporarily-unavailable message until you resume it in Gateway.
+                    {t("buy.pausedNotice")}
                   </p>
                 )}
 
                 <div className="rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-3.5">
                   <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">Buy link · share with buyers</p>
-                    <span className="text-[10px] text-[#1a0f00]/45">prepay → Pay Token issued automatically</span>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("apis.buyLink")}</p>
+                    <span className="text-[10px] text-[#1a0f00]/45">{t("apis.buyLinkHint")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
-                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
-                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{t("common.copy")}</button>
+                    <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> {t("common.open")}</a>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-[#1a0f00]/65">
-                  <span><span className="font-semibold text-[#1a0f00]">{purchases.length}</span> {purchases.length === 1 ? "purchase" : "purchases"}</span>
-                  <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> earned (net)</span>
+                  <span><span className="font-semibold text-[#1a0f00]">{purchases.length}</span> {t("apis.purchasesLabel")}</span>
+                  <span><span className="font-semibold text-[#16A34A]">{fmtUsd(soldNet)}</span> {t("apis.earnedNetLabel")}</span>
                   <div className="flex-1" />
-                  <button type="button" onClick={() => goTo("revenue")} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">View sales →</button>
+                  <button type="button" onClick={() => goTo("revenue")} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{t("buy.viewSales")}</button>
                 </div>
               </div>
             );
@@ -1864,22 +1895,22 @@ function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: E
         </div>
       ) : (
         <div className="rounded-2xl bg-white border border-dashed border-[#1a0f00]/15 p-8 text-center">
-          <p className="text-[13px] font-semibold text-[#1a0f00]/70">No sellable endpoints yet</p>
-          <p className="mt-1.5 text-[11.5px] text-[#1a0f00]/50 leading-relaxed max-w-[440px] mx-auto">Buy links exist only for endpoints with a price per call. Add a price when you create an API to get a prepaid purchase page.</p>
+          <p className="text-[13px] font-semibold text-[#1a0f00]/70">{t("buy.noSellableTitle")}</p>
+          <p className="mt-1.5 text-[11.5px] text-[#1a0f00]/50 leading-relaxed max-w-[440px] mx-auto">{t("buy.noSellableBody")}</p>
         </div>
       )}
 
       {free.length > 0 && (
         <div className="mt-6 rounded-2xl border border-[#1a0f00]/10 bg-[#fafaf7] p-4">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Free endpoints · no buy link</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">{t("buy.freeHeading")}</p>
           <div className="flex flex-wrap gap-2">
             {free.map((e) => (
               <span key={e.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#1a0f00]/10 text-[11.5px] text-[#1a0f00]/65">
-                {e.name} <span className="text-[#1a0f00]/35">free</span>
+                {e.name} <span className="text-[#1a0f00]/35">{t("buy.freeTag")}</span>
               </span>
             ))}
           </div>
-          <p className="mt-2.5 text-[10.5px] text-[#1a0f00]/45 leading-snug">These have no price per call, so there is nothing to prepay. Set a price to enable a buy link.</p>
+          <p className="mt-2.5 text-[10.5px] text-[#1a0f00]/45 leading-snug">{t("buy.freeNote")}</p>
         </div>
       )}
     </>
@@ -1887,6 +1918,8 @@ function BuyLinksPane({ endpoints, tokens, goTo, paymentsReady }: { endpoints: E
 }
 
 function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpointId }: { endpoints: Endpoint[]; tokens: PayToken[]; jwtById: Record<string, string>; api: Api; goTo: (p: Pane) => void; preselectEndpointId: string | null }) {
+  const { t } = useT();
+  const t2 = t; // alias: inside the `tokens.map((t) => …)` table below the row param `t` shadows the translate fn
   const [endpointId, setEndpointId] = useState<string>(() => {
     if (preselectEndpointId && endpoints.some((e) => e.id === preselectEndpointId)) return preselectEndpointId;
     return endpoints[0]?.id ?? "";
@@ -1909,8 +1942,8 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
 
   if (endpoints.length === 0) {
     return (<>
-      <PaneHeading eyebrow="Pay Token" title="Create an endpoint first" subtitle="Pay Tokens are scoped to a specific gateway endpoint." />
-      <EmptyState actionLabel="Add your first API" onAction={() => goTo("add")} />
+      <PaneHeading eyebrow={t("pt.eyebrow")} title={t("pt.emptyTitle")} subtitle={t("pt.emptySubtitle")} />
+      <EmptyState actionLabel={t("apis.emptyAction")} onAction={() => goTo("add")} />
     </>);
   }
 
@@ -1919,13 +1952,13 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
     const b = Math.max(0, parseFloat(budget) || 0);
     const h = Math.max(1, parseInt(expires, 10) || 1);
     const m = Math.max(1, parseInt(maxCalls, 10) || 1);
-    if (b <= 0) return setErr("Budget must be greater than 0.");
+    if (b <= 0) return setErr(t("pt.budgetError"));
     setBusy(true);
     try {
       const res = await api.issueToken({ endpointId, budget: b, expiresInHours: h, maxCalls: m });
       setJustIssued(res);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Issue failed.");
+      setErr(e instanceof Error ? e.message : t("pt.issueFailed"));
     } finally {
       setBusy(false);
     }
@@ -1933,69 +1966,69 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
 
   return (
     <>
-      <PaneHeading eyebrow="Pay Token" title="Pay Tokens" subtitle="Buyers get a Pay Token automatically when they prepay on your buy link — you don't issue those by hand. The form below mints a test / comp token for trying out your own gateway." />
+      <PaneHeading eyebrow={t("pt.eyebrow")} title={t("pt.title")} subtitle={t("pt.subtitle")} />
 
       {selectedEp && selectedEp.pricePerCall > 0 && (
         <section className="rounded-2xl border border-[#1a0f00]/12 bg-[#fffd43]/12 p-4 mb-5">
           <div className="flex items-baseline justify-between gap-2 mb-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">How buyers actually get tokens</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("pt.howBuyersTitle")}</p>
             <span className="text-[10px] text-[#1a0f00]/45">{selectedEp.name}</span>
           </div>
-          <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed mb-2">Share this buy link. Buyers prepay via Stripe and a Pay Token is minted + handed to them automatically — no manual issuing.</p>
+          <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed mb-2">{t("pt.howBuyersBody")}</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all truncate">{buyUrl}</code>
-            <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">Copy</button>
-            <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> Open</a>
+            <button type="button" onClick={() => navigator.clipboard?.writeText(buyUrl)} className="flex-shrink-0 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors">{t("common.copy")}</button>
+            <a href={buyUrl} target="_blank" rel="noopener" className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"><Icon.External className="w-3 h-3" /> {t("common.open")}</a>
           </div>
         </section>
       )}
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
-          <h3 className="text-[14px] font-bold mb-1">Issue a test / comp token</h3>
-          <p className="text-[11.5px] text-[#1a0f00]/55 leading-snug mb-4">For testing your gateway or comping access. No payment is taken — use the buy link above for real buyers.</p>
+          <h3 className="text-[14px] font-bold mb-1">{t("pt.issueTitle")}</h3>
+          <p className="text-[11.5px] text-[#1a0f00]/55 leading-snug mb-4">{t("pt.issueBody")}</p>
           <div className="space-y-4">
-            <Field label="Endpoint">
+            <Field label={t("pt.fieldEndpoint")}>
               <Select value={endpointId} onChange={setEndpointId}>
                 {endpoints.map((e) => <option key={e.id} value={e.id}>{e.name} · {e.slug}</option>)}
               </Select>
             </Field>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Budget" hint="USD"><DollarInput value={budget} onChange={setBudget} step="0.50" /></Field>
-              <Field label="Expires in" hint="hours"><input type="number" step="1" min="1" value={expires} onChange={(e) => setExpires(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" /></Field>
-              <Field label="Max calls"><input type="number" step="10" min="1" value={maxCalls} onChange={(e) => setMaxCalls(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" /></Field>
+              <Field label={t("pt.fieldBudget")} hint={t("pt.unitUsd")}><DollarInput value={budget} onChange={setBudget} step="0.50" /></Field>
+              <Field label={t("pt.fieldExpires")} hint={t("pt.unitHours")}><input type="number" step="1" min="1" value={expires} onChange={(e) => setExpires(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" /></Field>
+              <Field label={t("pt.fieldMaxCalls")}><input type="number" step="10" min="1" value={maxCalls} onChange={(e) => setMaxCalls(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55" /></Field>
             </div>
           </div>
           {err && <p className="mt-4 text-[12px] text-[#DC2626] bg-[#DC2626]/8 border border-[#DC2626]/25 rounded-lg px-3 py-2">{err}</p>}
-          <button type="button" onClick={issue} disabled={busy} className="mt-5 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">{busy ? "Issuing…" : "Issue test token"}</button>
+          <button type="button" onClick={issue} disabled={busy} className="mt-5 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">{busy ? t("pt.issuing") : t("pt.issueButton")}</button>
 
           {justIssued && (
             <div className="mt-4 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/30 p-3">
-              <p className="text-[12px] font-bold text-[#16A34A] mb-2">Test token issued. Use it in Test Request or hand it to a tester.</p>
+              <p className="text-[12px] font-bold text-[#16A34A] mb-2">{t("pt.issuedTitle")}</p>
               <code className="block font-mono text-[10.5px] text-[#1a0f00]/85 break-all bg-white/60 border border-[#1a0f00]/8 rounded p-2 select-all">{justIssued.jwt}</code>
-              <button type="button" onClick={() => navigator.clipboard?.writeText(justIssued.jwt)} className="mt-2 text-[11px] font-semibold text-[#1a0f00] hover:underline">Copy JWT</button>
-              <p className="mt-2 text-[10.5px] text-[#1a0f00]/55">Token id <code className="font-mono">{justIssued.token.id}</code>. Shown once — the dashboard keeps it in memory until you reload.</p>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(justIssued.jwt)} className="mt-2 text-[11px] font-semibold text-[#1a0f00] hover:underline">{t("pt.copyJwt")}</button>
+              <p className="mt-2 text-[10.5px] text-[#1a0f00]/55">{t("pt.tokenIdPrefix")}<code className="font-mono">{justIssued.token.id}</code>{t("pt.tokenIdSuffix")}</p>
             </div>
           )}
         </div>
         <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">How tokens work</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("pt.howWorkTitle")}</p>
           <ol className="text-[12px] text-[#1a0f00]/70 space-y-1.5 list-decimal pl-4">
-            <li><span className="font-semibold">Buyers prepay</span> on your buy link → a Pay Token is minted automatically and shown to them once.</li>
-            <li>They send <code className="font-mono text-[11px] bg-[#fafaf7] px-1 rounded">Authorization: Bearer &lt;jwt&gt;</code> to your gateway URL.</li>
-            <li>Gateway verifies signature, looks up the token in Postgres, decrements budget + calls, forwards to your origin.</li>
-            <li>Revoke any token instantly — next request fails closed. The form on the left mints test / comp tokens only.</li>
+            <li><span className="font-semibold">{t("pt.howWork1Bold")}</span>{t("pt.howWork1Rest")}</li>
+            <li>{t("pt.howWork2pre")}<code className="font-mono text-[11px] bg-[#fafaf7] px-1 rounded">Authorization: Bearer &lt;jwt&gt;</code>{t("pt.howWork2post")}</li>
+            <li>{t("pt.howWork3")}</li>
+            <li>{t("pt.howWork4")}</li>
           </ol>
         </aside>
       </section>
 
       <section className="mt-8">
-        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">All Pay Tokens ({tokens.length}) <span className="font-normal text-[#1a0f00]/45">· {purchasedCount} purchased · {testCount} test</span></h3>
-        {tokens.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">No tokens yet — share your buy link to land your first purchase, or issue a test token above.</p> : (
+        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">{t("pt.allTokens", { n: tokens.length })} <span className="font-normal text-[#1a0f00]/45">{t("pt.tokenBreakdown", { purchased: purchasedCount, test: testCount })}</span></h3>
+        {tokens.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">{t("pt.empty")}</p> : (
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">Token</th><th className="text-left px-4 py-2.5 font-semibold">Source</th><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Budget left</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Expires</th><th className="text-right px-4 py-2.5 font-semibold">Status</th><th className="px-2"></th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">{t("pt.colToken")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("pt.colSource")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("pt.colEndpoint")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("pt.colBudgetLeft")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("pt.colCalls")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("pt.colExpires")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("pt.colStatus")}</th><th className="px-2"></th></tr>
               </thead>
               <tbody>
                 {tokens.map((t) => {
@@ -2006,24 +2039,24 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
                     <tr key={t.id} className="border-b border-[#1a0f00]/6 last:border-0">
                       <td className="px-4 py-2.5">
                         <code className="font-mono text-[11px]">{t.id}</code>
-                        {hasJwt && <button type="button" onClick={() => navigator.clipboard?.writeText(jwtById[t.id])} className="ml-2 text-[10px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline">Copy JWT</button>}
+                        {hasJwt && <button type="button" onClick={() => navigator.clipboard?.writeText(jwtById[t.id])} className="ml-2 text-[10px] text-[#1a0f00]/55 hover:text-[#1a0f00] underline">{t2("pt.copyJwt")}</button>}
                       </td>
                       <td className="px-4 py-2.5">
                         {t.source === "purchase" ? (
                           <div className="min-w-0">
-                            <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#635BFF] bg-[#635BFF]/10">Purchased</span>
+                            <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#635BFF] bg-[#635BFF]/10">{t2("pt.purchased")}</span>
                             {t.buyerEmail && <p className="mt-0.5 text-[10.5px] text-[#1a0f00]/50 truncate max-w-[160px]" title={t.buyerEmail}>{t.buyerEmail}</p>}
                           </div>
                         ) : (
-                          <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#1a0f00]/55 bg-[#1a0f00]/6">Test</span>
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded text-[#1a0f00]/55 bg-[#1a0f00]/6">{t2("pt.test")}</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-[#1a0f00]/75">{ep?.name ?? "—"}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{fmtUsd(left)} <span className="text-[#1a0f00]/40">/ {fmtUsd(t.budget)}</span></td>
                       <td className="px-4 py-2.5 text-right font-mono">{t.callsUsed} <span className="text-[#1a0f00]/40">/ {t.maxCalls}</span></td>
-                      <td className="px-4 py-2.5 text-right text-[#1a0f00]/60">{t.status === "expired" ? "expired" : `in ${Math.max(0, Math.ceil((t.expiresAt - Date.now()) / 3600000))}h`}</td>
+                      <td className="px-4 py-2.5 text-right text-[#1a0f00]/60">{t.status === "expired" ? t2("pt.expiredShort") : t2("pt.inHours", { h: Math.max(0, Math.ceil((t.expiresAt - Date.now()) / 3600000)) })}</td>
                       <td className="px-4 py-2.5 text-right"><TokenStatusPill status={t.status} /></td>
-                      <td className="pr-3 text-right">{t.status === "active" && <button type="button" onClick={() => api.revokeToken(t.id)} className="text-[11px] text-[#DC2626] hover:underline">Revoke</button>}</td>
+                      <td className="pr-3 text-right">{t.status === "active" && <button type="button" onClick={() => api.revokeToken(t.id)} className="text-[11px] text-[#DC2626] hover:underline">{t2("pt.revoke")}</button>}</td>
                     </tr>
                   );
                 })}
@@ -2037,6 +2070,7 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
 }
 
 function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpointId }: { endpoints: Endpoint[]; tokens: PayToken[]; jwtById: Record<string, string>; runs: TestRun[]; api: Api; goTo: (p: Pane, opts?: { endpointId?: string }) => void; preselectEndpointId: string | null }) {
+  const { t } = useT();
   const activeTokens = tokens.filter((t) => t.status === "active");
   const [tokenId, setTokenId] = useState<string>(() => {
     if (preselectEndpointId) {
@@ -2056,9 +2090,9 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
   const [verifyBusy, setVerifyBusy] = useState(false);
 
   async function verifyOrigin() {
-    const t = tokens.find((p) => p.id === tokenId);
-    if (!t) return;
-    const e = endpoints.find((x) => x.id === t.endpointId);
+    const tok = tokens.find((p) => p.id === tokenId);
+    if (!tok) return;
+    const e = endpoints.find((x) => x.id === tok.endpointId);
     if (!e) return;
     setVerifyBusy(true);
     setVerifyResult(null);
@@ -2080,14 +2114,12 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
         bodyPreview: text.slice(0, 400),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const message = err instanceof Error ? err.message : t("test.unknownError");
       const looksLikeCors = /failed to fetch|networkerror|load failed/i.test(message);
       setVerifyResult({
         kind: "error",
         message,
-        hint: looksLikeCors
-          ? "Probably CORS / DNS. Browser-to-origin needs Access-Control-Allow-Origin from your upstream. The production gateway is server-to-server and is not affected."
-          : undefined,
+        hint: looksLikeCors ? t("test.corsHint") : undefined,
       });
     } finally {
       setVerifyBusy(false);
@@ -2100,14 +2132,14 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
 
   if (endpoints.length === 0) {
     return (<>
-      <PaneHeading eyebrow="Test Request" title="Create an endpoint first" subtitle="Run a real paid call once you have an endpoint to point at." />
-      <EmptyState actionLabel="Add your first API" onAction={() => goTo("add")} />
+      <PaneHeading eyebrow={t("test.eyebrow")} title={t("test.emptyTitle")} subtitle={t("test.emptySubtitle")} />
+      <EmptyState actionLabel={t("apis.emptyAction")} onAction={() => goTo("add")} />
     </>);
   }
   if (activeTokens.length === 0) {
     return (<>
-      <PaneHeading eyebrow="Test Request" title="Issue a Pay Token first" subtitle="Send a real paid call through the gateway using a JWT-signed Pay Token." />
-      <EmptyState actionLabel="Go to Pay Token" onAction={() => goTo("paytoken", preselectEndpointId ? { endpointId: preselectEndpointId } : undefined)} />
+      <PaneHeading eyebrow={t("test.eyebrow")} title={t("test.needTokenTitle")} subtitle={t("test.needTokenSubtitle")} />
+      <EmptyState actionLabel={t("test.goToPayToken")} onAction={() => goTo("paytoken", preselectEndpointId ? { endpointId: preselectEndpointId } : undefined)} />
     </>);
   }
 
@@ -2119,7 +2151,7 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
   async function send() {
     if (!ep || !token) return;
     if (!jwt) {
-      setLastResult({ kind: "error", message: "JWT for this token isn't in memory. Issue a new Pay Token (the JWT is shown once on issue) or reload + re-issue." });
+      setLastResult({ kind: "error", message: t("test.jwtMissingResult") });
       return;
     }
     setBusy(true);
@@ -2141,7 +2173,7 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
       }
       await api.refetch();
     } catch (e) {
-      setLastResult({ kind: "error", message: e instanceof Error ? e.message : "Network error" });
+      setLastResult({ kind: "error", message: e instanceof Error ? e.message : t("test.networkError") });
     } finally {
       setBusy(false);
     }
@@ -2149,26 +2181,26 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
 
   return (
     <>
-      <PaneHeading eyebrow="Test Request" title="Send a real paid request" subtitle="Hits your live gateway URL with a signed Pay Token. The gateway verifies the JWT, decrements the token's budget, forwards to your origin, and returns the response — everything happens in Postgres for real." />
+      <PaneHeading eyebrow={t("test.eyebrow")} title={t("test.title")} subtitle={t("test.subtitle")} />
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-          <Field label="Pay Token">
+          <Field label={t("test.fieldPayToken")}>
             <Select value={tokenId} onChange={setTokenId}>
-              {activeTokens.map((t) => {
-                const e = endpoints.find((x) => x.id === t.endpointId);
-                return <option key={t.id} value={t.id}>{t.id} — {e?.name}</option>;
+              {activeTokens.map((tk) => {
+                const e = endpoints.find((x) => x.id === tk.endpointId);
+                return <option key={tk.id} value={tk.id}>{tk.id} — {e?.name}</option>;
               })}
             </Select>
           </Field>
 
           {ep && token && (
             <div className="mt-4 rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 text-[11.5px] space-y-1">
-              <RevRow k="Target endpoint" v={ep.name} />
-              <RevRow k="Per-call price" v={fmtUsd(ep.pricePerCall)} />
-              <RevRow k="Token budget" v={`${fmtUsd(Math.max(0, token.budget - token.spent))} of ${fmtUsd(token.budget)} left`} />
-              <RevRow k="Calls remaining" v={`${token.maxCalls - token.callsUsed} of ${token.maxCalls}`} />
-              <RevRow k="Rate limit" v={`${ep.rateLimit} req/min`} />
+              <RevRow k={t("test.rowTarget")} v={ep.name} />
+              <RevRow k={t("test.rowPerCall")} v={fmtUsd(ep.pricePerCall)} />
+              <RevRow k={t("test.rowTokenBudget")} v={t("test.budgetLeftFmt", { left: fmtUsd(Math.max(0, token.budget - token.spent)), total: fmtUsd(token.budget) })} />
+              <RevRow k={t("test.rowCallsRemaining")} v={t("test.callsRemainingFmt", { remaining: token.maxCalls - token.callsUsed, total: token.maxCalls })} />
+              <RevRow k={t("test.rowRateLimit")} v={t("test.rateLimitFmt", { n: ep.rateLimit })} />
             </div>
           )}
 
@@ -2179,40 +2211,40 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
             </div>
           )}
           {!jwt && (
-            <p className="mt-2 text-[10.5px] text-[#DC2626]/85 leading-snug">JWT for this token isn&apos;t in memory. JWTs are only returned once on issue — re-issue a Pay Token to get a fresh JWT.</p>
+            <p className="mt-2 text-[10.5px] text-[#DC2626]/85 leading-snug">{t("test.jwtMissing")}</p>
           )}
 
           <button type="button" onClick={send} disabled={busy || !jwt} className="mt-4 w-full py-2.5 bg-[#1a0f00] text-white font-bold text-[13px] rounded-xl hover:bg-[#1a0f00]/90 transition-colors disabled:opacity-60">
-            {busy ? "Calling gateway…" : "Send request"} <span className="text-[10px] font-normal text-white/55 ml-1">via gateway</span>
+            {busy ? t("test.calling") : t("test.sendRequest")} <span className="text-[10px] font-normal text-white/55 ml-1">{t("test.viaGateway")}</span>
           </button>
 
           {/* Verify origin — bypass gateway, hit upstream directly */}
           {ep && (
             <div className="mt-6 pt-5 border-t border-[#1a0f00]/8">
               <div className="flex items-baseline justify-between mb-1">
-                <p className="text-[12px] font-bold">Verify origin reachable</p>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#1a0f00]/55">bypasses gateway</span>
+                <p className="text-[12px] font-bold">{t("test.verifyTitle")}</p>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#1a0f00]/55">{t("test.bypassesGateway")}</span>
               </div>
               <p className="text-[10.5px] text-[#1a0f00]/55 leading-snug mb-3">
-                Browser-side GET to <code className="font-mono">{ep.originalUrl}</code>{ep.upstreamAuth ? <> with your stored <code className="font-mono">{maskAuth(ep.upstreamAuth)}</code></> : null}. Confirms URL + upstream auth actually reach origin. No Pay Token decrement.
+                {t("test.verifyDescPre")}<code className="font-mono">{ep.originalUrl}</code>{ep.upstreamAuth ? <>{t("test.verifyDescWithAuth")}<code className="font-mono">{maskAuth(ep.upstreamAuth)}</code></> : null}{t("test.verifyDescPost")}
               </p>
               <button type="button" onClick={verifyOrigin} disabled={verifyBusy} className="w-full py-2 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold text-[12px] rounded-lg hover:bg-[#1a0f00]/[0.03] transition-colors disabled:opacity-60">
-                {verifyBusy ? "Calling origin…" : "GET upstream now"}
+                {verifyBusy ? t("test.callingOrigin") : t("test.getUpstream")}
               </button>
               {verifyResult?.kind === "ok" && (
                 <div className={`mt-3 rounded-lg border p-3 ${verifyResult.status < 400 ? "bg-[#16A34A]/8 border-[#16A34A]/30" : "bg-[#DC2626]/8 border-[#DC2626]/30"}`}>
                   <div className="flex items-baseline justify-between mb-2">
-                    <p className={`text-[12.5px] font-bold ${verifyResult.status < 400 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{verifyResult.status} {verifyResult.status < 400 ? "OK" : "from origin"}</p>
+                    <p className={`text-[12.5px] font-bold ${verifyResult.status < 400 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{verifyResult.status} {verifyResult.status < 400 ? t("test.statusOk") : t("test.statusFromOrigin")}</p>
                     <p className="text-[10.5px] font-mono text-[#1a0f00]/55">{verifyResult.ms}ms · {verifyResult.contentType}</p>
                   </div>
                   {verifyResult.bodyPreview ? (
                     <pre className="font-mono text-[10.5px] text-[#1a0f00]/75 whitespace-pre-wrap break-all max-h-32 overflow-auto bg-white/50 border border-[#1a0f00]/8 rounded p-2">{verifyResult.bodyPreview}{verifyResult.bodyPreview.length === 400 ? "…" : ""}</pre>
-                  ) : <p className="text-[10.5px] text-[#1a0f00]/45 italic">(empty body)</p>}
+                  ) : <p className="text-[10.5px] text-[#1a0f00]/45 italic">{t("test.emptyBody")}</p>}
                 </div>
               )}
               {verifyResult?.kind === "error" && (
                 <div className="mt-3 rounded-lg bg-[#DC2626]/8 border border-[#DC2626]/30 p-3">
-                  <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">Network error</p>
+                  <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">{t("test.networkError")}</p>
                   <p className="text-[11px] font-mono text-[#1a0f00]/75 break-all">{verifyResult.message}</p>
                   {verifyResult.hint && <p className="mt-2 text-[10.5px] text-[#1a0f00]/65 leading-snug">{verifyResult.hint}</p>}
                 </div>
@@ -2222,11 +2254,11 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
         </div>
 
         <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">Last result</p>
-          {!lastResult && <p className="text-[12px] text-[#1a0f00]/45 italic">Send a request to see the gateway response.</p>}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">{t("test.lastResult")}</p>
+          {!lastResult && <p className="text-[12px] text-[#1a0f00]/45 italic">{t("test.lastResultEmpty")}</p>}
           {lastResult?.kind === "ok" && (
             <div className="rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/30 p-3">
-              <p className="text-[12.5px] font-bold text-[#16A34A] mb-2">{lastResult.status} — Paid call successful · {lastResult.ms}ms</p>
+              <p className="text-[12.5px] font-bold text-[#16A34A] mb-2">{t("test.paidSuccessFmt", { status: lastResult.status, ms: lastResult.ms })}</p>
               {lastResult.bodyPreview && (
                 <pre className="font-mono text-[10.5px] text-[#1a0f00]/75 whitespace-pre-wrap break-all max-h-40 overflow-auto bg-white/50 border border-[#1a0f00]/8 rounded p-2">{lastResult.bodyPreview}{lastResult.bodyPreview.length === 400 ? "…" : ""}</pre>
               )}
@@ -2234,13 +2266,13 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
           )}
           {lastResult?.kind === "blocked" && (
             <div className="rounded-xl bg-[#DC2626]/8 border border-[#DC2626]/30 p-3">
-              <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">{lastResult.status} — Blocked</p>
+              <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">{t("test.blockedFmt", { status: lastResult.status })}</p>
               <p className="text-[11.5px] text-[#1a0f00]/75 font-mono">{lastResult.reason}</p>
             </div>
           )}
           {lastResult?.kind === "error" && (
             <div className="rounded-xl bg-[#DC2626]/8 border border-[#DC2626]/30 p-3">
-              <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">Network error</p>
+              <p className="text-[12.5px] font-bold text-[#DC2626] mb-1">{t("test.networkError")}</p>
               <p className="text-[11px] text-[#1a0f00]/75 break-all">{lastResult.message}</p>
             </div>
           )}
@@ -2248,12 +2280,12 @@ function TestPane({ endpoints, tokens, jwtById, runs, api, goTo, preselectEndpoi
       </section>
 
       <section className="mt-8">
-        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">Recent paid requests ({runs.length})</h3>
-        {runs.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">No paid requests yet.</p> : (
+        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">{t("test.recentTitle", { n: runs.length })}</h3>
+        {runs.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">{t("test.recentEmpty")}</p> : (
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">When</th><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-left px-4 py-2.5 font-semibold">Pay Token</th><th className="text-right px-4 py-2.5 font-semibold">Status · ms</th><th className="text-right px-4 py-2.5 font-semibold">Gross</th><th className="text-right px-4 py-2.5 font-semibold">Fee 3%</th><th className="text-right px-4 py-2.5 font-semibold">You receive</th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">{t("test.colWhen")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("test.colEndpoint")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("test.colPayToken")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("test.colStatusMs")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("test.colGross")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("test.colFee")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("test.colYouReceive")}</th></tr>
               </thead>
               <tbody>
                 {runs.slice(0, 50).map((r) => {
@@ -2285,21 +2317,20 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
   // call, since the 3% platform fee is taken once at checkout. `stripe` is
   // lifted from the parent so we don't refetch status here; a null value
   // (Stripe not configured on this deployment) simply hides the banner.
+  const { t } = useT();
   const receiveSub =
-    stripe?.payoutsEnabled ? "Settles to your Stripe balance"
-      : stripe?.connected   ? "Finish Stripe onboarding to receive"
-        : stripe === null   ? "Net after the 3% fee"
-          : "Connect Stripe to receive";
+    stripe?.payoutsEnabled ? t("rev.receiveSettles")
+      : stripe?.connected   ? t("rev.receiveFinish")
+        : stripe === null   ? t("rev.receiveNet")
+          : t("rev.receiveConnect");
 
-  // Free-tier counter: paid calls in the current UTC month, capped display at 3,000
+  // Free-tier counter: lifetime paid calls (no monthly reset), capped display at 3,000.
+  // Uses the same `runs` source the rest of this pane trusts; the gateway enforces
+  // the real lifetime cap server-side.
   const FREE_TIER = 3000;
-  const monthStart = useMemo(() => {
-    const d = new Date(); d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0);
-    return d.getTime();
-  }, []);
-  const callsThisMonth = runs.filter((r) => r.at >= monthStart).length;
-  const freeRemaining = Math.max(0, FREE_TIER - callsThisMonth);
-  const freePct = Math.min(100, (callsThisMonth / FREE_TIER) * 100);
+  const callsLifetime = runs.length;
+  const freeRemaining = Math.max(0, FREE_TIER - callsLifetime);
+  const freePct = Math.min(100, (callsLifetime / FREE_TIER) * 100);
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (13 - i));
     const end = d.getTime() + 86400000;
@@ -2310,7 +2341,7 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
 
   return (
     <>
-      <PaneHeading eyebrow="Revenue" title="Sales & usage" subtitle="Buyers prepay on your buy links — LemonCake takes 3% once at checkout, 97% lands in your Stripe balance. Below: what you've sold, plus how buyers are metering their prepaid credit through the gateway." />
+      <PaneHeading eyebrow={t("rev.eyebrow")} title={t("rev.title")} subtitle={t("rev.subtitle")} />
 
       {/* Settlement readiness — reflects the seller's live Stripe Connect state */}
       {stripe && (
@@ -2318,8 +2349,8 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
           <section className="rounded-2xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-4 mb-6 flex items-start gap-3">
             <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#16A34A]" />
             <div className="min-w-0">
-              <p className="text-[12.5px] font-bold text-[#16A34A]">Payouts enabled{stripe.country ? ` · ${stripe.country}` : ""}</p>
-              <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Your Stripe account is ready. Buyer prepayments settle to your Stripe balance on Stripe&apos;s payout schedule.</p>
+              <p className="text-[12.5px] font-bold text-[#16A34A]">{t("rev.payoutsEnabled")}{stripe.country ? ` · ${stripe.country}` : ""}</p>
+              <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">{t("rev.payoutsEnabledBody")}</p>
             </div>
           </section>
         ) : stripe.connected ? (
@@ -2327,49 +2358,49 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
             <div className="flex items-start gap-3 min-w-0">
               <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#1a0f00]/55" />
               <div className="min-w-0">
-                <p className="text-[12.5px] font-bold">Stripe onboarding incomplete</p>
-                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Your account is created but KYC / bank details are still pending. Finish it so this metered total can pay out.</p>
+                <p className="text-[12.5px] font-bold">{t("rev.onboardingIncomplete")}</p>
+                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">{t("rev.onboardingIncompleteBody")}</p>
               </div>
             </div>
-            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#1a0f00] text-white font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors">Finish in Account →</button>
+            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#1a0f00] text-white font-bold text-[12px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors">{t("rev.finishInAccount")}</button>
           </section>
         ) : (
           <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-4 mb-6 flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
               <Icon.Bank className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#635BFF]" />
               <div className="min-w-0">
-                <p className="text-[12.5px] font-bold">Not payout-ready yet</p>
-                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">Buyers can&apos;t prepay on your buy links until you connect Stripe. Connect now — LemonCake keeps 3%, 97% lands in your Stripe balance.</p>
+                <p className="text-[12.5px] font-bold">{t("rev.notReady")}</p>
+                <p className="text-[11.5px] text-[#1a0f00]/65 leading-relaxed">{t("rev.notReadyBody")}</p>
               </div>
             </div>
-            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">Connect Stripe →</button>
+            <button type="button" onClick={() => goTo("account")} className="flex-shrink-0 px-3.5 py-2 bg-[#635BFF] text-white font-bold text-[12px] rounded-lg hover:bg-[#7A73FF] transition-colors">{t("account.connectStripe")}</button>
           </section>
         )
       )}
 
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Prepaid sales</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">{t("rev.prepaidSales")}</p>
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <BigStat label="Sold (prepaid)" v={fmtUsd(sales.gross)} sub={`${sales.count} ${sales.count === 1 ? "purchase" : "purchases"}`} />
-        <BigStat label="Platform fee (3%)" v={fmtUsd(sales.gross * 0.03)} sub="Collected once at checkout" muted />
-        <BigStat label="You receive (97%)" v={fmtUsd(sales.net)} sub={receiveSub} highlight />
+        <BigStat label={t("rev.statSold")} v={fmtUsd(sales.gross)} sub={t("rev.soldSubFmt", { count: sales.count })} />
+        <BigStat label={t("rev.statFee")} v={fmtUsd(sales.gross * 0.03)} sub={t("rev.feeSub")} muted />
+        <BigStat label={t("rev.statReceive")} v={fmtUsd(sales.net)} sub={receiveSub} highlight />
       </section>
 
-      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">Credit usage</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-2">{t("rev.creditUsage")}</p>
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <BigStat label="Calls served" v={runs.length.toLocaleString()} sub="through the gateway" muted />
-        <BigStat label="Credit consumed" v={fmtUsd(sales.consumed)} sub="of prepaid balances" muted />
-        <BigStat label="Credit outstanding" v={fmtUsd(sales.outstanding)} sub="unspent buyer balances" muted />
+        <BigStat label={t("rev.statCallsServed")} v={runs.length.toLocaleString()} sub={t("rev.callsServedSub")} muted />
+        <BigStat label={t("rev.statCreditConsumed")} v={fmtUsd(sales.consumed)} sub={t("rev.creditConsumedSub")} muted />
+        <BigStat label={t("rev.statCreditOutstanding")} v={fmtUsd(sales.outstanding)} sub={t("rev.creditOutstandingSub")} muted />
       </section>
 
       {/* Free-tier progress */}
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 mb-6">
         <div className="flex items-baseline justify-between mb-2">
-          <p className="text-[12px] font-bold">Free tier this month</p>
+          <p className="text-[12px] font-bold">{t("rev.freeTierTitle")}</p>
           <p className="text-[11px] text-[#1a0f00]/55">
-            <span className="font-mono font-bold text-[#1a0f00]">{callsThisMonth.toLocaleString()}</span> / 3,000 calls
+            <span className="font-mono font-bold text-[#1a0f00]">{callsLifetime.toLocaleString()}</span> {t("rev.ofCalls")}
             {freeRemaining > 0
-              ? <span className="ml-2 text-[#16A34A] font-semibold">{freeRemaining.toLocaleString()} free left</span>
-              : <span className="ml-2 text-[#1a0f00]/55">3% fee active</span>}
+              ? <span className="ml-2 text-[#16A34A] font-semibold">{t("rev.freeLeftFmt", { n: freeRemaining.toLocaleString() })}</span>
+              : <span className="ml-2 text-[#1a0f00]/55">{t("rev.feeActive")}</span>}
           </p>
         </div>
         <div className="h-1.5 rounded-full bg-[#1a0f00]/8 overflow-hidden">
@@ -2379,14 +2410,11 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
           />
         </div>
         <p className="mt-2 text-[10.5px] text-[#1a0f00]/55 leading-snug">
-          {freeRemaining > 0
-            ? "LemonCake takes 0% on every paid call until you hit 3,000 this month. After that, the standard 3% kicks in."
-            : "You've used your 3,000 free calls this month. Calls 3,001+ are charged the standard 3%."}
-          {" "}Counter resets at the start of next UTC month.
+          {freeRemaining > 0 ? t("rev.freeNoteRemaining") : t("rev.freeNoteDone")}
         </p>
       </section>
       <section className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 mb-6">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">Last 14 days · metered volume</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-3">{t("rev.last14")}</p>
         <div className="flex items-end gap-1 h-32">
           {days.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -2397,12 +2425,12 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
         </div>
       </section>
       <section>
-        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">Per endpoint</h3>
-        {endpoints.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">Add an endpoint to start selling access.</p> : (
+        <h3 className="text-[13px] font-bold mb-3 text-[#1a0f00]/80">{t("rev.perEndpoint")}</h3>
+        {endpoints.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">{t("rev.perEndpointEmpty")}</p> : (
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-right px-4 py-2.5 font-semibold">Purchases</th><th className="text-right px-4 py-2.5 font-semibold">Sold</th><th className="text-right px-4 py-2.5 font-semibold">You receive</th><th className="text-right px-4 py-2.5 font-semibold">Calls</th><th className="text-right px-4 py-2.5 font-semibold">Credit left</th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">{t("rev.colEndpoint")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("rev.colPurchases")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("rev.colSold")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("rev.colYouReceive")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("rev.colCalls")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("rev.colCreditLeft")}</th></tr>
               </thead>
               <tbody>
                 {endpoints.map((e) => {
@@ -2431,30 +2459,31 @@ function RevenuePane({ endpoints, runs, tokens, sales, stripe, goTo }: { endpoin
 }
 
 function BlockedPane({ blocked, endpoints, api }: { blocked: BlockedReq[]; endpoints: Endpoint[]; api: Api }) {
+  const { t } = useT();
   const [filter, setFilter] = useState<BlockReason | "all">("all");
   const filtered = blocked.filter((b) => filter === "all" || b.reason === filter);
   const saved = blocked.reduce((a, b) => a + b.attempted, 0);
   return (
     <>
-      <PaneHeading eyebrow="Blocked Requests" title="What we kept off your meter" subtitle="Every block is a real gateway-side enforcement event written by /g/[shortId] in the moment it happened." />
+      <PaneHeading eyebrow={t("blocked.eyebrow")} title={t("blocked.title")} subtitle={t("blocked.subtitle")} />
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <BigStat label="Blocked" v={String(blocked.length)} sub="lifetime" />
-        <BigStat label="Charge prevented" v={fmtUsd(saved)} sub="Pay Token spend the gateway refused" muted />
-        <BigStat label="Reasons" v={String(new Set(blocked.map((b) => b.reason)).size)} sub="distinct block types" />
+        <BigStat label={t("blocked.statBlocked")} v={String(blocked.length)} sub={t("blocked.statBlockedSub")} />
+        <BigStat label={t("blocked.statPrevented")} v={fmtUsd(saved)} sub={t("blocked.statPreventedSub")} muted />
+        <BigStat label={t("blocked.statReasons")} v={String(new Set(blocked.map((b) => b.reason)).size)} sub={t("blocked.statReasonsSub")} />
       </section>
-      {blocked.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">No blocks yet. Spam the Send-request button to hit rate limits and spend caps.</p> : (
+      {blocked.length === 0 ? <p className="text-[12px] text-[#1a0f00]/45 italic">{t("blocked.empty")}</p> : (
         <>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {(["all", "rate_limit_exceeded", "spend_cap_exceeded", "token_expired", "token_revoked", "endpoint_paused", "upstream_error"] as const).map((f) => (
-              <button key={f} type="button" onClick={() => setFilter(f)} className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${filter === f ? "bg-[#1a0f00] text-white" : "bg-white border border-[#1a0f00]/12 text-[#1a0f00]/65 hover:text-[#1a0f00]"}`}>{f === "all" ? "All" : reasonLabel(f)}</button>
+              <button key={f} type="button" onClick={() => setFilter(f)} className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${filter === f ? "bg-[#1a0f00] text-white" : "bg-white border border-[#1a0f00]/12 text-[#1a0f00]/65 hover:text-[#1a0f00]"}`}>{f === "all" ? t("blocked.filterAll") : t(reasonKey(f))}</button>
             ))}
             <div className="flex-1" />
-            <button type="button" onClick={() => api.clearBlocked()} className="text-[11px] text-[#1a0f00]/55 hover:text-[#1a0f00]">Clear log</button>
+            <button type="button" onClick={() => api.clearBlocked()} className="text-[11px] text-[#1a0f00]/55 hover:text-[#1a0f00]">{t("blocked.clearLog")}</button>
           </div>
           <div className="rounded-2xl bg-white border border-[#1a0f00]/10 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-[#fafaf7] border-b border-[#1a0f00]/8 text-[10.5px] uppercase tracking-widest text-[#1a0f00]/55">
-                <tr><th className="text-left px-4 py-2.5 font-semibold">When</th><th className="text-left px-4 py-2.5 font-semibold">Endpoint</th><th className="text-left px-4 py-2.5 font-semibold">Reason</th><th className="text-right px-4 py-2.5 font-semibold">Charge prevented</th></tr>
+                <tr><th className="text-left px-4 py-2.5 font-semibold">{t("blocked.colWhen")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("blocked.colEndpoint")}</th><th className="text-left px-4 py-2.5 font-semibold">{t("blocked.colReason")}</th><th className="text-right px-4 py-2.5 font-semibold">{t("blocked.colPrevented")}</th></tr>
               </thead>
               <tbody>
                 {filtered.slice(0, 100).map((b) => {
@@ -2463,7 +2492,7 @@ function BlockedPane({ blocked, endpoints, api }: { blocked: BlockedReq[]; endpo
                     <tr key={b.id} className="border-b border-[#1a0f00]/6 last:border-0">
                       <td className="px-4 py-2.5 text-[#1a0f00]/55">{timeAgo(b.at)}</td>
                       <td className="px-4 py-2.5">{e?.name ?? "—"}</td>
-                      <td className="px-4 py-2.5"><span className="font-mono text-[11px] text-[#DC2626]">{reasonLabel(b.reason)}</span></td>
+                      <td className="px-4 py-2.5"><span className="font-mono text-[11px] text-[#DC2626]">{t(reasonKey(b.reason))}</span></td>
                       <td className="px-4 py-2.5 text-right font-mono">{fmtUsd(b.attempted)}</td>
                     </tr>
                   );
@@ -2562,18 +2591,20 @@ function IconButton({ children, onClick, title, tone }: { children: ReactNode; o
   );
 }
 function StatusPill({ status }: { status: Endpoint["status"] }) {
-  if (status === "live") return <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#16A34A] bg-[#16A34A]/10 px-1.5 py-0.5 rounded"><span className="w-1 h-1 rounded-full bg-[#16A34A]" /> Live</span>;
-  return <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60 bg-[#1a0f00]/8 px-1.5 py-0.5 rounded">Paused</span>;
+  const { t } = useT();
+  if (status === "live") return <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#16A34A] bg-[#16A34A]/10 px-1.5 py-0.5 rounded"><span className="w-1 h-1 rounded-full bg-[#16A34A]" /> {t("pill.live")}</span>;
+  return <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60 bg-[#1a0f00]/8 px-1.5 py-0.5 rounded">{t("pill.paused")}</span>;
 }
 function TokenStatusPill({ status }: { status: PayToken["status"] }) {
-  const map: Record<PayToken["status"], { label: string; cls: string }> = {
-    active:    { label: "Active",    cls: "text-[#16A34A] bg-[#16A34A]/10" },
-    expired:   { label: "Expired",   cls: "text-[#1a0f00]/55 bg-[#1a0f00]/6" },
-    exhausted: { label: "Exhausted", cls: "text-[#1a0f00]/55 bg-[#1a0f00]/6" },
-    revoked:   { label: "Revoked",   cls: "text-[#DC2626] bg-[#DC2626]/10" },
+  const { t } = useT();
+  const map: Record<PayToken["status"], { key: MessageKey; cls: string }> = {
+    active:    { key: "token.active",    cls: "text-[#16A34A] bg-[#16A34A]/10" },
+    expired:   { key: "token.expired",   cls: "text-[#1a0f00]/55 bg-[#1a0f00]/6" },
+    exhausted: { key: "token.exhausted", cls: "text-[#1a0f00]/55 bg-[#1a0f00]/6" },
+    revoked:   { key: "token.revoked",   cls: "text-[#DC2626] bg-[#DC2626]/10" },
   };
   const m = map[status];
-  return <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${m.cls}`}>{m.label}</span>;
+  return <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${m.cls}`}>{t(m.key)}</span>;
 }
 function EmptyState({ actionLabel, onAction, hint }: { actionLabel: string; onAction: () => void; hint?: string }) {
   return (
@@ -2585,13 +2616,13 @@ function EmptyState({ actionLabel, onAction, hint }: { actionLabel: string; onAc
     </div>
   );
 }
-function reasonLabel(r: BlockReason): string {
+function reasonKey(r: BlockReason): MessageKey {
   return ({
-    rate_limit_exceeded: "Rate limit exceeded",
-    spend_cap_exceeded:  "Spend cap exceeded",
-    token_expired:       "Pay Token expired",
-    token_revoked:       "Pay Token revoked",
-    endpoint_paused:     "Endpoint paused",
-    upstream_error:      "Upstream error",
-  } as Record<BlockReason, string>)[r];
+    rate_limit_exceeded: "block.rate_limit_exceeded",
+    spend_cap_exceeded:  "block.spend_cap_exceeded",
+    token_expired:       "block.token_expired",
+    token_revoked:       "block.token_revoked",
+    endpoint_paused:     "block.endpoint_paused",
+    upstream_error:      "block.upstream_error",
+  } as Record<BlockReason, MessageKey>)[r];
 }
