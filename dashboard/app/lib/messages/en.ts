@@ -244,6 +244,11 @@ export const en = {
   "pt.expiredShort": "expired",
   "pt.inHours": "in {h}h",
   "pt.revoke": "Revoke",
+  "pt.agentTitle": "Agent funding key",
+  "pt.agentBody": "Generate a Buyer Key (bk_) for the selected endpoint, then save a card on it so your agent can top up its prepaid balance off-session — capped by your limits. LemonCake never holds your funds.",
+  "pt.agentGenerate": "Generate agent funding key",
+  "pt.agentKeyShownOnce": "Key created — shown once. Copy it now, then save a card.",
+  "pt.agentSaveCard": "Save a card →",
 
   // ── Test Request pane ──
   "test.eyebrow": "Test Request",

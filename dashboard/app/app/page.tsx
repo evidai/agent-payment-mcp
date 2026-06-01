@@ -1930,6 +1930,10 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
   const [busy,     setBusy]     = useState(false);
   const [err,      setErr]      = useState<string | null>(null);
   const [justIssued, setJustIssued] = useState<{ token: PayToken; jwt: string } | null>(null);
+  // Agent funding key (Buyer Key bk_) — issued once for the selected endpoint.
+  const [agentKey, setAgentKey] = useState<string | null>(null);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genErr, setGenErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (endpoints.length > 0 && !endpoints.find((e) => e.id === endpointId)) setEndpointId(endpoints[0].id);
@@ -1961,6 +1965,27 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
       setErr(e instanceof Error ? e.message : t("pt.issueFailed"));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function genKey() {
+    if (!selectedEp) return;
+    setGenErr(null);
+    setAgentKey(null);
+    setGenBusy(true);
+    try {
+      const res = await fetch("/api/lc/agent/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpointShortId: selectedEp.shortId }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.buyerKey) { setGenErr(j.error || "request_failed"); return; }
+      setAgentKey(j.buyerKey as string);
+    } catch {
+      setGenErr("network_error");
+    } finally {
+      setGenBusy(false);
     }
   }
 
@@ -2020,6 +2045,26 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
             <li>{t("pt.howWork4")}</li>
           </ol>
         </aside>
+      </section>
+
+      {/* Agent funding key (Buyer Key) — lets an agent top up off-session */}
+      <section className="rounded-2xl border border-[#635BFF]/25 bg-[#635BFF]/6 p-6 mt-5">
+        <h3 className="text-[14px] font-bold mb-1">{t("pt.agentTitle")}</h3>
+        <p className="text-[11.5px] text-[#1a0f00]/60 leading-snug mb-3">{t("pt.agentBody")}</p>
+        <button type="button" onClick={genKey} disabled={genBusy || !selectedEp} className="px-4 py-2 bg-[#635BFF] text-white font-bold text-[12.5px] rounded-lg hover:bg-[#7A73FF] transition-colors disabled:opacity-50">
+          {genBusy ? "…" : t("pt.agentGenerate")}{selectedEp ? ` · ${selectedEp.name}` : ""}
+        </button>
+        {genErr && <p className="mt-2 text-[12px] text-[#DC2626]">{t("account.errorPrefix", { error: genErr })}</p>}
+        {agentKey && (
+          <div className="mt-3 rounded-lg bg-white border border-[#635BFF]/30 p-3">
+            <p className="text-[12px] font-bold text-[#635BFF] mb-2">{t("pt.agentKeyShownOnce")}</p>
+            <code className="block font-mono text-[11px] text-[#1a0f00]/85 break-all bg-[#fafaf7] border border-[#1a0f00]/8 rounded p-2 select-all">{agentKey}</code>
+            <div className="mt-2 flex items-center gap-4">
+              <button type="button" onClick={() => navigator.clipboard?.writeText(agentKey)} className="text-[11px] font-semibold text-[#1a0f00] hover:underline">{t("common.copy")}</button>
+              <a href="/agent/fund" target="_blank" rel="noopener" className="text-[11px] font-semibold text-[#635BFF] hover:underline">{t("pt.agentSaveCard")}</a>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="mt-8">

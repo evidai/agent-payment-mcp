@@ -238,6 +238,11 @@ export const ja: Messages = {
   "pt.expiredShort": "期限切れ",
   "pt.inHours": "あと{h}時間",
   "pt.revoke": "失効",
+  "pt.agentTitle": "エージェント資金キー",
+  "pt.agentBody": "選択中のエンドポイント用に Buyer Key（bk_）を発行し、それにカードを保存すると、エージェントが上限内で前払い残高を off-session で補充できます。LemonCake は資金を一切保持しません。",
+  "pt.agentGenerate": "エージェント資金キーを発行",
+  "pt.agentKeyShownOnce": "キーを発行しました（表示は一度きり）。今すぐコピーし、カードを保存してください。",
+  "pt.agentSaveCard": "カードを保存 →",
 
   // ── Test Request pane ──
   "test.eyebrow": "テストリクエスト",

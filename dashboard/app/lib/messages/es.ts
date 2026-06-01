@@ -238,6 +238,11 @@ export const es: Messages = {
   "pt.expiredShort": "caducado",
   "pt.inHours": "en {h}h",
   "pt.revoke": "Revocar",
+  "pt.agentTitle": "Clave de fondeo del agente",
+  "pt.agentBody": "Genera una Buyer Key (bk_) para el endpoint seleccionado y luego guarda una tarjeta en ella para que tu agente recargue su saldo prepagado off-session — limitado por tus topes. LemonCake nunca retiene tus fondos.",
+  "pt.agentGenerate": "Generar clave de fondeo",
+  "pt.agentKeyShownOnce": "Clave creada — se muestra una sola vez. Cópiala ahora y guarda una tarjeta.",
+  "pt.agentSaveCard": "Guardar una tarjeta →",
 
   // ── Test Request pane ──
   "test.eyebrow": "Solicitud de prueba",
