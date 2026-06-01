@@ -1934,10 +1934,22 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
   const [agentKey, setAgentKey] = useState<string | null>(null);
   const [genBusy, setGenBusy] = useState(false);
   const [genErr, setGenErr] = useState<string | null>(null);
+  type AgentKeyRow = { id: string; prefix: string; endpointShortId: string; status: string; cardSaved: boolean };
+  const [agentKeys, setAgentKeys] = useState<AgentKeyRow[]>([]);
+
+  const loadKeys = useCallback(async () => {
+    try {
+      const r = await fetch("/api/lc/agent/keys");
+      const j = await r.json();
+      if (r.ok && Array.isArray(j.keys)) setAgentKeys(j.keys);
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     if (endpoints.length > 0 && !endpoints.find((e) => e.id === endpointId)) setEndpointId(endpoints[0].id);
   }, [endpoints, endpointId]);
+
+  useEffect(() => { loadKeys(); }, [loadKeys]);
 
   const selectedEp = endpoints.find((e) => e.id === endpointId);
   const buyUrl = selectedEp ? buyUrlOf(selectedEp.shortId) : "";
@@ -1982,11 +1994,19 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
       const j = await res.json();
       if (!res.ok || !j.buyerKey) { setGenErr(j.error || "request_failed"); return; }
       setAgentKey(j.buyerKey as string);
+      loadKeys();
     } catch {
       setGenErr("network_error");
     } finally {
       setGenBusy(false);
     }
+  }
+
+  async function revokeKey(id: string) {
+    try {
+      await fetch(`/api/lc/agent/keys/${id}/revoke`, { method: "POST" });
+      loadKeys();
+    } catch { /* ignore */ }
   }
 
   return (
@@ -2063,6 +2083,25 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
               <button type="button" onClick={() => navigator.clipboard?.writeText(agentKey)} className="text-[11px] font-semibold text-[#1a0f00] hover:underline">{t("common.copy")}</button>
               <a href="/agent/fund" target="_blank" rel="noopener" className="text-[11px] font-semibold text-[#635BFF] hover:underline">{t("pt.agentSaveCard")}</a>
             </div>
+          </div>
+        )}
+
+        {agentKeys.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-[#635BFF]/15">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55 mb-2">{t("pt.agentKeysTitle")}</p>
+            <ul className="space-y-1.5">
+              {agentKeys.map((k) => (
+                <li key={k.id} className="flex items-center gap-2 text-[11.5px]">
+                  <code className="font-mono text-[#1a0f00]/75">{k.prefix}</code>
+                  <span className="text-[#1a0f00]/45">· {k.endpointShortId}</span>
+                  {k.cardSaved && <span className="text-[10px] text-[#16A34A]">{t("pt.agentCardOn")}</span>}
+                  <span className="flex-1" />
+                  {k.status === "active"
+                    ? <button type="button" onClick={() => revokeKey(k.id)} className="text-[11px] font-semibold text-[#DC2626] hover:underline">{t("pt.agentRevoke")}</button>
+                    : <span className="text-[10px] uppercase tracking-widest text-[#1a0f00]/45">{t("pt.agentRevoked")}</span>}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

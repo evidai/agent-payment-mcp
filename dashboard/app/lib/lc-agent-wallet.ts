@@ -247,6 +247,42 @@ export async function issueBuyerKey(args: {
   };
 }
 
+/** List a workspace's Buyer Keys (for the /app revoke UI). */
+export async function listKeysForWorkspace(workspaceId: string): Promise<
+  { id: string; prefix: string; endpointShortId: string; status: string; cardSaved: boolean; createdAt: Date; lastUsedAt: Date | null }[]
+> {
+  const rows = await sql()<{
+    id: string; key_prefix: string; endpoint_short_id: string; status: string;
+    has_card: boolean; created_at: Date; last_used_at: Date | null;
+  }[]>`
+    select k.id, k.key_prefix, e.short_id as endpoint_short_id, k.status,
+           (k.stripe_pm_id is not null) as has_card, k.created_at, k.last_used_at
+    from lc_buyer_keys k
+    join lc_endpoints e on e.id = k.endpoint_id
+    where k.workspace_id = ${workspaceId}
+    order by k.created_at desc
+    limit 50
+  `;
+  return rows.map((r) => ({
+    id: r.id, prefix: r.key_prefix, endpointShortId: r.endpoint_short_id,
+    status: r.status, cardSaved: r.has_card, createdAt: r.created_at, lastUsedAt: r.last_used_at,
+  }));
+}
+
+/** Revoke a Buyer Key the workspace owns. Revoked keys fail auth immediately. */
+export async function revokeKeyForWorkspace(
+  workspaceId: string,
+  keyId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await sql()<{ id: string }[]>`
+    update lc_buyer_keys set status = 'revoked'
+    where id = ${keyId} and workspace_id = ${workspaceId} and status = 'active'
+    returning id
+  `;
+  if (r.length === 0) return { ok: false, error: "not_found_or_not_owner" };
+  return { ok: true };
+}
+
 /** Resolve a `bk_...` bearer secret to its active key + wallet. */
 export async function authBuyerKey(req: Request): Promise<{ key: BuyerKeyRow; wallet: WalletRow } | null> {
   const m = (req.headers.get("authorization") ?? "").match(/^Bearer\s+(bk_[A-Za-z0-9]+)\s*$/i);

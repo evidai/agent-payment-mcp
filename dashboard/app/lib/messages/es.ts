@@ -243,6 +243,10 @@ export const es: Messages = {
   "pt.agentGenerate": "Generar clave de fondeo",
   "pt.agentKeyShownOnce": "Clave creada — se muestra una sola vez. Cópiala ahora y guarda una tarjeta.",
   "pt.agentSaveCard": "Guardar una tarjeta →",
+  "pt.agentKeysTitle": "Claves emitidas",
+  "pt.agentCardOn": "tarjeta guardada",
+  "pt.agentRevoke": "Revocar",
+  "pt.agentRevoked": "Revocada",
 
   // ── Test Request pane ──
   "test.eyebrow": "Solicitud de prueba",

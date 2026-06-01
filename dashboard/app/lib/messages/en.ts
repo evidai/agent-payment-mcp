@@ -249,6 +249,10 @@ export const en = {
   "pt.agentGenerate": "Generate agent funding key",
   "pt.agentKeyShownOnce": "Key created — shown once. Copy it now, then save a card.",
   "pt.agentSaveCard": "Save a card →",
+  "pt.agentKeysTitle": "Issued keys",
+  "pt.agentCardOn": "card saved",
+  "pt.agentRevoke": "Revoke",
+  "pt.agentRevoked": "Revoked",
 
   // ── Test Request pane ──
   "test.eyebrow": "Test Request",

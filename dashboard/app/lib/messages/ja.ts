@@ -243,6 +243,10 @@ export const ja: Messages = {
   "pt.agentGenerate": "エージェント資金キーを発行",
   "pt.agentKeyShownOnce": "キーを発行しました（表示は一度きり）。今すぐコピーし、カードを保存してください。",
   "pt.agentSaveCard": "カードを保存 →",
+  "pt.agentKeysTitle": "発行済みキー",
+  "pt.agentCardOn": "カード登録済",
+  "pt.agentRevoke": "失効",
+  "pt.agentRevoked": "失効済み",
 
   // ── Test Request pane ──
   "test.eyebrow": "テストリクエスト",

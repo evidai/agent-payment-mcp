@@ -10,10 +10,18 @@
  */
 import { NextResponse } from "next/server";
 import { backendEnvReady, ensureOwnerId } from "@/lib/lc-backend";
-import { ensureAgentSchema, issueBuyerKey } from "@/lib/lc-agent-wallet";
+import { ensureAgentSchema, issueBuyerKey, listKeysForWorkspace } from "@/lib/lc-agent-wallet";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
+
+/** GET — list this workspace's Buyer Keys (for the revoke UI). */
+export async function GET() {
+  if (!backendEnvReady()) return NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
+  await ensureAgentSchema();
+  const workspaceId = await ensureOwnerId();
+  return NextResponse.json({ keys: await listKeysForWorkspace(workspaceId) });
+}
 
 export async function POST(req: Request) {
   if (!backendEnvReady()) return NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
