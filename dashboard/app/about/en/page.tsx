@@ -4,8 +4,8 @@ import ContactButton from "../ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — Turn any AI API into a paid API (open core, private beta)",
-  description: "Usage-based billing for AI APIs and MCP servers. No monthly fee — pay 3% only when your API earns, free for your first 3,000 calls. Sub-cent metering, spend-limited Pay Tokens, embedded wallet, abuse prevention. Open core, MIT SDK. Works where Stripe Connect doesn't.",
+  title: "LemonCake — Let your AI agent pay for any API (x402 payment rail)",
+  description: "x402 payment rail for AI agents: give your agent a spend-capped prepaid wallet and it pays for any paid API on its own — no account, no per-call key. First 3,000 calls free, then 3%. Custody-free (Stripe Connect Direct Charge). Open core, MIT SDK.",
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -15,8 +15,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "LemonCake — Turn any AI API into a paid API",
-    description: "Usage-based billing for AI APIs and MCP servers. Pay 3% only when your API earns. Sub-cent metering, spend-limited Pay Tokens, embedded wallet. Open core, MIT.",
+    title: "LemonCake — Let your AI agent pay for any API",
+    description: "x402 payment rail for AI agents. Spend-capped prepaid wallet, no account, no per-call key. First 3,000 calls free, then 3%.",
     url: "https://lemoncake.xyz/about/en",
     type: "article",
   },
@@ -177,18 +177,17 @@ export default function AboutPageEn() {
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.08]">
-              Turn any AI API into a<br />
+              Let your AI agent pay for<br />
               <span className="text-black">
-                paid API in minutes.
+                any API — capped, no account.
               </span>
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
-              <strong className="text-[#1a0f00]">No monthly fee. Pay 3% only when your AI API earns.</strong><br />
-              Start free — your first 3,000 calls, with gateway, Pay Token, spend limits, and metering all included.
+              <strong className="text-[#1a0f00]">Give your agent a spend-capped wallet — it pays for paid APIs on its own.</strong><br />
+              Discover → pay → pass through. No per-call key, no human in the loop, and it can&apos;t exceed your cap. You keep 97%; LemonCake takes 3% once at funding and never holds your funds.
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              <strong>Currently shipping:</strong> SDK (lc.charge, lc.protect) — MIT, on npm today.<br />
-              <strong>Q3 2026:</strong> hosted gateway, Pay Token issuance, margin dashboard. Design partners get early access.
+              <strong>Live today:</strong> x402 gateway, agent funding (off-session top-ups), Pay Tokens, spend caps, usage ledger. First 3,000 calls free, then 3% — EN / JA / Español.
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link
@@ -606,12 +605,12 @@ export default function AboutPageEn() {
             Launch Plan · Private Beta
           </p>
           <h2 className="text-4xl md:text-5xl font-black text-[#1a0f00] mb-5 leading-tight">
-            Turn your AI API into<br />
-            <span className="text-black">a paid API today.</span>
+            Let your AI agent<br />
+            <span className="text-black">pay for any API.</span>
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
-            No monthly fee. Pay 3% only when your API earns.
-            Start free — your first 3,000 calls, with gateway, Pay Token, spend limits, and metering all included.
+            A spend-capped prepaid wallet your agent pays with — no account, no per-call key.
+            First 3,000 calls free, then 3%. Custody-free; you keep 97%.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link

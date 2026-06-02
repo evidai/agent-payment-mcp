@@ -4,8 +4,8 @@ import ContactButton from "./ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — AI API を数分で有料化する従量課金レイヤー（オープンコア）",
-  description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%（初回 3,000 コール無料）。サブセント計測・支出上限付き Pay Token・組込みウォレット・暴走防止まで標準装備。SDK は MIT のオープンコア。Stripe Connect が使えない国でも動作。",
+  title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
+  description: "AIエージェントのための x402 決済レール。上限つきの前払いウォレットを渡すと、エージェントが有料APIを自律で支払って使う（口座不要・コールごとの鍵不要）。初回3,000コール無料、以降3%。資金は預からない（Stripe Connect Direct Charge）。SDK は MIT のオープンコア。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -14,8 +14,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "LemonCake — AI API を数分で有料化する従量課金レイヤー",
-    description: "AI API・MCP サーバーのための従量課金インフラ。月額無料、売れた時だけ 3%。サブセント計測・Pay Token・組込みウォレット。SDK は MIT のオープンコア。",
+    title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
+    description: "AIエージェントのための x402 決済レール。上限つき前払いウォレット・口座不要・コールごとの鍵不要。初回3,000コール無料、以降3%。",
     url: "https://lemoncake.xyz/about",
     type: "article",
   },
@@ -172,18 +172,17 @@ export default function AboutPage() {
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.08]">
-              AI API を、<br />
+              AIエージェントに、<br />
               <span className="text-black">
-                数分で有料化。
+                有料APIを“自分で払って”使わせる。
               </span>
             </h1>
             <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
-              <strong className="text-[#1a0f00]">月額無料。AI API が売れた時だけ 3%。</strong><br />
-              初回 3,000 API calls まで無料。Gateway・Pay Token・利用制御・使用量計測まで初期費用なし。
+              <strong className="text-[#1a0f00]">エージェントに上限つきの財布を渡すと、有料APIを自律で払って使う。</strong><br />
+              発見→支払い→通過。コールごとの鍵も人間の承認も不要、しかも上限を超えられない。取り分は97%、LemonCakeは前払い時に3%のみ・資金は一切預かりません。
             </p>
             <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              <strong>今出荷中:</strong> SDK (lc.charge / lc.protect) — MIT、npm 公開済。<br />
-              <strong>Q3 2026:</strong> hosted Gateway、Pay Token issuance、Margin dashboard。design partner は early access。
+              <strong>本番稼働中:</strong> x402 ゲートウェイ、エージェント資金供給（off-session 補充）、Pay Token、支出上限、使用台帳。初回3,000コール無料、以降3% — EN / 日本語 / Español。
             </p>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               <Link
@@ -528,12 +527,12 @@ export default function AboutPage() {
             ローンチプラン · Private Beta
           </p>
           <h2 className="text-4xl md:text-5xl font-black text-[#1a0f00] mb-5 leading-tight">
-            あなたの AI API を、<br />
-            <span className="text-black">今日、有料 API に。</span>
+            AIエージェントに、<br />
+            <span className="text-black">有料APIを自分で払わせる。</span>
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
-            月額無料。API が売れた時だけ 3%。
-            初回 3,000 API calls まで無料 — Gateway・Pay Token・利用制御・使用量計測まで全部込み。
+            上限つきの前払いウォレットをエージェントに渡すだけ — 口座不要・コールごとの鍵不要。
+            初回 3,000 コール無料、以降 3%。資金は預からず、取り分は97%。
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
