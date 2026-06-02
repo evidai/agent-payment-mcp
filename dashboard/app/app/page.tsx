@@ -331,7 +331,6 @@ function SetupNotice() {
 
 function RealDashboard() {
   const [activePane, setActivePane] = useState<Pane>("add");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [preselectEndpointId, setPreselectEndpointId] = useState<string | null>(null);
 
   // Data
@@ -487,7 +486,7 @@ function RealDashboard() {
 
   return (
     <div>
-      <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} endpoints={endpoints} activeTokensCount={activeTokens.length} runs={runs} blocked={blocked} sales={sales} setActivePane={(p) => goTo(p)} />
+      <Header />
 
       <div className="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[228px_1fr] gap-8">
         <Sidebar activePane={activePane} counts={counts} onSelect={(p) => goTo(p)} />
@@ -524,25 +523,8 @@ type Api = {
   refetch: () => Promise<void>;
 };
 
-function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blocked, sales, setActivePane }: {
-  menuOpen: boolean; setMenuOpen: (b: boolean | ((p: boolean) => boolean)) => void;
-  endpoints: Endpoint[]; activeTokensCount: number; runs: TestRun[]; blocked: BlockedReq[];
-  sales: Sales; setActivePane: (p: Pane) => void;
-}) {
-  // Fetched profile (incl. email if claimed). Refetched whenever the
-  // dropdown re-opens so a magic-link sign-in is reflected immediately.
-  // The actionable account flows (email claim, Stripe Connect, owner ID)
-  // now live in the sidebar → Account pane; the dropdown is a quick peek
-  // + a shortcut into that pane.
-  type Me = { id: string; email: string | null; email_verified_at: string | null };
-  const [me, setMe] = useState<Me | null>(null);
+function Header() {
   const { t } = useT();
-  useEffect(() => {
-    if (menuOpen) {
-      fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null));
-    }
-  }, [menuOpen]);
-
   return (
     <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -558,43 +540,6 @@ function Header({ menuOpen, setMenuOpen, endpoints, activeTokensCount, runs, blo
           <Link href="/docs/pay-token" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors inline-flex items-center gap-1">
             <Icon.External className="w-3.5 h-3.5" /> {t("header.apiRef")}
           </Link>
-          <div className="relative ml-1">
-            <button type="button" onClick={() => setMenuOpen((o) => !o)} className="inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full bg-white border border-[#1a0f00]/10 hover:bg-[#1a0f00]/[0.03] transition-colors" aria-label="Workspace menu" aria-expanded={menuOpen}>
-              <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-[#1a0f00] text-white text-[10px] font-black">LC</span>
-              <Icon.ChevDn className={`w-3.5 h-3.5 text-[#1a0f00]/55 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
-            </button>
-            {menuOpen && (
-              <>
-                <button type="button" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-30 cursor-default" aria-hidden tabIndex={-1} />
-                <div className="absolute top-full right-0 mt-2 w-[320px] rounded-xl bg-white border border-[#1a0f00]/12 shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-4 z-40">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/45 mb-1">{t("header.workspace")}</p>
-                  <p className="text-[12.5px] font-bold mb-3 leading-tight">
-                    {me?.email ? me.email : t("header.anonymous")}
-                  </p>
-                  <dl className="text-[11.5px] space-y-1.5 mb-3">
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.endpoints")}</dt><dd className="font-mono font-semibold">{endpoints.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.activePayTokens")}</dt><dd className="font-mono font-semibold">{activeTokensCount}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.buyerPurchases")}</dt><dd className="font-mono font-semibold">{sales.count}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.paidCalls")}</dt><dd className="font-mono font-semibold">{runs.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2"><dt className="text-[#1a0f00]/65">{t("header.blocked")}</dt><dd className="font-mono font-semibold">{blocked.length}</dd></div>
-                    <div className="flex items-baseline justify-between gap-2 pt-1.5 border-t border-[#1a0f00]/6"><dt className="text-[#1a0f00]/65">{t("header.salesNet")}</dt><dd className="font-mono font-bold text-[#16A34A]">{fmtUsd(sales.net)}</dd></div>
-                  </dl>
-
-                  {/* Sign-in, Stripe Connect and Owner ID now live in the
-                      sidebar → Account pane. Keep a one-tap shortcut here. */}
-                  <button
-                    type="button"
-                    onClick={() => { setActivePane("account"); setMenuOpen(false); }}
-                    className="w-full mb-3 px-2.5 py-2 bg-[#1a0f00] text-white font-bold text-[11.5px] rounded-lg hover:bg-[#1a0f00]/90 transition-colors"
-                  >
-                    {me?.email ? t("header.manageAccount") : t("header.signInConnect")}
-                  </button>
-
-                  <a href="mailto:contact@aievid.com?subject=Design%20partner%20access%20%E2%80%94%20LemonCake" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a0f00]/70 hover:text-[#1a0f00] underline underline-offset-2 decoration-[#1a0f00]/30 hover:decoration-[#1a0f00]">{t("header.talkToUs")}</a>
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </header>
