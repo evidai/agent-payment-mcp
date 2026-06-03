@@ -3,6 +3,28 @@ const nextConfig = {
   // 本番: NEXT_PUBLIC_API_URL を空にすると /api/* が Next.js プロキシルートに流れる
   // 開発: .env.local の NEXT_PUBLIC_API_URL=http://localhost:3002 をそのまま使う
 
+  async headers() {
+    return [
+      {
+        // Apply security headers to all routes.
+        source: "/(.*)",
+        headers: [
+          // Prevent clickjacking — disallow this site from being embedded in
+          // any iframe (login pages / dashboard should never be framed).
+          { key: "X-Frame-Options", value: "DENY" },
+          // Prevent MIME-type sniffing — browser must honour the declared
+          // Content-Type instead of guessing from content.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Referrer policy — only send the origin (not the full path) on
+          // cross-origin requests, and nothing on downgrade (HTTPS→HTTP).
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Permissions policy — opt out of browser features we don't use.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
+
   async redirects() {
     return [
       // /start/free was the legacy "8-step mailto for manual provisioning"
