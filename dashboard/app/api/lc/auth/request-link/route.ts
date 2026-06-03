@@ -20,6 +20,24 @@ const notReady = () => NextResponse.json({ error: "backend_not_configured" }, { 
 // Basic email shape check. Real validation happens when Stripe / inbox bounces.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// In-process rate limit: max 5 requests per email per 10 minutes.
+// Protects against magic-link spam / Resend quota abuse. Resets on cold start
+// (acceptable — persistent rate-limiting needs Redis; this covers the common case).
+const RL_WINDOW_MS = 10 * 60 * 1000;
+const RL_MAX = 5;
+const rlMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const entry = rlMap.get(email);
+  if (!entry || now > entry.resetAt) {
+    rlMap.set(email, { count: 1, resetAt: now + RL_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RL_MAX) return false;
+  entry.count += 1;
+  return true;
+}
+
 export async function POST(req: Request) {
   if (!backendEnvReady()) return notReady();
 
@@ -29,6 +47,9 @@ export async function POST(req: Request) {
   const email = (body.email ?? "").trim().toLowerCase();
   if (!email || !EMAIL_RE.test(email) || email.length > 254) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+  }
+  if (!checkRateLimit(email)) {
+    return NextResponse.json({ error: "rate_limited", retryAfterMinutes: 10 }, { status: 429 });
   }
 
   const prevOwnerId = await ensureOwnerId();

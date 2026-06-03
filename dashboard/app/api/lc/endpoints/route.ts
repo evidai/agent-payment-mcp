@@ -23,7 +23,14 @@ export async function GET() {
     where owner_id = ${ownerId}
     order by created_at desc
   `;
-  return NextResponse.json({ endpoints: rows });
+  // Never return the raw upstream_auth value — it contains the seller's real
+  // API key (e.g. "Authorization: Bearer sk-..."). Replace it with a boolean
+  // so the UI knows it is set without leaking the secret into the browser.
+  const endpoints = rows.map((r) => ({
+    ...r,
+    upstream_auth: r.upstream_auth ? "••••" : null,
+  }));
+  return NextResponse.json({ endpoints });
 }
 
 type CreateBody = {
