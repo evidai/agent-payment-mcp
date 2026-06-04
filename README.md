@@ -55,29 +55,6 @@ Budget exhausted → 402 challenge → agent self-funds → continues. No humans
 
 ---
 
-## ⚡ Try in 30 seconds
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (or Cursor / Cline):
-
-```json
-{
-  "mcpServers": {
-    "lemon": {
-      "command": "npx",
-      "args": ["-y", "agent-payment-mcp"]
-    }
-  }
-}
-```
-
-Restart Claude Desktop, then ask:
-
-> **"use lemon to search Wikipedia for AI agents"**
-
-Demo Mode runs against real Wikipedia, real FX rates, and real httpbin APIs. No credentials needed.
-
----
-
 ## 💳 How payment works
 
 ### For buyers (human or agent)
