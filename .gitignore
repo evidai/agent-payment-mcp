@@ -58,10 +58,30 @@ fsa-reply-draft.md
 api/scripts/freee-reauth.ts
 api/scripts/freee-extract-from-db.ts
 # Internal grant / strategy / investor / unreleased-product — keep out of the public repo
-docs/tokyo-stablecoin-grant/0[6-9]-*.md
-docs/tokyo-stablecoin-grant/1*.md
+docs/tokyo-stablecoin-grant/
+docs/tokyo-stablecoin-grant-2026.md
 docs/whitepaper/
+docs/marketing/
+docs/outreach-templates-2026-05/
+docs/outreach/
+docs/demo-video-script.md
+docs/research/
 roadmap-2026-2027.md
 freee-launch-checklist.md
 gmx-mcp/
 pay-per-call-mcp/
+# Marketing / outreach — internal only
+marketing/
+linkedin-growth-agent/
+# GitHub Actions — internal automation
+.github/workflows/linkedin-growth.yml
+.github/workflows/scheduled-slack.yml
+# Legacy backend (migrated to Vercel/Supabase)
+api/
+m2m-payment/
+# Unreleased integrations
+dashboard/app/integrations/freee/
+dashboard/public/freee-logo.png
+dashboard/public/freee-logo.svg
+dashboard/public/moneyforward-logo.png
+integrations/_shared/freee-screenshots/
