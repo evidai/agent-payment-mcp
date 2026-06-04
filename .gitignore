@@ -80,6 +80,8 @@ docs/HANDOFF_*.md
 docs/MIGRATION_*.md
 docs/todo-*.md
 docs/research/
+docs/dify/
+claude-plugins/
 # Marketing / outreach — internal only
 marketing/
 linkedin-growth-agent/
