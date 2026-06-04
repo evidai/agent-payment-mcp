@@ -70,6 +70,16 @@ roadmap-2026-2027.md
 freee-launch-checklist.md
 gmx-mcp/
 pay-per-call-mcp/
+mcp-server-legacy/
+video/
+scripts/slack-tasks/
+scripts/test-jpyc-permit.mjs
+scripts/trigger-bazaar.mjs
+docs/SESSION_*.md
+docs/HANDOFF_*.md
+docs/MIGRATION_*.md
+docs/todo-*.md
+docs/research/
 # Marketing / outreach — internal only
 marketing/
 linkedin-growth-agent/
