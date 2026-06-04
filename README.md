@@ -199,9 +199,3 @@ See [lemoncake.xyz/security](https://lemoncake.xyz/security)
 - **upstream_auth never exposed** — seller's real API key hidden from buyers
 - **RLS on all DB tables** — Supabase row-level security enabled
 - **Stripe Connect Direct Charge** — LemonCake never holds funds
-
----
-
-## 📄 License
-
-MIT.
