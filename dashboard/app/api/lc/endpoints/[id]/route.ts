@@ -51,8 +51,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "no_updates" }, { status: 400 });
   }
 
+  // The id column is a uuid — reject non-uuid ids up front so a bad path param
+  // is a clean 404, not a uuid-cast 500.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   // Per-field values: the new value when provided, else null → coalesce keeps the
   // current column. upstreamAuth is special: an explicit "" means "clear it".
+  // NOTE: each null param is explicitly cast so Postgres can infer its type
+  // (an untyped NULL inside coalesce() errors with "could not determine data type").
   const status = has("status") ? body.status! : null;
   const name = has("name") ? String(body.name).trim() : null;
   const originalUrl = has("originalUrl") ? String(body.originalUrl).trim() : null;
@@ -63,12 +71,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   const rows = await sql()<EndpointRow[]>`
     update lc_endpoints set
-      status         = coalesce(${status}, status),
-      name           = coalesce(${name}, name),
-      original_url   = coalesce(${originalUrl}, original_url),
-      price_per_call = coalesce(${pricePerCall}, price_per_call),
-      rate_limit     = coalesce(${rateLimit}, rate_limit),
-      upstream_auth  = case when ${upstreamProvided} then ${upstreamAuth} else upstream_auth end
+      status         = coalesce(${status}::text, status),
+      name           = coalesce(${name}::text, name),
+      original_url   = coalesce(${originalUrl}::text, original_url),
+      price_per_call = coalesce(${pricePerCall}::numeric, price_per_call),
+      rate_limit     = coalesce(${rateLimit}::int, rate_limit),
+      upstream_auth  = case when ${upstreamProvided}::boolean then ${upstreamAuth}::text else upstream_auth end
     where id = ${id} and owner_id = ${ownerId}
     returning *
   `;
