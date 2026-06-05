@@ -1943,6 +1943,8 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
   const [agentKey, setAgentKey] = useState<string | null>(null);
   const [genBusy, setGenBusy] = useState(false);
   const [genErr, setGenErr] = useState<string | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
+  const [cardErr, setCardErr] = useState<string | null>(null);
   type AgentKeyRow = { id: string; prefix: string; endpointShortId: string; status: string; cardSaved: boolean };
   const [agentKeys, setAgentKeys] = useState<AgentKeyRow[]>([]);
 
@@ -2003,11 +2005,33 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
       const j = await res.json();
       if (!res.ok || !j.buyerKey) { setGenErr(j.error || "request_failed"); return; }
       setAgentKey(j.buyerKey as string);
+      setCardErr(null);
       loadKeys();
     } catch {
       setGenErr("network_error");
     } finally {
       setGenBusy(false);
+    }
+  }
+
+  // Save a card for the just-issued key WITHOUT the /agent/fund detour: we still
+  // hold the plaintext bk_ (shown once), so we can open the hosted Stripe
+  // card-save directly. The card is then shared across the workspace's keys.
+  async function saveCardFor(bk: string) {
+    setCardErr(null);
+    setCardBusy(true);
+    try {
+      const res = await fetch("/api/lc/agent/setup-checkout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${bk}` },
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) { setCardErr(j.error || "card_setup_failed"); return; }
+      window.location.href = j.url as string;
+    } catch {
+      setCardErr("network_error");
+    } finally {
+      setCardBusy(false);
     }
   }
 
@@ -2090,8 +2114,11 @@ function PayTokenPane({ endpoints, tokens, jwtById, api, goTo, preselectEndpoint
             <code className="block font-mono text-[11px] text-[#1a0f00]/85 break-all bg-[#fafaf7] border border-[#1a0f00]/8 rounded p-2 select-all">{agentKey}</code>
             <div className="mt-2 flex items-center gap-4">
               <button type="button" onClick={() => navigator.clipboard?.writeText(agentKey)} className="text-[11px] font-semibold text-[#1a0f00] hover:underline">{t("common.copy")}</button>
-              <a href="/agent/fund" target="_blank" rel="noopener" className="text-[11px] font-semibold text-[#635BFF] hover:underline">{t("pt.agentSaveCard")}</a>
+              <button type="button" onClick={() => saveCardFor(agentKey)} disabled={cardBusy} className="text-[11px] font-semibold text-[#635BFF] hover:underline disabled:opacity-50">{cardBusy ? "Opening Stripe…" : t("pt.agentSaveCard")}</button>
+              <a href="/agent/fund" target="_blank" rel="noopener" className="text-[11px] font-semibold text-[#1a0f00]/45 hover:underline">{t("pt.agentSaveCard")} ↗</a>
             </div>
+            {cardErr && <p className="mt-1.5 text-[11px] text-[#DC2626]">{t("account.errorPrefix", { error: cardErr })}</p>}
+            <p className="mt-1.5 text-[10.5px] text-[#1a0f00]/45">One card per workspace — saving here covers your other endpoints for this seller too.</p>
           </div>
         )}
 
