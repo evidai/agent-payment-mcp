@@ -719,15 +719,15 @@ function AccountPane() {
   const [me, setMe] = useState<Me | null>(null);
   const [meLoaded, setMeLoaded] = useState(false);
   const loadMe = useCallback(() => {
-    fetch("/api/lc/me").then((r) => r.json()).then((d) => setMe(d.owner ?? null)).catch(() => setMe(null)).finally(() => setMeLoaded(true));
+    // owner id comes from the server (the lc_owner cookie is now httpOnly and
+    // not readable in JS); /api/lc/me resolves it from the cookie server-side.
+    fetch("/api/lc/me")
+      .then((r) => r.json())
+      .then((d) => { setMe(d.owner ?? null); setOwnerId(d.owner?.id ?? ""); })
+      .catch(() => setMe(null))
+      .finally(() => setMeLoaded(true));
   }, []);
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const m = document.cookie.match(/(?:^|;\s*)lc_owner=([^;]+)/);
-      setOwnerId(m ? decodeURIComponent(m[1]) : "");
-    }
-    loadMe();
-  }, [loadMe]);
+  useEffect(() => { loadMe(); }, [loadMe]);
 
   // ── Social sign-in: which provider buttons to show ──
   const [providers, setProviders] = useState<{ google: boolean; github: boolean } | null>(null);
@@ -769,8 +769,9 @@ function AccountPane() {
       setClaimBusy(false);
     }
   }
-  function signOut() {
-    document.cookie = "lc_owner=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+  async function signOut() {
+    // The cookie is httpOnly, so clear it server-side.
+    try { await fetch("/api/lc/auth/logout", { method: "POST" }); } catch { /* reload anyway */ }
     window.location.reload();
   }
 

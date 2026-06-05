@@ -71,7 +71,7 @@ export async function ensureOwnerId(): Promise<string> {
   if (!id) {
     id = `o_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
     c.set(OWNER_COOKIE, id, {
-      httpOnly: false,
+      httpOnly: true, // server-only; the client reads its owner id via /api/lc/me
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 365,

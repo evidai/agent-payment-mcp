@@ -75,7 +75,7 @@ export async function GET(req: Request, { params }: Ctx) {
   }
 
   c.set(OWNER_COOKIE, ownerId, {
-    httpOnly: false, // the dashboard reads this client-side (mirrors magic-link verify)
+    httpOnly: true, // server-only; the dashboard reads its owner id via /api/lc/me
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 365,
