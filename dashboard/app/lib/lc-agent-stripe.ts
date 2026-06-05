@@ -131,6 +131,7 @@ export async function storePaymentMethodForKey(
   if (si.status !== "succeeded" || !pm) return { ok: false, error: "setup_not_complete" };
 
   await sql()`update lc_buyer_keys set stripe_pm_id = ${pm} where id = ${keyId}`;
+  await propagateCardToSiblings(keyId);
   return { ok: true, paymentMethodId: pm };
 }
 
@@ -216,9 +217,33 @@ export async function finalizeCardFromSession(
         : null;
     if (!pm) return { ok: false, error: "no_payment_method" };
     await sql()`update lc_buyer_keys set stripe_pm_id = ${pm} where id = ${keyId}`;
+    await propagateCardToSiblings(keyId);
     return { ok: true, paymentMethodId: pm };
   } catch (err) {
     const e = err as StripeErr;
     return { ok: false, error: e?.message ?? "retrieve_failed" };
   }
+}
+
+/**
+ * Share a saved card across the workspace: copy this key's customer+PM onto every
+ * sibling Buyer Key for the SAME (wallet, seller) that doesn't have one yet. The
+ * card is a Customer+PM on the seller's connected account, so it's valid for all
+ * of that wallet's keys against that seller. Never overwrites an existing card.
+ * Result: the buyer enters a card ONCE, and every endpoint of that seller works.
+ */
+async function propagateCardToSiblings(keyId: string): Promise<void> {
+  await sql()`
+    update lc_buyer_keys sib
+       set stripe_customer_id = me.stripe_customer_id,
+           stripe_pm_id       = me.stripe_pm_id
+      from lc_buyer_keys me
+     where me.id = ${keyId}
+       and sib.wallet_id = me.wallet_id
+       and sib.seller_owner_id = me.seller_owner_id
+       and sib.id <> me.id
+       and me.stripe_customer_id is not null
+       and me.stripe_pm_id is not null
+       and (sib.stripe_pm_id is null or sib.stripe_customer_id is null)
+  `;
 }

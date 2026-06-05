@@ -444,6 +444,11 @@ function RealDashboard() {
       await fetch(`/api/lc/endpoints/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
       await refetchAll();
     },
+    updateEndpoint: async (id: string, patch: { name?: string; originalUrl?: string; upstreamAuth?: string; pricePerCall?: number; rateLimit?: number }) => {
+      const r = await fetch(`/api/lc/endpoints/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "update_failed");
+      await refetchAll();
+    },
     deleteEndpoint: async (id: string) => {
       await fetch(`/api/lc/endpoints/${id}`, { method: "DELETE" });
       await refetchAll();
@@ -516,6 +521,7 @@ function RealDashboard() {
 type Api = {
   createEndpoint: (i: { name: string; originalUrl: string; upstreamAuth?: string; pricePerCall: number; tokenBudget: number; rateLimit: number }) => Promise<Endpoint>;
   setStatus: (id: string, status: "live" | "paused") => Promise<void>;
+  updateEndpoint: (id: string, patch: { name?: string; originalUrl?: string; upstreamAuth?: string; pricePerCall?: number; rateLimit?: number }) => Promise<void>;
   deleteEndpoint: (id: string) => Promise<void>;
   issueToken: (i: { endpointId: string; budget: number; expiresInHours: number; maxCalls: number }) => Promise<{ token: PayToken; jwt: string }>;
   revokeToken: (id: string) => Promise<void>;
@@ -1656,6 +1662,7 @@ function ShareKit({ endpoint }: { endpoint: Endpoint }) {
 
 function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpoints: Endpoint[]; tokens: PayToken[]; runs: TestRun[]; api: Api; goTo: (p: Pane, opts?: { endpointId?: string }) => void; paymentsReady: boolean }) {
   const { t } = useT();
+  const [editingId, setEditingId] = useState<string | null>(null);
   if (endpoints.length === 0) {
     return (
       <>
@@ -1749,12 +1756,69 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
                 <div className="flex-1" />
                 <button type="button" onClick={() => goTo("paytoken", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{t("apis.issueTestToken")}</button>
                 <button type="button" onClick={() => goTo("test", { endpointId: e.id })} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{t("apis.testRequest")}</button>
+                <button type="button" onClick={() => setEditingId(editingId === e.id ? null : e.id)} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{editingId === e.id ? "Cancel" : "Edit"}</button>
               </div>
+              {editingId === e.id && <EndpointEditForm e={e} api={api} onClose={() => setEditingId(null)} />}
             </div>
           );
         })}
       </div>
     </>
+  );
+}
+
+/* Inline edit form — fix an endpoint in place (price, rate, URL, name, and the
+   upstream auth header) instead of delete-and-recreate. Editing upstream auth is
+   the big one: a typo there used to mean rebuilding the endpoint + its keys. */
+function EndpointEditForm({ e, api, onClose }: { e: Endpoint; api: Api; onClose: () => void }) {
+  const [name, setName] = useState(e.name);
+  const [originalUrl, setOriginalUrl] = useState(e.originalUrl);
+  const [price, setPrice] = useState(String(e.pricePerCall));
+  const [rate, setRate] = useState(String(e.rateLimit));
+  const [auth, setAuth] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  async function save() {
+    setBusy(true); setErr(null);
+    try {
+      const patch: { name?: string; originalUrl?: string; pricePerCall?: number; rateLimit?: number; upstreamAuth?: string } = {};
+      if (name.trim() && name.trim() !== e.name) patch.name = name.trim();
+      if (originalUrl.trim() && originalUrl.trim() !== e.originalUrl) patch.originalUrl = originalUrl.trim();
+      const p = Number(price); if (p > 0 && p !== e.pricePerCall) patch.pricePerCall = p;
+      const r = Math.floor(Number(rate)); if (r >= 1 && r !== e.rateLimit) patch.rateLimit = r;
+      if (auth.trim()) patch.upstreamAuth = auth.trim(); // blank = keep current secret
+      if (Object.keys(patch).length === 0) { onClose(); return; }
+      await api.updateEndpoint(e.id, patch);
+      setDone(true);
+      setTimeout(onClose, 600);
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "update_failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputCls = "w-full rounded-lg border border-[#1a0f00]/15 bg-white px-3 py-2 text-[12.5px] font-mono focus:outline-none focus:border-[#1a0f00]/40";
+  const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-1";
+  return (
+    <div className="mt-4 pt-4 border-t border-[#1a0f00]/8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="sm:col-span-2"><label className={labelCls}>Name</label><input className={inputCls} value={name} onChange={(ev) => setName(ev.target.value)} /></div>
+      <div className="sm:col-span-2"><label className={labelCls}>Origin API URL</label><input className={inputCls} value={originalUrl} onChange={(ev) => setOriginalUrl(ev.target.value)} placeholder="https://…" /></div>
+      <div><label className={labelCls}>Price / call (USD)</label><input className={inputCls} value={price} onChange={(ev) => setPrice(ev.target.value)} inputMode="decimal" /></div>
+      <div><label className={labelCls}>Rate limit (req/min)</label><input className={inputCls} value={rate} onChange={(ev) => setRate(ev.target.value)} inputMode="numeric" /></div>
+      <div className="sm:col-span-2">
+        <label className={labelCls}>Upstream auth header {e.upstreamAuth ? "(set — leave blank to keep)" : "(optional)"}</label>
+        <input className={inputCls} value={auth} onChange={(ev) => setAuth(ev.target.value)} placeholder="Authorization: Bearer sk-…" autoComplete="off" />
+        <p className="mt-1 text-[10.5px] text-[#1a0f00]/45">Paste the full header incl. <code className="font-mono">Authorization:</code>. Stored server-side, never shown to buyers.</p>
+      </div>
+      {err && <p className="sm:col-span-2 text-[11.5px] text-[#dc2626] font-semibold">⚠ {err}</p>}
+      <div className="sm:col-span-2 flex items-center gap-2">
+        <button type="button" disabled={busy} onClick={save} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90 disabled:opacity-50">{done ? "Saved ✓" : busy ? "Saving…" : "Save changes"}</button>
+        <button type="button" onClick={onClose} className="px-3 py-1.5 text-[12px] font-semibold text-[#1a0f00]/60 hover:text-[#1a0f00]">Cancel</button>
+      </div>
+    </div>
   );
 }
 
