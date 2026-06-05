@@ -17,7 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { backendEnvReady, sql, verifyPayToken, FREE_TIER_CALLS, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
+import { backendEnvReady, sql, verifyPayToken, FREE_TIER_CALLS, isGatewayHalted, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
 
 export const dynamic = "force-dynamic";
 // Pin gateway functions to Tokyo so they sit next to the Supabase DB
@@ -103,6 +103,10 @@ function paymentChallenge(req: Request, shortId: string, charge: number, code: s
 
 async function handle(req: Request, { params }: Ctx) {
   if (!backendEnvReady()) return jsonErr(req, 503, "backend_not_configured");
+
+  // Global kill switch — halt ALL charging/forwarding instantly (operator console
+  // or LC_KILL_SWITCH env). Returns 503 before any settlement or upstream call.
+  if (await isGatewayHalted()) return jsonErr(req, 503, "gateway_halted");
 
   const { shortId } = await params;
 

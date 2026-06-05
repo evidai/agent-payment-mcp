@@ -1,47 +1,46 @@
 /**
  * Admin auth guard for the operator console's cross-owner aggregate routes.
  *
- * Why this exists:
- *   The post-pivot /admin console needs to read across ALL owners' lc_*
- *   data (prepaid sales, per-provider rollups, recent activity). Those
- *   routes bypass the owner-cookie scoping that the public /api/lc/* routes
- *   use, so they MUST be gated to operators only.
+ * Auth model (Vercel/Supabase-native — no legacy Railway dependency):
+ *   The operator signs in like any owner (magic link / OAuth at /app), which
+ *   pins the httpOnly `lc_owner` cookie and records a verified email on
+ *   lc_owners. An owner is an ADMIN iff their verified email is in the
+ *   `ADMIN_EMAILS` env (comma-separated). The httpOnly cookie carries the
+ *   session — no Bearer token, no localStorage, nothing to steal via XSS, and
+ *   no probe to the old Express backend.
  *
- * Auth model:
- *   The browser holds an admin session token (localStorage.admin_token,
- *   issued by the Express backend's POST /api/auth/login → signAdminToken,
- *   signed with ADMIN_JWT_SECRET, iss "kyapay-admin", { role: "admin" }).
- *   It is sent as a Bearer header.
- *
- *   We validate it server-side by probing an admin-gated Express endpoint
- *   (GET /api/admin/stats), which runs the backend's verifyAdminToken()
- *   guard. A 2xx means the token is a valid admin token; anything else
- *   (401/403/network) means it is not. Express is the single source of
- *   truth for the admin secret, so the secret never has to be mirrored
- *   onto Vercel and the two can never drift out of sync.
- *
- *   NOTE: we deliberately do NOT use /api/auth/me — that endpoint verifies
- *   *buyer* tokens (verifyBuyerToken / JWT_SECRET) and never returns a
- *   `role`, so an admin token can never pass it. Validating against it was
- *   the reason the operator console always 401'd.
+ * Secure default: if ADMIN_EMAILS is unset/empty, NO ONE is admin.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+import { readOwnerId, sql } from "@/lib/lc-backend";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
 
-/** Returns true only when the request carries a valid admin Bearer token. */
-export async function requireAdmin(req: NextRequest): Promise<boolean> {
-  const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return false;
+/** True only for a signed-in owner whose verified email is in ADMIN_EMAILS. */
+export async function requireAdmin(_req?: NextRequest): Promise<boolean> {
+  const allow = adminEmails();
+  if (allow.length === 0) return false; // not configured → deny
+
   try {
-    const probe = await fetch(`${API_URL}/api/admin/stats`, {
-      headers: { Authorization: auth },
-      // never cache the auth probe
-      cache: "no-store",
-    });
-    return probe.ok;
+    const ownerId = await readOwnerId();
+    if (!ownerId) return false;
+    const rows = await sql()<{ email: string | null; email_verified_at: string | null }[]>`
+      select email, email_verified_at from lc_owners where id = ${ownerId} limit 1
+    `;
+    const o = rows[0];
+    return !!(o?.email && o.email_verified_at && allow.includes(o.email.toLowerCase()));
   } catch {
     return false;
   }
+}
+
+/** Convenience for client gating: does the current session belong to an admin? */
+export async function isAdminSession(): Promise<boolean> {
+  return requireAdmin();
 }

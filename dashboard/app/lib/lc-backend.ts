@@ -130,6 +130,49 @@ export function shortId(): string {
   return out.toLowerCase();
 }
 
+/* ──────────────── operator flags (runtime kill switch, etc.) ──────────────── */
+
+let _flagsReady = false;
+async function ensureFlags(): Promise<void> {
+  if (_flagsReady) return;
+  await sql()`create table if not exists lc_flags (
+    key        text primary key,
+    value      text not null,
+    updated_at timestamptz not null default now()
+  )`;
+  _flagsReady = true;
+}
+
+export async function getFlag(key: string): Promise<string | null> {
+  await ensureFlags();
+  const r = await sql()<{ value: string }[]>`select value from lc_flags where key = ${key} limit 1`;
+  return r[0]?.value ?? null;
+}
+
+export async function setFlag(key: string, value: string): Promise<void> {
+  await ensureFlags();
+  await sql()`
+    insert into lc_flags (key, value) values (${key}, ${value})
+    on conflict (key) do update set value = excluded.value, updated_at = now()
+  `;
+}
+
+/**
+ * Global kill switch for the LIVE money path. When on, the gateway refuses to
+ * forward/charge and minting refuses to fund — stopping ALL new charges at once.
+ * Two independent triggers: env `LC_KILL_SWITCH=1` (set+redeploy, always works
+ * even if the DB is unreachable) OR the runtime DB flag (instant, toggled from
+ * the admin console). Either being on halts the path.
+ */
+export async function isGatewayHalted(): Promise<boolean> {
+  if (process.env.LC_KILL_SWITCH === "1") return true;
+  try {
+    return (await getFlag("gateway_halted")) === "1";
+  } catch {
+    return false; // DB hiccup must not wedge the gateway; env trigger still applies
+  }
+}
+
 /* ──────────────── DB row types (matches schema.sql) ──────────────── */
 
 export type EndpointRow = {

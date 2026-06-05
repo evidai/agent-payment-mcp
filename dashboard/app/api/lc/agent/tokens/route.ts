@@ -9,7 +9,7 @@
  * Token. This is the `mintUrl` the gateway's x402 challenge advertises.
  */
 import { NextResponse } from "next/server";
-import { backendEnvReady } from "@/lib/lc-backend";
+import { backendEnvReady, isGatewayHalted } from "@/lib/lc-backend";
 import { ensureAgentSchema, authBuyerKey, mintViaWallet, tokenView, walletSummary } from "@/lib/lc-agent-wallet";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export const preferredRegion = "hnd1";
 
 export async function POST(req: Request) {
   if (!backendEnvReady()) return NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
+  if (await isGatewayHalted()) return NextResponse.json({ error: "gateway_halted" }, { status: 503 });
   await ensureAgentSchema();
 
   const auth = await authBuyerKey(req);
