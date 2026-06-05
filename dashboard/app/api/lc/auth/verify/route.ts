@@ -81,7 +81,7 @@ export async function GET(req: Request) {
   // 3. Pin the resolved owner ID to the browser cookie.
   const c = await cookies();
   c.set(OWNER_COOKIE, resolvedOwnerId, {
-    httpOnly: false,
+    httpOnly: true, // server-only; the dashboard reads its owner id via /api/lc/me
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 365,
