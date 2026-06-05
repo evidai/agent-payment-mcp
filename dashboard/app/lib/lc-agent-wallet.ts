@@ -237,6 +237,29 @@ export async function issueBuyerKey(args: {
       (${keyId}, ${keyHash}, ${prefix}, ${wallet.id}, ${workspaceId}, ${ep.id}, ${ep.owner_id}, ${label ?? null})
   `;
 
+  // Card inheritance — the buyer's saved card is a Customer+PM on the SELLER's
+  // connected account, so it's reusable across every key for the same
+  // (wallet, seller). Copy it onto the new key so a second endpoint from a
+  // seller you've already funded works immediately — no re-entering the card
+  // per key. (No-op when the wallet has no card yet for this seller.)
+  await sql()`
+    update lc_buyer_keys nk
+       set stripe_customer_id = src.stripe_customer_id,
+           stripe_pm_id       = src.stripe_pm_id
+      from (
+        select stripe_customer_id, stripe_pm_id
+          from lc_buyer_keys
+         where wallet_id = ${wallet.id}
+           and seller_owner_id = ${ep.owner_id}
+           and id <> ${keyId}
+           and stripe_customer_id is not null
+           and stripe_pm_id is not null
+         order by last_used_at desc nulls last, created_at desc
+         limit 1
+      ) src
+     where nk.id = ${keyId}
+  `;
+
   return {
     ok: true,
     key,
