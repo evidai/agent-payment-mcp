@@ -70,10 +70,10 @@ export function AdminShell({ title, subtitle, children }: AdminShellProps) {
     return pathname.startsWith(href);
   };
 
-  function logout() {
+  async function logout() {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("admin_token");
-    window.location.href = "/admin/login";
+    try { await fetch("/api/lc/auth/logout", { method: "POST" }); } catch {}
+    window.location.href = "/app";
   }
 
   const sidebar = (

@@ -5,10 +5,11 @@ import { useState, useEffect, useCallback } from "react";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
 // ── auth ────────────────────────────────────────────────────────────────────
-// すべての /api/admin/lc/* は Bearer (admin_token) で保護されている。
+// すべての /api/admin/lc/* は httpOnly の owner セッション Cookie で保護される
+// （admin = ADMIN_EMAILS に載った認証済みメールの owner）。Cookie は同一オリジン
+// fetch で自動送信されるので、明示ヘッダは不要。
 function authHeaders(): HeadersInit {
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -122,10 +123,11 @@ function useLcStats() {
 }
 
 // ── KillSwitchBanner ──────────────────────────────────────────────────────────
-// 緊急停止スイッチ。これは「m2m USDC 課金 (Permit / PermitCharge)」経路だけを
-// 止める。Stripe 前払いと Gateway 呼び出しには影響しないので、文言で明示する。
+// 緊急停止スイッチ。本番の課金経路（Vercel x402 Gateway + Stripe）を即時に全停止する。
+// halt 中は Gateway の課金/転送も、新規 Pay Token のmint(課金)も 503 で止まる。
 function KillSwitchBanner() {
   const [halted, setHalted]   = useState(false);
+  const [envForced, setEnvForced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState<{msg:string; type:"success"|"error"|"info"}|null>(null);
 
@@ -134,8 +136,9 @@ function KillSwitchBanner() {
       try {
         const r = await fetch("/api/admin/killswitch");
         if (!r.ok) return;
-        const d = (await r.json()) as { isHalted?: boolean };
-        if (typeof d.isHalted === "boolean") setHalted(d.isHalted);
+        const d = (await r.json()) as { halted?: boolean; envForced?: boolean };
+        if (typeof d.halted === "boolean") setHalted(d.halted);
+        if (typeof d.envForced === "boolean") setEnvForced(d.envForced);
       } catch { /* noop */ }
     })();
   }, []);
@@ -148,16 +151,12 @@ function KillSwitchBanner() {
   async function toggle() {
     if (loading) return;
     const desired = !halted;
-    if (desired && !confirm("m2m USDC 課金経路 (Permit / PermitCharge) を停止します。\nStripe 前払いと Gateway 呼び出しには影響しません。よろしいですか？")) return;
+    if (desired && !confirm("本番の課金経路（Gateway + Stripe）を全停止します。\n停止中はすべての有料コールと新規入金が 503 で止まります。よろしいですか？")) return;
     setLoading(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
       const r = await fetch("/api/admin/killswitch", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ halt: desired }),
       });
       if (!r.ok) {
@@ -165,9 +164,9 @@ function KillSwitchBanner() {
         showToast(e.error ?? `操作失敗 (${r.status})`, "error");
         return;
       }
-      const d = (await r.json()) as { isHalted?: boolean };
-      setHalted(d.isHalted ?? desired);
-      showToast(d.isHalted ? "m2m 課金を停止しました" : "m2m 課金を再開しました");
+      const d = (await r.json()) as { halted?: boolean };
+      setHalted(d.halted ?? desired);
+      showToast((d.halted ?? desired) ? "課金を全停止しました" : "課金を再開しました");
     } catch {
       showToast("ネットワークエラー", "error");
     } finally {
@@ -182,12 +181,13 @@ function KillSwitchBanner() {
           <span className={`flex-shrink-0 w-2 h-2 rounded-full ${halted ? "bg-red-500 animate-pulse" : "bg-emerald-400"}`}/>
           <div className="min-w-0">
             <p className="text-xs font-bold text-gray-900">
-              {halted ? "🚨 緊急停止中 — m2m USDC 課金 (Permit) を全件拒否中" : "m2m 課金経路 稼働中"}
+              {halted ? "🚨 緊急停止中 — 本番の課金 (Gateway + Stripe) を全件 503 で拒否中" : "課金経路 稼働中 (Gateway + Stripe)"}
             </p>
             <p className="text-[10px] text-gray-500 hidden sm:block">
               {halted
-                ? "「再開」で Permit 課金が再び通る。Stripe 前払い・Gateway は影響なし"
-                : "緊急時は m2m USDC 課金 (Permit) を即時停止。Stripe 前払い・Gateway は止まりません"}
+                ? "「再開」で課金が再び通る。停止中は有料コールも新規入金も止まる"
+                : "緊急時は本番の課金経路を即時に全停止（有料コール・新規入金とも 503）"}
+              {envForced && "　・env LC_KILL_SWITCH=1 で強制停止中（ボタンでは解除不可）"}
             </p>
           </div>
         </div>
@@ -663,14 +663,16 @@ export default function AdminRoot() {
   const [clock, setClock] = useState("--:--:--");
   const [, setAuthReady] = useState(false);
 
-  // 認証チェック: localStorage からトークン取得、なければログインへ
+  // 認証チェック: httpOnly owner Cookie のセッションで判定。admin 用エンドポイントを
+  // 1回叩いて 200 なら admin、401 ならログインへ（Cookie は自動送信される）。
   useEffect(() => {
-    const stored = localStorage.getItem("admin_token");
-    if (!stored) {
-      window.location.href = "/admin/login";
-      return;
-    }
-    setAuthReady(true);
+    (async () => {
+      try {
+        const r = await fetch("/api/admin/lc/stats", { cache: "no-store" });
+        if (r.status === 401) { window.location.href = "/admin/login"; return; }
+      } catch { /* network: fall through, page will show its own error */ }
+      setAuthReady(true);
+    })();
   }, []);
 
   useEffect(() => {
@@ -744,7 +746,7 @@ export default function AdminRoot() {
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <span className="font-mono text-xs text-gray-400 tabular-nums hidden sm:inline">{clock}</span>
             <button
-              onClick={() => { localStorage.removeItem("admin_token"); window.location.href = "/admin/login"; }}
+              onClick={async () => { try { await fetch("/api/lc/auth/logout", { method: "POST" }); } catch {} window.location.href = "/app"; }}
               className="px-2 sm:px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
             >
               ログアウト
