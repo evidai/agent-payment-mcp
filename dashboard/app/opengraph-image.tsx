@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
 // LinkedIn-optimised OG image (1200×630). Designed to convey the value
-// prop in 1 second of glance: drop-in USDC billing, 8 free demos, the
-// Stripe comparison, and a Glama playground CTA.
+// prop in 1 second of glance: x402-style agent payments, card-funded
+// Pay Tokens, 8 free demos, and a Glama playground CTA.
 
 export const runtime    = "edge";
-export const alt        = "agent-payment-mcp — Drop-in USDC billing for any API. 8 free demos, no signup.";
+export const alt        = "agent-payment-mcp — Pay-per-call APIs for AI agents. Card-funded Pay Tokens, no crypto.";
 export const size       = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default async function OG() {
             <div style={{ fontSize: 52, display: "flex" }}>🍋</div>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -1, color: "#1a0f00", display: "flex" }}>LemonCake</div>
-              <div style={{ fontSize: 14, color: "rgba(26,15,0,0.6)", fontFamily: "ui-monospace, monospace", letterSpacing: 1, marginTop: 2, display: "flex" }}>agent-payment-mcp v0.9.2</div>
+              <div style={{ fontSize: 14, color: "rgba(26,15,0,0.6)", fontFamily: "ui-monospace, monospace", letterSpacing: 0, marginTop: 2, display: "flex" }}>agent-payment-mcp</div>
             </div>
           </div>
 
@@ -53,7 +53,7 @@ export default async function OG() {
             color:         "#1a0f00",
           }}
         >
-          Stripe for AI agents.
+          Paid APIs for AI agents.
         </div>
         <div
           style={{
@@ -66,16 +66,16 @@ export default async function OG() {
             color:         "rgba(26,15,0,0.45)",
           }}
         >
-          $0.001/call. No signup.
+          Spend-capped. No crypto.
         </div>
 
         {/* ── 4-pillar value props ── */}
         <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
           {[
-            { big: "60×",      sub: "cheaper than Stripe" },
-            { big: "2 sec",    sub: "settlement (Base L2)" },
+            { big: "x402",     sub: "402 challenge flow" },
+            { big: "Stripe",   sub: "card-funded tokens" },
             { big: "8 demos",  sub: "free, no API key" },
-            { big: "90 days",  sub: "one signature" },
+            { big: "3%",       sub: "after 3,000 calls" },
           ].map((p) => (
             <div
               key={p.big}

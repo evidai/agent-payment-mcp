@@ -277,24 +277,24 @@ export default function Page() {
 function Shell({ children }: { children: ReactNode }) {
   const { t } = useT();
   return (
-    <div className="min-h-screen bg-[#fafaf7] text-[#1a0f00] font-sans antialiased">
-      <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/about/en" className="flex items-center gap-2.5">
+    <div className="min-h-screen bg-[#f6f7f9] text-[#1a0f00] font-sans antialiased">
+      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-[#1a0f00]/8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <Link href="/about/en" className="flex items-center gap-2.5 min-w-0">
             <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
-            <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
-            <span className="ml-2 px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
+            <span className="text-[14px] font-bold tracking-tight truncate">LemonCake</span>
+            <span className="hidden md:inline-flex ml-2 px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
           </Link>
-          <div className="flex items-center gap-5 text-[13px]">
-            <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
-            <Link href="/docs/pay-token" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors inline-flex items-center gap-1">
+          <div className="flex items-center justify-end gap-3 sm:gap-5 text-[13px] min-w-0">
+            <Link href="/docs" className="hidden sm:inline text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
+            <Link href="/docs/pay-token" className="hidden sm:inline-flex text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors items-center gap-1">
               <Icon.External className="w-3.5 h-3.5" /> {t("header.apiRef")}
             </Link>
             <LanguageSelector />
           </div>
         </div>
       </header>
-      <div className="max-w-[1400px] mx-auto px-6 py-8">{children}</div>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">{children}</div>
     </div>
   );
 }
@@ -493,12 +493,19 @@ function RealDashboard() {
     <div>
       <Header />
 
-      <div className="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[228px_1fr] gap-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 grid grid-cols-1 md:grid-cols-[228px_1fr] gap-6 md:gap-8">
         <Sidebar activePane={activePane} counts={counts} onSelect={(p) => goTo(p)} />
 
         <main className="min-w-0">
           {!loaded ? <p className="text-[12px] text-[#1a0f00]/40 py-12 text-center">Loading workspace…</p> : (
             <>
+              <LaunchChecklist
+                endpoints={endpoints}
+                tokens={tokens}
+                paymentsReady={paymentsReady}
+                activePane={activePane}
+                goTo={goTo}
+              />
               {activePane === "add"      && <AddPane endpoints={endpoints} goTo={goTo} api={api} paymentsReady={paymentsReady} />}
               {activePane === "apis"     && <ApisPane endpoints={endpoints} tokens={tokens} runs={runs} api={api} goTo={goTo} paymentsReady={paymentsReady} />}
               {activePane === "buylinks" && <BuyLinksPane endpoints={endpoints} tokens={tokens} goTo={goTo} paymentsReady={paymentsReady} />}
@@ -513,6 +520,94 @@ function RealDashboard() {
         </main>
       </div>
     </div>
+  );
+}
+
+function LaunchChecklist({
+  endpoints,
+  tokens,
+  paymentsReady,
+  activePane,
+  goTo,
+}: {
+  endpoints: Endpoint[];
+  tokens: PayToken[];
+  paymentsReady: boolean;
+  activePane: Pane;
+  goTo: (p: Pane, opts?: { endpointId?: string }) => void;
+}) {
+  const { t } = useT();
+  const firstEndpoint = endpoints[0];
+  const hasEndpoint = endpoints.length > 0;
+  const hasToken = tokens.some((tok) => tok.status === "active");
+  const steps = [
+    {
+      n: "1",
+      title: t("quick.step1.title"),
+      body: t("quick.step1.body"),
+      done: hasEndpoint,
+      pane: "add" as Pane,
+      action: hasEndpoint ? t("quick.step1.done") : t("quick.step1.action"),
+    },
+    {
+      n: "2",
+      title: t("quick.step2.title"),
+      body: t("quick.step2.body"),
+      done: paymentsReady,
+      pane: "account" as Pane,
+      action: paymentsReady ? t("quick.step2.done") : t("quick.step2.action"),
+    },
+    {
+      n: "3",
+      title: t("quick.step3.title"),
+      body: t("quick.step3.body"),
+      done: hasToken,
+      pane: "buylinks" as Pane,
+      action: hasToken ? t("quick.step3.done") : t("quick.step3.action"),
+    },
+  ];
+
+  return (
+    <section className="mb-6 rounded-lg bg-white border border-[#1a0f00]/10 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#1a0f00]/8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/40 mb-1">{t("quick.eyebrow")}</p>
+          <h1 className="text-[22px] md:text-[26px] font-black tracking-tight leading-tight">{t("quick.title")}</h1>
+          <p className="mt-1 text-[12.5px] text-[#1a0f00]/55 leading-relaxed max-w-2xl">{t("quick.subtitle")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => goTo(hasEndpoint ? "buylinks" : "add", firstEndpoint ? { endpointId: firstEndpoint.id } : undefined)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a0f00] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#1a0f00]/90 transition-colors"
+        >
+          {hasEndpoint ? t("quick.primaryShare") : t("quick.primaryCreate")} <Icon.External className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#1a0f00]/8">
+        {steps.map((step) => {
+          const active = activePane === step.pane;
+          return (
+            <button
+              key={step.n}
+              type="button"
+              onClick={() => goTo(step.pane, firstEndpoint ? { endpointId: firstEndpoint.id } : undefined)}
+              className={`text-left p-4 transition-colors ${active ? "bg-[#fffd43]/16" : "hover:bg-[#1a0f00]/[0.025]"}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-black ${step.done ? "bg-[#16A34A] text-white" : active ? "bg-[#1a0f00] text-[#fffd43]" : "bg-[#1a0f00]/8 text-[#1a0f00]/65"}`}>
+                  {step.done ? "✓" : step.n}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-bold text-[#1a0f00]">{step.title}</span>
+                  <span className="mt-1 block text-[11.5px] leading-relaxed text-[#1a0f00]/55">{step.body}</span>
+                  <span className={`mt-2 inline-flex text-[11px] font-semibold ${step.done ? "text-[#16A34A]" : "text-[#1a0f00]/70"}`}>{step.action}</span>
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -532,18 +627,18 @@ type Api = {
 function Header() {
   const { t } = useT();
   return (
-    <header className="sticky top-0 z-20 bg-[#fafaf7]/95 backdrop-blur-md border-b border-[#1a0f00]/8">
-      <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-[#1a0f00]/8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link href="/about/en" className="flex items-center gap-2.5">
             <img src="/logo.png" alt="LemonCake" className="w-7 h-7 rounded-md object-cover" />
             <span className="text-[14px] font-bold tracking-tight">LemonCake</span>
           </Link>
-          <span className="px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
+          <span className="hidden md:inline-flex px-2.5 py-1 bg-[#1a0f00]/6 text-[#1a0f00]/65 rounded-full text-[9.5px] font-bold uppercase tracking-widest">{t("header.privateBeta")}</span>
         </div>
-        <div className="flex items-center gap-5 text-[13px]">
-          <Link href="/docs" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
-          <Link href="/docs/pay-token" className="text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors inline-flex items-center gap-1">
+        <div className="flex items-center justify-end gap-3 sm:gap-5 text-[13px]">
+          <Link href="/docs" className="hidden sm:inline text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors">{t("header.docs")}</Link>
+          <Link href="/docs/pay-token" className="hidden sm:inline-flex text-[#1a0f00]/60 hover:text-[#1a0f00] transition-colors items-center gap-1">
             <Icon.External className="w-3.5 h-3.5" /> {t("header.apiRef")}
           </Link>
         </div>
@@ -568,11 +663,11 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
               const badge = counts[item.pane];
               return (
                 <li key={item.labelKey}>
-                  <button type="button" onClick={() => onSelect(item.pane)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${isActive ? "bg-[#fffd43] text-[#1a0f00] font-semibold" : "text-[#1a0f00]/65 hover:bg-[#1a0f00]/4 hover:text-[#1a0f00]"}`}>
+                  <button type="button" onClick={() => onSelect(item.pane)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${isActive ? "bg-white text-[#1a0f00] font-semibold shadow-sm ring-1 ring-[#1a0f00]/10" : "text-[#1a0f00]/58 hover:bg-white/70 hover:text-[#1a0f00]"}`}>
                     <Ico className="w-4 h-4 flex-shrink-0" />
                     <span className="flex-1 text-left">{t(item.labelKey)}</span>
                     {badge !== null && badge > 0 && (
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isActive ? "bg-[#1a0f00]/15 text-[#1a0f00]" : "bg-[#1a0f00]/8 text-[#1a0f00]/60"}`}>{badge}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isActive ? "bg-[#fffd43] text-[#1a0f00]" : "bg-[#1a0f00]/8 text-[#1a0f00]/60"}`}>{badge}</span>
                     )}
                   </button>
                 </li>
@@ -582,7 +677,7 @@ function Sidebar({ activePane, counts, onSelect }: { activePane: Pane; counts: R
         </div>
       ))}
 
-      <div className="rounded-xl bg-[#1a0f00]/3 border border-[#1a0f00]/8 p-3">
+      <div className="rounded-lg bg-white border border-[#1a0f00]/8 p-3 shadow-sm">
         <div className="flex items-baseline justify-between mb-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("launch.plan")}</p>
           <p className="text-[11px] font-bold text-[#1a0f00]/80"><span className="font-mono">$0</span>{t("launch.perMonth")}</p>
@@ -1110,23 +1205,24 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
         subtitle={t("add.subtitle")}
       />
 
-      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {(["add.chipMetering", "add.chipPayTokens", "add.chipLedger", "add.chipAccess", "add.chipCheckout"] as const).map((key) => (
-          <span key={key} className="inline-flex items-center gap-1.5 text-[11.5px] text-[#1a0f00]/75">
-            <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#16A34A]/15 text-[#16A34A] text-[9px] font-black">✓</span>
-            {t(key)}
-          </span>
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {([
+          ["1", "add.simpleStepUrl"],
+          ["2", "add.simpleStepPrice"],
+          ["3", "add.simpleStepShare"],
+        ] as const).map(([n, key]) => (
+          <div key={key} className="rounded-lg bg-white border border-[#1a0f00]/8 px-3 py-2 flex items-center gap-2 shadow-sm">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#fffd43] text-[10px] font-black text-[#1a0f00]">{n}</span>
+            <span className="text-[12px] font-semibold text-[#1a0f00]/75">{t(key)}</span>
+          </div>
         ))}
       </div>
-      <p className="mb-6 text-[10.5px] text-[#1a0f00]/45 leading-snug">
-        {t("add.intro")}
-      </p>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5">
-        <div className="rounded-2xl bg-white border border-[#1a0f00]/10 p-6">
+        <div className="rounded-lg bg-white border border-[#1a0f00]/10 p-5 shadow-sm">
           <div className="space-y-5">
             <Field label={t("add.fieldName")}>
-              <input type="text" value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder={t("add.phName")} className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
+              <input type="text" value={apiName} onChange={(e) => setApiName(e.target.value)} placeholder={t("add.phName")} className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-lg text-[13.5px] focus:outline-none focus:border-[#1a0f00]/55 transition-colors" />
             </Field>
             <Field label={t("add.fieldUrl")}>
               <div className="flex items-stretch gap-2">
@@ -1135,13 +1231,13 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
                   value={apiUrl}
                   onChange={(e) => { setApiUrl(e.target.value); setVerify(null); }}
                   placeholder="https://api.example.com/search"
-                  className="flex-1 min-w-0 px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-lg text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={verifyUrl}
                   disabled={verify?.kind === "loading"}
-                  className="flex-shrink-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-xl text-[12px] font-semibold text-[#1a0f00]/75 hover:bg-[#1a0f00]/[0.03] hover:text-[#1a0f00] transition-colors disabled:opacity-60"
+                  className="flex-shrink-0 px-3 py-2 bg-white border border-[#1a0f00]/15 rounded-lg text-[12px] font-semibold text-[#1a0f00]/75 hover:bg-[#1a0f00]/[0.03] hover:text-[#1a0f00] transition-colors disabled:opacity-60"
                 >
                   {verify?.kind === "loading" ? "…" : t("add.verify")}
                 </button>
@@ -1182,7 +1278,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
               <Field label={t("add.fieldBudget")} hintBelow={t("add.fieldBudgetHint")}><DollarInput value={tokenBudget} onChange={setTokenBudget} step="0.50" /></Field>
             </div>
             <Field label={t("add.fieldRate")} hintBelow={t("add.fieldRateHint")}>
-              <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-xl focus-within:border-[#1a0f00]/55 transition-colors">
+              <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-lg focus-within:border-[#1a0f00]/55 transition-colors">
                 <input
                   type="number" step="10" min="1" value={rateLimit}
                   onChange={(e) => setRateLimit(e.target.value)}
@@ -1201,7 +1297,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
                 value={upstreamAuth}
                 onChange={(e) => setUpstreamAuth(e.target.value)}
                 placeholder="Authorization: Bearer sk-..."
-                className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-xl text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#1a0f00]/15 rounded-lg text-[13.5px] font-mono focus:outline-none focus:border-[#1a0f00]/55 transition-colors"
               />
             </Field>
           </div>
@@ -1214,7 +1310,7 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
             disabled={ctaDisabled}
             className={`mt-6 w-full inline-flex items-center justify-center gap-2 py-3 font-bold text-[14px] rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
               ctaState === "ready"
-                ? "bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] shadow-[0_1px_0_rgba(26,15,0,0.15)]"
+              ? "bg-[#fffd43] hover:bg-[#fff070] text-[#1a0f00] shadow-[0_1px_0_rgba(26,15,0,0.15)]"
                 : ctaState === "needs_verify"
                   ? "bg-[#1a0f00] hover:bg-[#1a0f00]/90 text-white"
                   : "bg-[#1a0f00]/8 text-[#1a0f00]/55"
@@ -1272,7 +1368,7 @@ function PreviewPanel({
 }) {
   const { t } = useT();
   return (
-    <aside className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5 lg:sticky lg:top-20 self-start">
+    <aside className="rounded-lg bg-white border border-[#1a0f00]/10 p-5 lg:sticky lg:top-20 self-start shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/55">{t("preview.title")}</p>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]"><span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> {t("preview.ready")}</span>
@@ -1280,7 +1376,7 @@ function PreviewPanel({
 
       {/* Step 1 — Gateway endpoint */}
       <PreviewStep n={1} title={t("preview.step1")}>
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-[#1a0f00]/12 bg-[#fffd43]/12 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#1a0f00]/12 bg-[#fffd43]/12 px-3 py-2.5">
           <code className="font-mono text-[11.5px] text-[#1a0f00] break-all truncate">{previewUrl}</code>
           <button type="button" onClick={() => navigator.clipboard?.writeText(previewUrl)} className="flex-shrink-0 p-1 rounded hover:bg-[#1a0f00]/8 transition-colors text-[#1a0f00]/55" aria-label={t("apis.copyGatewayTitle")}>
             <Icon.Copy className="w-3.5 h-3.5" />
@@ -1293,7 +1389,7 @@ function PreviewPanel({
 
       {/* Step 2 — Pay Token rules */}
       <PreviewStep n={2} title={t("preview.step2")}>
-        <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
+        <div className="rounded-lg bg-[#f6f7f9] border border-[#1a0f00]/8 p-3 space-y-1">
           <RevRow k={t("preview.maxSpend")} v={fmtUsd(tokenBudget)} />
           <RevRow k={t("preview.rateLimit")} v={t("test.rateLimitFmt", { n: rateLimit })} />
           <RevRow k={t("preview.perCallPrice")} v={fmtUsd(pricePerCall)} />
@@ -1310,7 +1406,7 @@ function PreviewPanel({
           curl -X POST {previewUrl} \<br />
           &nbsp;&nbsp;-H &quot;Authorization: Bearer &lt;PAY_TOKEN&gt;&quot;
         </div>
-        <div className="mt-2 rounded-xl bg-[#16A34A]/8 border border-[#16A34A]/25 p-3 space-y-1 font-mono text-[11px]">
+        <div className="mt-2 rounded-lg bg-[#16A34A]/8 border border-[#16A34A]/25 p-3 space-y-1 font-mono text-[11px]">
           <RevRow k="HTTP" v="200 OK" highlight />
           <RevRow k="x-lemoncake-charge" v={fmtUsd(pricePerCall)} />
           <RevRow k={t("preview.remainingBudget")} v={fmtUsd(Math.max(0, tokenBudget - pricePerCall))} muted />
@@ -1333,7 +1429,7 @@ function PreviewPanel({
             <Icon.ChevDn className="w-3 h-3 text-[#1a0f00]/45 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
-        <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-3 space-y-1">
+        <div className="rounded-lg bg-[#f6f7f9] border border-[#1a0f00]/8 p-3 space-y-1">
           <RevRow k={t("preview.gross")} v={fmtUsd(estRev)} />
           <RevRow k={t("preview.feeRow")} v={`-${fmtUsd(estFee)}`} muted />
           <div className="h-px bg-[#1a0f00]/8 my-1" />
@@ -2655,7 +2751,7 @@ function Field({ label, hint, hintBelow, children }: { label: string; hint?: str
 }
 function DollarInput({ value, onChange, step }: { value: string; onChange: (v: string) => void; step?: string }) {
   return (
-    <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-xl focus-within:border-[#1a0f00]/55 transition-colors">
+    <div className="flex items-center bg-white border border-[#1a0f00]/15 rounded-lg focus-within:border-[#1a0f00]/55 transition-colors">
       <span className="pl-3.5 text-[#1a0f00]/40 text-[13.5px]">$</span>
       <input type="number" step={step ?? "0.01"} min="0" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-2 py-2.5 bg-transparent text-[13.5px] focus:outline-none" />
     </div>
@@ -2664,7 +2760,7 @@ function DollarInput({ value, onChange, step }: { value: string; onChange: (v: s
 function Select({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: ReactNode }) {
   return (
     <div className="relative">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full appearance-none px-3.5 py-2.5 pr-9 bg-white border border-[#1a0f00]/15 rounded-xl text-[13px] focus:outline-none focus:border-[#1a0f00]/55">{children}</select>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full appearance-none px-3.5 py-2.5 pr-9 bg-white border border-[#1a0f00]/15 rounded-lg text-[13px] focus:outline-none focus:border-[#1a0f00]/55">{children}</select>
       <Icon.ChevDn className="w-4 h-4 text-[#1a0f00]/45 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
     </div>
   );
@@ -2673,7 +2769,7 @@ function UrlBox({ label, url, tint, hint }: { label: string; url: string; tint?:
   return (
     <div>
       <p className="text-[11.5px] font-semibold text-[#1a0f00]/75 mb-1.5">{label}</p>
-      <div className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 ${tint ? "bg-[#fffd43]/12 border-[#1a0f00]/12" : "bg-[#fafaf7] border-[#1a0f00]/12"}`}>
+      <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 ${tint ? "bg-[#fffd43]/12 border-[#1a0f00]/12" : "bg-[#f6f7f9] border-[#1a0f00]/12"}`}>
         <code className="font-mono text-[11.5px] text-[#1a0f00] break-all truncate">{url || "—"}</code>
         <button type="button" onClick={() => navigator.clipboard?.writeText(url)} className="flex-shrink-0 p-1 rounded hover:bg-[#1a0f00]/8 transition-colors text-[#1a0f00]/55" aria-label={`Copy ${label}`}><Icon.Copy className="w-3.5 h-3.5" /></button>
       </div>

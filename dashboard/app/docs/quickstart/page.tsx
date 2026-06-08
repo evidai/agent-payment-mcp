@@ -61,7 +61,7 @@ server.tool(
         {/* ── Run in demo ── */}
         <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">3 · Run it</h2>
         <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`$ node server.js
-[lemoncake] demo mode — charges logged to stderr, no real USDC
+[lemoncake] demo mode — charges logged to stderr, no real funds move
 [lemoncake]   search       $0.02
 [lemoncake]   summarize    $0.05
 [lemoncake]   → set LEMONCAKE_SELLER_KEY to go live`}</pre>
@@ -80,7 +80,7 @@ server.tool(
           <li>Export the key as an env var:
             <pre className="bg-gray-950 text-gray-300 rounded-xl p-3 text-xs mt-2 leading-relaxed">{`export LEMONCAKE_SELLER_KEY="lc_seller_..."`}</pre>
           </li>
-          <li>Restart your server. The SDK auto-detects the key and switches to live mode. Real charges, paid out as USDC on Base.</li>
+          <li>Restart your server. The SDK auto-detects the key and switches to live mode. Real charges are handled through LemonCake&apos;s Stripe-backed gateway.</li>
         </ol>
 
         {/* ── Complete example ── */}
@@ -102,7 +102,7 @@ npm install && npm start
         </p>
         <pre className="bg-gray-950 text-gray-300 rounded-xl p-4 text-xs overflow-x-auto leading-relaxed">{`import { paymentMiddleware } from "@lemon-cake/x402-server";
 
-app.use("/api/search", paymentMiddleware({ pricePerCallUsdc: 0.02 }));
+app.use("/api/search", paymentMiddleware({ pricePerCallUsd: 0.02 }));
 app.get("/api/search", async (req, res) => {
   return res.json(await myActualSearch(req.query.q));
 });`}</pre>
@@ -116,7 +116,7 @@ app.get("/api/search", async (req, res) => {
         <h2 className="text-xl font-bold mt-10 mb-3 text-gray-900">What to read next</h2>
         <ul className="text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-2">
           <li><Link href="/pricing" className="text-amber-700 underline-offset-2 hover:underline">Pricing</Link> — free tier limits, Pro tier rates, Enterprise terms</li>
-          <li><Link href="/docs/permit" className="text-amber-700 underline-offset-2 hover:underline">ERC-2612 permit primer</Link> — how the on-chain hard cap actually works (only matters if you care)</li>
+          <li><Link href="/docs/pay-token" className="text-amber-700 underline-offset-2 hover:underline">Pay Token guide</Link> — how spend-capped agent credentials work</li>
           <li><Link href="/docs/x402-hybrid" className="text-amber-700 underline-offset-2 hover:underline">x402 hybrid mode</Link> — auto-listing on Coinbase Bazaar + AgentCore directories</li>
           <li><Link href="/docs/migrate-from-coinbase" className="text-amber-700 underline-offset-2 hover:underline">Migrating from Coinbase x402</Link> — drop-in middleware swap</li>
           <li><Link href="/docs/migrate-from-stripe-mpp" className="text-amber-700 underline-offset-2 hover:underline">Coexisting with Stripe MPP</Link> — when to route which way</li>

@@ -5,7 +5,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — Let your AI agent pay for any API (x402 payment rail)",
-  description: "x402 payment rail for AI agents: give your agent a spend-capped prepaid wallet and it pays for any paid API on its own — no account, no per-call key. First 3,000 calls free, then 3%. Custody-free (Stripe Connect Direct Charge). Open core, MIT SDK.",
+  description: "x402 payment rail for AI agents: give your agent a spend-capped Pay Token and it pays for any paid API on its own — no crypto wallet, no per-call key. First 3,000 calls free, then 3%. Custody-free (Stripe Connect Direct Charge). Open core, MIT SDK.",
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -16,7 +16,7 @@ export const metadata = {
   },
   openGraph: {
     title: "LemonCake — Let your AI agent pay for any API",
-    description: "x402 payment rail for AI agents. Spend-capped prepaid wallet, no account, no per-call key. First 3,000 calls free, then 3%.",
+    description: "x402 payment rail for AI agents. Spend-capped Pay Tokens, no crypto wallet, no per-call key. First 3,000 calls free, then 3%.",
     url: "https://lemoncake.xyz/about/en",
     type: "article",
   },
@@ -72,7 +72,7 @@ const faqJsonLd = {
       name: "Do my buyers need a crypto wallet?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "No. We embed a wallet at signup. Buyers sign in with email and never touch the underlying mechanics. Settlement uses USDC under the hood, but neither you nor your buyers have to learn crypto to use LemonCake.",
+        text: "No. Buyers pay with a card through Stripe and receive a spend-capped Pay Token. There is no blockchain wallet, no seed phrase, and no crypto onboarding for either side.",
       },
     },
     {
@@ -88,7 +88,7 @@ const faqJsonLd = {
       name: "Does LemonCake work with MCP servers?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes — it's drop-in middleware for any MCP server, and works with any MCP SDK. Servers are auto-listed on Bazaar, Glama, Smithery, mcp.so, and the Claude Code Plugins Directory. It also works in countries where Stripe Connect doesn't, such as Japan, Indonesia, and Argentina.",
+        text: "Yes — it is drop-in middleware for any MCP server and works with any MCP SDK. The buyer-side MCP also ships free demo tools, so agents can try the payment flow before sellers connect a real API.",
       },
     },
   ],
@@ -144,13 +144,12 @@ export default function AboutPageEn() {
       {/* ── Hero ── */}
       {/*
        * Repositioned 2026-05-27 from crypto-first to developer-billing-first.
-       * The previous hero ("Per-call USDC for AI agents · On Base · ERC-2612")
-       * tested poorly: 624 npm DL → 0 buyers, 1,271 DL → 3 site visits. The
-       * crypto framing scared away the actual ICP (MCP server devs who want
-       * monetization but don't want to learn Base / permits to install).
-       * USDC and non-custodial stay in /docs and /pricing comparison — they're
-       * differentiators once a dev decides to evaluate, but not what makes
-       * them click.
+       * The previous hero led with on-chain settlement details and tested
+       * poorly: 624 npm DL → 0 buyers, 1,271 DL → 3 site visits. The
+       * crypto framing scared away the actual ICP: MCP server devs who want
+       * monetization without learning payment rails before they install.
+       * Payment architecture details belong deeper in docs, after a developer
+       * decides LemonCake is worth evaluating.
        */}
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
@@ -296,7 +295,7 @@ export default function AboutPageEn() {
         </div>
 
         <p className="mt-10 text-center text-[12px] text-white/40 max-w-xl mx-auto leading-relaxed">
-          You change one URL. We do gateway routing, Pay Token verification, rate limiting, usage metering, and settle the 97% to your wallet.
+          You change one URL. We do gateway routing, Pay Token verification, rate limiting, usage metering, and Stripe-backed seller payouts.
         </p>
       </section>
 
@@ -304,7 +303,7 @@ export default function AboutPageEn() {
       {/*
        * 6-card benefits grid replacing the old crypto-feature-set. Each card is
        * a concrete dev pain ("API key management gone") rather than a crypto
-       * primitive ("ERC-2612 permit"). Order matters: lead with the most
+       * primitive ("payment rail internals"). Order matters: lead with the most
        * universal pain (usage billing), end with the MCP-specific differentiator.
        */}
       <section id="why-developers" className="max-w-6xl mx-auto px-6 py-24">
@@ -321,8 +320,8 @@ export default function AboutPageEn() {
             { t: "Usage-based billing", d: "Charge per tool call, per token, per outcome. Sub-cent micro-payments work natively — no minimum transaction size, no Stripe-style $0.30 floor." },
             { t: "AI agent payments",   d: "Agents pay your endpoint directly with one-time spend caps. No human in the loop, no API-key sharing, no \"reset my credentials\" support tickets." },
             { t: "No API-key management", d: "Stop issuing, rotating, and revoking keys. Buyers authenticate once at install time; you never touch their secrets." },
-            { t: "Global by default",   d: "Works in countries where Stripe Connect doesn't. Japan, Indonesia, Argentina — supported on day one." },
-            { t: "Embedded wallet",     d: "Your buyers don't need a crypto wallet. We embed one at signup; they sign in with email and forget the underlying mechanics." },
+            { t: "Stripe-backed payout", d: "Buyers fund Pay Tokens by card. Sellers receive payouts through Stripe Connect Direct Charge; LemonCake never pools customer funds." },
+            { t: "No crypto onboarding", d: "Your buyers don't need a blockchain wallet, seed phrase, or exchange account. They pay by card and hand agents scoped Pay Tokens." },
             { t: "MCP-native",          d: "Drop-in middleware for any MCP server. Auto-listing on Bazaar + Glama + Smithery + mcp.so + Claude Code Plugins Directory." },
           ].map(({ t, d }) => (
             <div key={t} className="rounded-2xl bg-white/4 border border-white/8 p-6">
@@ -582,7 +581,7 @@ export default function AboutPageEn() {
             </div>
             <div>
               <h3 className="text-[14px] font-bold text-white mb-1.5">Sandbox mode</h3>
-              <p className="text-[12.5px] text-white/55 leading-relaxed">Issue test tokens that match production behavior but never move real USDC.</p>
+              <p className="text-[12.5px] text-white/55 leading-relaxed">Issue test tokens that match production behavior without moving real funds.</p>
             </div>
           </div>
         </div>
@@ -609,7 +608,7 @@ export default function AboutPageEn() {
             <span className="text-black">pay for any API.</span>
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
-            A spend-capped prepaid wallet your agent pays with — no account, no per-call key.
+            A spend-capped Pay Token your agent pays with — no crypto wallet, no per-call key.
             First 3,000 calls free, then 3%. Custody-free; you keep 97%.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -688,7 +687,7 @@ export default function AboutPageEn() {
           </div>
           <div className="border-t border-white/8 pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
             <p className="text-[11px] text-white/20">© 2026 LemonCake. All rights reserved.</p>
-            <p className="text-[11px] text-white/20">KYA/KYC tier auth · ERC-2612 permit · Base · USDC · x402</p>
+            <p className="text-[11px] text-white/20">Buyer Keys · Pay Tokens · Stripe Connect · x402</p>
           </div>
         </div>
       </footer>

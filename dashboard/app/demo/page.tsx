@@ -74,7 +74,7 @@ export default function DemoPage() {
             {[
               { n: "1", t: "Wrap your endpoint", d: "Paste your API URL. We mint a gateway endpoint that meters every call." },
               { n: "2", t: "Issue Pay Tokens", d: "Bounded, signed tokens — budget, call cap, and expiry. Hand them to buyers or agents." },
-              { n: "3", t: "Get paid per call", d: "Every successful call is metered. You keep 97%; first 3,000 calls / month are free." },
+              { n: "3", t: "Get paid per call", d: "Every successful call is metered. You keep 97%; your first 3,000 lifetime calls are free." },
             ].map((s) => (
               <div key={s.n} className="rounded-2xl bg-[#fafaf7] border border-[#1a0f00]/10 p-5">
                 <span className="w-7 h-7 rounded-full bg-[#fffd43] text-[#1a0f00] text-[13px] font-black flex items-center justify-center mb-3">{s.n}</span>

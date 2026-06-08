@@ -5,7 +5,7 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
   title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
-  description: "AIエージェントのための x402 決済レール。上限つきの前払いウォレットを渡すと、エージェントが有料APIを自律で支払って使う（口座不要・コールごとの鍵不要）。初回3,000コール無料、以降3%。資金は預からない（Stripe Connect Direct Charge）。SDK は MIT のオープンコア。",
+  description: "AIエージェントのための x402 決済レール。上限つきの Pay Token を渡すと、エージェントが有料APIを自律で支払って使う（暗号資産ウォレット不要・コールごとの鍵不要）。初回3,000コール無料、以降3%。資金は預からない（Stripe Connect Direct Charge）。SDK は MIT のオープンコア。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -15,7 +15,7 @@ export const metadata = {
   },
   openGraph: {
     title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
-    description: "AIエージェントのための x402 決済レール。上限つき前払いウォレット・口座不要・コールごとの鍵不要。初回3,000コール無料、以降3%。",
+    description: "AIエージェントのための x402 決済レール。上限つき Pay Token・暗号資産ウォレット不要・コールごとの鍵不要。初回3,000コール無料、以降3%。",
     url: "https://lemoncake.xyz/about",
     type: "article",
   },
@@ -71,7 +71,7 @@ const faqJsonLd = {
       name: "Buyer に暗号資産ウォレットは必要ですか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "不要です。サインアップ時にウォレットを埋め込むので、Buyer はメールでログインするだけ。裏側は USDC で決済しますが、あなたも Buyer も暗号資産を学ぶ必要はありません。",
+        text: "不要です。Buyer は Stripe のカード決済で支払い、上限つきの Pay Token を受け取ります。ブロックチェーンウォレット、シードフレーズ、暗号資産オンボーディングは不要です。",
       },
     },
     {
@@ -87,7 +87,7 @@ const faqJsonLd = {
       name: "MCP サーバーで使えますか？日本でも動きますか？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "はい。どの MCP サーバーにもそのまま挿せるミドルウェアで、どの MCP SDK でも動作します。Bazaar・Glama・Smithery・mcp.so・Claude Code Plugins Directory に自動掲載。Stripe Connect が使えない国でも動くので、日本・インドネシア・アルゼンチンでも初日から利用できます。",
+        text: "はい。どの MCP サーバーにもそのまま挿せるミドルウェアで、どの MCP SDK でも動作します。Buyer 側 MCP には無料デモツールも同梱されているため、Seller が本番 API を接続する前にエージェント側の支払いフローを試せます。",
       },
     },
   ],
@@ -103,7 +103,7 @@ const IconArrowRight = () => (
 // ── Page ──────────────────────────────────────────────────────────────────────
 // 構造は /about/en (v2) に統一（2026-05-29）。本文は EN の
 // Monetization Flow / Why developers / Billing 比較 / Abuse Log /
-// Open core / Safety rails を日本語化したもの。旧 USDC/JPYC・permit・
+// Open core / Safety rails を日本語化したもの。旧オンチェーン決済・
 // Quickstart・Buyer-Seller・Mission・Philosophy セクションは撤去。
 // メタデータと FAQ JSON-LD も新ポジショニング（従量課金・3%・Pay Token・
 // オープンコア）に合わせて書き換え、可視内容と一致させた（2026-05-29）。
@@ -514,7 +514,7 @@ export default function AboutPage() {
             </div>
             <div>
               <h3 className="text-[14px] font-bold text-white mb-1.5">サンドボックス</h3>
-              <p className="text-[12.5px] text-white/55 leading-relaxed">本番と同じ挙動のテストトークンを発行。実 USDC は 1 ドルも動きません。</p>
+              <p className="text-[12.5px] text-white/55 leading-relaxed">本番と同じ挙動のテストトークンを発行。実資金は動きません。</p>
             </div>
           </div>
         </div>
@@ -531,7 +531,7 @@ export default function AboutPage() {
             <span className="text-black">有料APIを自分で払わせる。</span>
           </h2>
           <p className="text-[14px] md:text-[15px] text-[#1a0f00]/65 mb-8 max-w-xl mx-auto leading-relaxed">
-            上限つきの前払いウォレットをエージェントに渡すだけ — 口座不要・コールごとの鍵不要。
+            上限つきの Pay Token をエージェントに渡すだけ — 暗号資産ウォレット不要・コールごとの鍵不要。
             初回 3,000 コール無料、以降 3%。資金は預からず、取り分は97%。
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -609,7 +609,7 @@ export default function AboutPage() {
           </div>
           <div className="border-t border-white/8 pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
             <p className="text-[11px] text-white/20">© 2026 LemonCake. All rights reserved.</p>
-            <p className="text-[11px] text-white/20">KYA/KYC ティア認証 · ERC-2612 permit · Polygon · USDC · JPYC</p>
+            <p className="text-[11px] text-white/20">Buyer Key · Pay Token · Stripe Connect · x402</p>
           </div>
         </div>
       </footer>

@@ -282,7 +282,7 @@ export default function DemoClient() {
         </div>
 
         <p className="text-[10.5px] text-[#1a0f00]/35 mt-4 leading-relaxed">
-          Sandbox ledger — no real funds move. The first 3,000 live calls / month are fee-free; the 3% Monetization fee applies only after that.
+          Sandbox ledger — no real funds move. Your first 3,000 live calls are fee-free for the lifetime of the seller account; the 3% monetization fee applies only after that.
         </p>
       </div>
 

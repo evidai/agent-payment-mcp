@@ -7,6 +7,6 @@
 export { default } from "./opengraph-image";
 
 export const runtime     = "edge";
-export const alt         = "LemonCake — Non-custodial USDC payments for AI agents";
+export const alt         = "LemonCake — Card-funded Pay Tokens for AI agents, no crypto";
 export const size        = { width: 1200, height: 630 };
 export const contentType = "image/png";
