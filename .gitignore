@@ -97,3 +97,6 @@ dashboard/public/freee-logo.png
 dashboard/public/freee-logo.svg
 dashboard/public/moneyforward-logo.png
 integrations/_shared/freee-screenshots/
+
+# local-only AI briefing (internal infra/deploy notes)
+AI_CONTEXT.md
