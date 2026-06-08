@@ -1,12 +1,11 @@
 <div align="center">
 
-# LemonCake
+# 🍋 LemonCake
 
 **The x402 payment rail for AI agents.** `Private Beta · Open core`
 
-> Let your AI agent pay for any API — capped, no account.
-> Give your agent a spend-capped prepaid wallet and it pays for paid APIs on its own.
-> First 3,000 calls free (lifetime). Then 3% only when your API earns.
+*Let your AI agent pay for any API, per call — spend-capped, no account, **no crypto**.*
+*First 3,000 calls free (lifetime). Then 3% only when your API earns.*
 
 [![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
 [![Open core](https://img.shields.io/badge/model-open--core-brightgreen.svg)](#-open-core)
@@ -18,7 +17,31 @@
 
 **[🚀 Quickstart](#-try-in-30-seconds) · [💲 Pricing](https://lemoncake.xyz/pricing) · [📚 Docs](https://lemoncake.xyz/docs) · [🌐 Live](https://lemoncake.xyz)**
 
+<br>
+
+<img src="https://raw.githubusercontent.com/evidai/agent-unleashed/main/demo.gif" alt="An AI agent pays for paid API calls on its own — spend-capped, no crypto" width="760">
+
+<sub>☝️ A real AI agent buys API calls by itself ($0.01 each), stops at its cap, and the API owner earns — no human, no crypto. · <a href="https://github.com/evidai/agent-unleashed">demo source</a></sub>
+
 </div>
+
+---
+
+## 🚀 Try in 30 seconds
+
+No signup, no card — ships **8 free demo tools** (search · translate · weather · geocode · time · dictionary · fx · echo):
+
+```bash
+npx -y agent-payment-mcp
+```
+
+Or drop it into any MCP client:
+
+```json
+{ "mcpServers": { "lemon": { "command": "npx", "args": ["-y", "agent-payment-mcp"] } } }
+```
+
+Then ask your agent to run `list_demos` / `call_demo`. To call **paid** APIs, set `LC_PAY_TOKEN` (get one at [lemoncake.xyz/app](https://lemoncake.xyz/app)).
 
 ---
 
@@ -26,14 +49,18 @@
 
 LemonCake is an **x402 payment rail** — a gateway that lets AI agents autonomously pay for any HTTP API with a hard-capped prepaid wallet. No blockchain wallet, no per-call key juggling, no human approving each request.
 
-```
-Agent → POST /g/<shortId>          (no token)
-         ↓
-  402 { accepts: [{ pricePerCall, buyUrl, mintUrl }] }
-         ↓
-  Agent mints a Pay Token (off-session, capped)
-         ↓
-  Bearer <jwt> → gateway → your API → 200
+```mermaid
+sequenceDiagram
+    participant A as 🤖 AI Agent
+    participant G as 🍋 LemonCake Gateway
+    participant API as Your API
+    A->>G: POST /g/:id (no token)
+    G-->>A: 402 + accepts[] (price, mintUrl)
+    A->>G: mint Pay Token (off-session, capped)
+    A->>G: Bearer :jwt
+    G->>API: forward (upstream key hidden)
+    API-->>A: 200 + result
+    Note over A,G: budget exhausted → 402 → agent self-funds → continues
 ```
 
 **Sellers** register any HTTP API and set a price per call.
