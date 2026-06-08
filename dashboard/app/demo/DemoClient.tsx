@@ -130,12 +130,12 @@ export default function DemoClient() {
   return (
     <div className="grid md:grid-cols-2 gap-5">
       {/* ── Control panel ── */}
-      <div className="rounded-3xl bg-white border border-[#1a0f00]/10 p-6 md:p-7 flex flex-col">
+      <div className="rounded-xl bg-white border border-[#1a0f00]/10 p-6 md:p-7 flex flex-col shadow-sm">
         {/* demo API summary */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-[11px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-1">Demo API</p>
-            <p className="text-[15px] font-black">LemonCake Demo API</p>
+            <p className="text-[11px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-1">Sandbox endpoint</p>
+            <p className="text-[15px] font-black">Paid MCP/API call</p>
           </div>
           <span className="px-2.5 py-1 rounded-full bg-[#fffd43] text-[#1a0f00] text-[11px] font-bold">$0.01 / call</span>
         </div>
@@ -147,13 +147,13 @@ export default function DemoClient() {
             <p className="text-[13px] font-bold">Mint a Pay Token</p>
           </div>
           <p className="text-[12px] text-[#1a0f00]/55 mb-3 pl-7 leading-relaxed">
-            A bounded, signed token — $0.20 budget, 20 calls, expires in 1 hour. No sign-up.
+            A bounded credential with a $0.20 sandbox budget, 20-call cap, and 1-hour expiry. No sign-up.
           </p>
           <div className="pl-7">
             <button
               onClick={mintToken}
               disabled={minting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1a0f00] text-[#fffd43] text-[13px] font-bold hover:bg-[#1a0f00]/85 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1a0f00] text-[#fffd43] text-[13px] font-bold hover:bg-[#1a0f00]/85 transition-colors disabled:opacity-50"
             >
               <IconKey />
               {minting ? "Minting…" : session ? "Mint a fresh token" : "Mint a Pay Token"}
@@ -162,7 +162,7 @@ export default function DemoClient() {
 
           {session && (
             <div className="pl-7 mt-3 animate-fade-in">
-              <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/10 p-3 font-mono text-[11px] text-[#1a0f00]/70 break-all">
+              <div className="rounded-lg bg-[#fbfbf4] border border-[#1a0f00]/10 p-3 font-mono text-[11px] text-[#1a0f00]/70 break-all">
                 <span className="text-[#1a0f00]/40">Bearer </span>
                 {session.jwt.slice(0, 28)}…{session.jwt.slice(-8)}
               </div>
@@ -182,16 +182,16 @@ export default function DemoClient() {
             <p className="text-[13px] font-bold">Make a paid call</p>
           </div>
           <p className="text-[12px] text-[#1a0f00]/55 mb-3 pl-7 leading-relaxed">
-            Sends a real request through the production gateway. Metering happens server-side.
+            Sends a real request through the LemonCake gateway. Token verification and metering happen server-side.
           </p>
           <div className="pl-7">
             <button
               onClick={testCall}
               disabled={!session || calling || exhausted}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#fffd43] text-[#1a0f00] text-[13px] font-bold hover:bg-[#fffd43]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#fffd43] text-[#1a0f00] text-[13px] font-bold hover:bg-[#fffd43]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <IconBolt />
-              {calling ? "Calling…" : exhausted ? "Token spent" : "Test Call"}
+              {calling ? "Calling…" : exhausted ? "Token spent" : "Run metered call"}
             </button>
             {exhausted && (
               <p className="text-[11px] text-[#1a0f00]/50 mt-2">Token spent — mint a fresh one to keep going.</p>
@@ -200,7 +200,7 @@ export default function DemoClient() {
         </div>
 
         {error && (
-          <div className="rounded-xl bg-[#FEF2F2] border border-[#DC2626]/20 px-3 py-2 text-[12px] text-[#DC2626] mb-4">
+          <div className="rounded-lg bg-[#FEF2F2] border border-[#DC2626]/20 px-3 py-2 text-[12px] text-[#DC2626] mb-4">
             {error}
           </div>
         )}
@@ -214,17 +214,17 @@ export default function DemoClient() {
                 <IconCopy />{copied ? "Copied" : "Copy"}
               </button>
             </div>
-            <pre className="rounded-xl bg-[#1a0f00] text-[#fffd43]/90 p-3 text-[10.5px] leading-relaxed overflow-x-auto font-mono">{curlCmd}</pre>
+            <pre className="rounded-lg bg-[#1a0f00] text-[#fffd43]/90 p-3 text-[10.5px] leading-relaxed overflow-x-auto font-mono">{curlCmd}</pre>
           </div>
         )}
       </div>
 
       {/* ── Usage ledger ── */}
-      <div className="rounded-3xl bg-white border border-[#1a0f00]/10 p-6 md:p-7 flex flex-col">
+      <div className="rounded-xl bg-white border border-[#1a0f00]/10 p-6 md:p-7 flex flex-col shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[11px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-1">Usage ledger</p>
-            <p className="text-[15px] font-black">Live metering</p>
+            <p className="text-[11px] font-bold text-[#1a0f00]/40 uppercase tracking-widest mb-1">Seller ledger</p>
+            <p className="text-[15px] font-black">Live usage and revenue</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] text-[#1a0f00]/45">Revenue</p>
@@ -234,15 +234,15 @@ export default function DemoClient() {
 
         {/* economics strip */}
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-2.5 text-center">
+          <div className="rounded-lg bg-[#fbfbf4] border border-[#1a0f00]/8 p-2.5 text-center">
             <p className="text-[10px] text-[#1a0f00]/45 uppercase tracking-wider">Calls</p>
             <p className="text-[15px] font-black tabular-nums">{successfulCalls}</p>
           </div>
-          <div className="rounded-xl bg-[#F0FDF4] border border-[#16A34A]/15 p-2.5 text-center">
+          <div className="rounded-lg bg-[#F0FDF4] border border-[#16A34A]/15 p-2.5 text-center">
             <p className="text-[10px] text-[#16A34A] uppercase tracking-wider">You keep</p>
             <p className="text-[15px] font-black tabular-nums text-[#16A34A]">97%</p>
           </div>
-          <div className="rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 p-2.5 text-center">
+          <div className="rounded-lg bg-[#fbfbf4] border border-[#1a0f00]/8 p-2.5 text-center">
             <p className="text-[10px] text-[#1a0f00]/45 uppercase tracking-wider">Fee</p>
             <p className="text-[15px] font-black tabular-nums">3%</p>
           </div>
@@ -253,7 +253,7 @@ export default function DemoClient() {
           {runs.length === 0 ? (
             <div className="h-full min-h-[180px] flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-[#1a0f00]/12">
               <p className="text-[13px] text-[#1a0f00]/45 font-medium">No calls yet</p>
-              <p className="text-[11.5px] text-[#1a0f00]/35 mt-1">Mint a token, then hit <b>Test Call</b>.</p>
+              <p className="text-[11.5px] text-[#1a0f00]/35 mt-1">Mint a token, then run a metered call.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
@@ -264,7 +264,7 @@ export default function DemoClient() {
               {runs.map((r) => (
                 <div
                   key={r.n}
-                  className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-2 rounded-xl bg-[#fafaf7] border border-[#1a0f00]/8 text-[12px] animate-fade-in"
+                  className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-2 rounded-lg bg-[#fbfbf4] border border-[#1a0f00]/8 text-[12px] animate-fade-in"
                 >
                   <span className="font-mono text-[#1a0f00]/40 tabular-nums">{r.n}</span>
                   <span className="flex items-center gap-1.5">
@@ -282,21 +282,21 @@ export default function DemoClient() {
         </div>
 
         <p className="text-[10.5px] text-[#1a0f00]/35 mt-4 leading-relaxed">
-          Sandbox ledger — no real funds move. Your first 3,000 live calls are fee-free for the lifetime of the seller account; the 3% monetization fee applies only after that.
+          Sandbox ledger — no real funds move. In production, buyers fund Pay Tokens by card and sellers keep 97% after the first 3,000 lifetime calls.
         </p>
       </div>
 
       {/* ── CTA below the grid ── */}
-      <div className="md:col-span-2 rounded-3xl bg-[#fffd43] p-8 md:p-10 text-center mt-1">
-        <h2 className="text-2xl md:text-3xl font-black leading-tight mb-2">Now do it with your own API.</h2>
+      <div className="md:col-span-2 rounded-xl bg-[#fffd43] p-8 md:p-10 text-center mt-1">
+        <h2 className="text-2xl md:text-3xl font-black leading-tight mb-2">Now make your own MCP/API paid.</h2>
         <p className="text-[13.5px] text-[#1a0f00]/65 mb-6 max-w-md mx-auto">
-          Paste a URL, get a paid gateway endpoint and a Pay Token in under a minute. No monthly fee.
+          Paste a URL, set a per-call price, and share a buy link. No monthly fee.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Link href="/app" className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-[14px]">
+          <Link href="/app" className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-lg hover:bg-[#1a0f00]/85 transition-colors text-[14px]">
             Open the dashboard <IconArrow />
           </Link>
-          <Link href="/docs" className="inline-flex items-center gap-2 px-7 py-3 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold rounded-xl hover:bg-white/85 transition-colors text-[14px]">
+          <Link href="/docs" className="inline-flex items-center gap-2 px-7 py-3 bg-white border border-[#1a0f00]/15 text-[#1a0f00] font-semibold rounded-lg hover:bg-white/85 transition-colors text-[14px]">
             Read the docs
           </Link>
         </div>
