@@ -150,7 +150,7 @@ Full posture: [lemoncake.xyz/security](https://lemoncake.xyz/security)
 - **Server-side hard caps** — per-mint / daily / monthly limits enforced on the server. Cannot be exceeded.
 - **Pay Token = JWT** — signed HS256, verified on every gateway call. Not a blockchain asset.
 - **No private keys in the MCP server** — Buyer Key (`bk_`) has hashed secret, PM reference only (no raw card data).
-- **Stripe Connect Direct Charge** — funds go seller-direct. LemonCake never holds USDC or fiat.
+- **Stripe Connect Direct Charge** — funds go seller-direct. LemonCake never holds customer funds.
 - **RLS on all DB tables**, `upstream_auth` never returned in API responses.
 
 ---

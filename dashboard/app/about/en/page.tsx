@@ -151,60 +151,78 @@ export default function AboutPageEn() {
        * Payment architecture details belong deeper in docs, after a developer
        * decides LemonCake is worth evaluating.
        */}
-      <div className="bg-[#fffd43] w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Image — top on mobile, right on desktop (mirrors JP /about hero) */}
-          <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
+      <div className="bg-[#fffd43] w-full overflow-hidden">
+        <section className="relative max-w-6xl mx-auto px-6 pt-12 pb-10 md:pt-20 md:pb-16 min-h-[calc(100vh-64px)] flex items-center">
+          <div className="pointer-events-none absolute -right-16 top-10 hidden md:block w-[52%] max-w-[600px]">
             <Image
               src="/hero-visual.png"
               alt="LemonCake — AI agent payment infrastructure"
               width={2508}
               height={2508}
               priority
-              sizes="(min-width: 768px) 460px, 380px"
+              sizes="(min-width: 768px) 600px, 360px"
               className="w-full h-auto drop-shadow-2xl"
             />
           </div>
-          {/* Text — bottom on mobile, left on desktop */}
-          <div className="flex-1 text-center md:text-left order-2 md:order-1">
-            <div className="inline-flex items-center gap-2 mb-5 flex-wrap justify-center md:justify-start">
-              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+          <div className="relative z-10 w-full md:max-w-[620px] text-left">
+            <div className="inline-flex items-center gap-2 mb-5 flex-wrap">
+              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[10.5px] md:text-[11px] font-mono text-[rgba(26,15,0,0.72)]">
                 The safe monetization layer for AI APIs · Open core
               </span>
               <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
                 Private Beta
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.08]">
+            <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
               Let your AI agent pay for<br />
               <span className="text-black">
-                any API — capped, no account.
+                any API — on its own.
               </span>
             </h1>
-            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
-              <strong className="text-[#1a0f00]">Give your agent a spend-capped wallet — it pays for paid APIs on its own.</strong><br />
-              Discover → pay → pass through. No per-call key, no human in the loop, and it can&apos;t exceed your cap. You keep 97%; LemonCake takes 3% once at funding and never holds your funds.
+            <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
+              <strong className="text-[#1a0f00]">Just hand it a spend-capped Pay Token.</strong>{" "}
+              The agent pays for paid APIs autonomously and stops before it overspends. No per-call key, no crypto wallet, no waiting on a human.
             </p>
-            <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              <strong>Live today:</strong> x402 gateway, agent funding (off-session top-ups), Pay Tokens, spend caps, usage ledger. First 3,000 calls free, then 3% — EN / JA / Español.
+            <p className="text-[12px] text-[rgba(26,15,0,0.62)] max-w-[560px] mb-7 leading-relaxed">
+              <strong>Live today:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger. First 3,000 calls free, then 3%. Sellers keep 97%.
             </p>
-            <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               <Link
                 href="/app"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-lg hover:bg-[#1a0f00]/85 transition-colors text-sm"
               >
-                Start building <IconArrowRight />
+                Start for free <IconArrowRight />
               </Link>
               <Link
-                href="/docs"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+                href="/demo"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-lg hover:bg-white/90 transition-colors text-sm"
               >
-                View docs →
+                Watch the live demo →
               </Link>
             </div>
-            <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-              Used by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
-            </p>
+            <dl className="mt-8 grid grid-cols-3 max-w-[520px] border-y border-[rgba(26,15,0,0.14)] divide-x divide-[rgba(26,15,0,0.14)]">
+              {[
+                ["97%", "Seller keeps"],
+                ["3,000", "Free calls"],
+                ["0", "Crypto wallets"],
+              ].map(([v, k]) => (
+                <div key={k} className="py-3 px-3 first:pl-0">
+                  <dt className="text-[22px] font-black leading-none text-[#1a0f00]">{v}</dt>
+                  <dd className="mt-1 text-[10px] font-bold text-[rgba(26,15,0,0.56)]">{k}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-7 md:hidden">
+              <Image
+                src="/hero-visual.png"
+                alt="LemonCake — AI agent payment infrastructure"
+                width={2508}
+                height={2508}
+                priority
+                sizes="360px"
+                className="mx-auto w-[78%] max-w-[300px] h-auto drop-shadow-2xl"
+              />
+            </div>
           </div>
         </section>
 

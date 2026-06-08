@@ -147,73 +147,91 @@ export default function AboutPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <div className="bg-[#fffd43] w-full">
-        <section className="max-w-6xl mx-auto px-6 pt-16 pb-16 md:pt-24 md:pb-20 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          {/* Image — top on mobile, right on desktop */}
-          <div className="w-full max-w-[380px] md:max-w-none md:w-[460px] flex-shrink-0 order-1 md:order-2">
+      <div className="bg-[#fffd43] w-full overflow-hidden">
+        <section className="relative max-w-6xl mx-auto px-6 pt-12 pb-10 md:pt-20 md:pb-16 min-h-[calc(100vh-64px)] flex items-center">
+          <div className="pointer-events-none absolute -right-16 top-10 hidden md:block w-[52%] max-w-[600px]">
             <Image
               src="/hero-visual.png"
               alt="LemonCake — AI agent payment infrastructure"
               width={2508}
               height={2508}
               priority
-              sizes="(min-width: 768px) 460px, 380px"
+              sizes="(min-width: 768px) 600px, 360px"
               className="w-full h-auto drop-shadow-2xl"
             />
           </div>
-          {/* Text — bottom on mobile, left on desktop */}
-          <div className="flex-1 text-center md:text-left order-2 md:order-1">
-            <div className="inline-flex items-center gap-2 mb-5 flex-wrap justify-center md:justify-start">
-              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[11px] font-mono text-[#1a0f00]/70">
+          <div className="relative z-10 w-full md:max-w-[620px] text-left">
+            <div className="inline-flex items-center gap-2 mb-5 flex-wrap">
+              <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[10.5px] md:text-[11px] font-mono text-[rgba(26,15,0,0.72)]">
                 AI API のための安全な収益化レイヤー · オープンコア
               </span>
               <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
                 Private Beta
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.08]">
+            <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
               AIエージェントに、<br />
               <span className="text-black">
                 有料APIを“自分で払って”使わせる。
               </span>
             </h1>
-            <p className="text-base md:text-lg text-[#1a0f00]/60 max-w-xl mb-3 leading-relaxed mx-auto md:mx-0">
-              <strong className="text-[#1a0f00]">エージェントに上限つきの財布を渡すと、有料APIを自律で払って使う。</strong><br />
-              発見→支払い→通過。コールごとの鍵も人間の承認も不要、しかも上限を超えられない。取り分は97%、LemonCakeは前払い時に3%のみ・資金は一切預かりません。
+            <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
+              <strong className="text-[#1a0f00]">上限つき Pay Token を渡すだけ。</strong>
+              エージェントは有料APIを自律で支払い、使いすぎる前に止まります。コールごとの鍵も、暗号資産ウォレットも、人間の承認待ちも不要。
             </p>
-            <p className="text-[12px] text-[#1a0f00]/45 max-w-xl mb-8 leading-relaxed mx-auto md:mx-0">
-              <strong>本番稼働中:</strong> x402 ゲートウェイ、エージェント資金供給（off-session 補充）、Pay Token、支出上限、使用台帳。初回3,000コール無料、以降3% — EN / 日本語 / Español。
+            <p className="text-[12px] text-[rgba(26,15,0,0.62)] max-w-[560px] mb-7 leading-relaxed">
+              <strong>本番稼働中:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger。初回3,000コール無料、以降3%。売上の97%はSellerへ。
             </p>
-            <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               <Link
                 href="/app"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-white font-semibold rounded-xl hover:bg-[#1a0f00]/80 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-lg hover:bg-[#1a0f00]/85 transition-colors text-sm"
               >
                 無料で始める <IconArrowRight />
               </Link>
               <Link
-                href="/docs"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"
+                href="/demo"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-lg hover:bg-white/90 transition-colors text-sm"
               >
-                ドキュメント →
+                ライブデモを見る →
               </Link>
             </div>
-            <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-              Used by xstocks-mcp · gmx-mcp · alpaca-guard-mcp · tokenized-stock-mcp · agent-payment-mcp
-            </p>
+            <dl className="mt-8 grid grid-cols-3 max-w-[520px] border-y border-[rgba(26,15,0,0.14)] divide-x divide-[rgba(26,15,0,0.14)]">
+              {[
+                ["97%", "Seller取り分"],
+                ["3,000", "無料コール"],
+                ["0", "暗号資産ウォレット"],
+              ].map(([v, k]) => (
+                <div key={k} className="py-3 px-3 first:pl-0">
+                  <dt className="text-[22px] font-black leading-none text-[#1a0f00]">{v}</dt>
+                  <dd className="mt-1 text-[10px] font-bold text-[rgba(26,15,0,0.56)]">{k}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-7 md:hidden">
+              <Image
+                src="/hero-visual.png"
+                alt="LemonCake — AI agent payment infrastructure"
+                width={2508}
+                height={2508}
+                priority
+                sizes="360px"
+                className="mx-auto w-[78%] max-w-[300px] h-auto drop-shadow-2xl"
+              />
+            </div>
           </div>
         </section>
 
         {/* Code snippet — sits inside the yellow hero band as a "this is real" anchor */}
-        <section className="max-w-3xl mx-auto px-6 pb-16">
-          <div className="rounded-2xl bg-[#1a0f00] text-white p-6 shadow-xl">
+        <section className="max-w-5xl mx-auto px-6 pb-12 md:pb-16">
+          <div className="rounded-lg bg-[#1a0f00] text-white p-4 md:p-5 shadow-xl border border-[#1a0f00]/20">
             <div className="flex items-center gap-1.5 mb-4">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+              <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
+              <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
+              <div className="w-2 h-2 rounded-full bg-[#28c840]" />
               <span className="ml-3 text-[11px] font-mono text-white/40">tool-server.ts</span>
             </div>
-            <pre className="font-mono text-[13px] leading-relaxed overflow-x-auto">
+            <pre className="font-mono text-[12px] md:text-[13px] leading-relaxed overflow-x-auto">
               <code>
                 <span className="text-[#c8b800]">{"import"}</span>{" { createLemonCakeSDK } "}<span className="text-[#c8b800]">{"from"}</span> <span className="text-[#7bc97a]">{`"@lemon-cake/mcp-sdk"`}</span>;{"\n\n"}
                 <span className="text-[#c8b800]">const</span>{" lc = "}<span className="text-white">createLemonCakeSDK</span>{"();"}{" "}<span className="text-white/40">{"// env var なしのデモモード"}</span>{"\n\n"}
@@ -283,7 +301,7 @@ export default function AboutPage() {
         </div>
 
         <p className="mt-10 text-center text-[12px] text-white/40 max-w-xl mx-auto leading-relaxed">
-          変えるのは URL 1 つだけ。Gateway ルーティング・Pay Token 検証・レート制限・使用量計測、そして 97% のあなたのウォレットへの精算まで、すべて LemonCake が処理します。
+          変えるのは URL 1 つだけ。Gateway ルーティング・Pay Token 検証・レート制限・使用量計測、そして Stripe 経由の Seller 入金まで、すべて LemonCake が処理します。
         </p>
       </section>
 
@@ -302,8 +320,8 @@ export default function AboutPage() {
             { t: "従量課金", d: "tool call 単位・token 単位・成果単位で課金。サブセントのマイクロペイメントがネイティブに動作 — 最低取引額なし、Stripe のような $0.30 の下限なし。" },
             { t: "AI エージェント決済", d: "エージェントが使い切り上限付きで、あなたのエンドポイントに直接支払う。人間の承認も、API キー共有も、「認証情報をリセットして」というサポート対応も不要。" },
             { t: "API キー管理ゼロ", d: "キーの発行・ローテーション・失効はもう不要。Buyer はインストール時に 1 度だけ認証。あなたが秘密情報に触れることはありません。" },
-            { t: "最初からグローバル", d: "Stripe Connect が使えない国でも動く。日本・インドネシア・アルゼンチンも初日から対応。" },
-            { t: "組込みウォレット", d: "Buyer に暗号資産ウォレットは不要。サインアップ時に埋め込むので、メールでログインするだけ。裏側の仕組みは意識しなくて大丈夫。" },
+            { t: "Stripe 入金", d: "Buyer はカードで Pay Token を購入。Seller には Stripe Connect Direct Charge で入金。LemonCake が資金をプールすることはありません。" },
+            { t: "暗号資産オンボーディング不要", d: "Buyer にブロックチェーンウォレット、シードフレーズ、取引所アカウントは不要。カード決済と上限つき Pay Token だけで使えます。" },
             { t: "MCP ネイティブ", d: "どの MCP サーバーにもそのまま挿せるミドルウェア。Bazaar + Glama + Smithery + mcp.so + Claude Code Plugins Directory に自動掲載。" },
           ].map(({ t, d }) => (
             <div key={t} className="rounded-2xl bg-white/4 border border-white/8 p-6">
@@ -342,9 +360,9 @@ export default function AboutPage() {
                   ["1 コール サブセント",                "実質 $0.30 下限",     "可能だが Stripe 課金",        "$0.005"],
                   ["MCP / agent ミドルウェア",           "—",                   "—",                           "そのまま挿せる"],
                   ["API キー管理不要",                   "キー必須",            "キー必須",                    "組込み認証"],
-                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "初回 3,000 件無料・以降ガス代込み"],
+                  ["無料枠",                             "Stripe レート適用",   "エンタープライズ階層",        "初回 3,000 件無料・以降3%"],
                   ["OSS の SDK",                         "クローズド",          "クローズド",                  "MIT"],
-                  ["導入時間",                           "Connect オンボーディング", "実装エンジニアが必要",    "env var 1 つ"],
+                  ["導入時間",                           "Connect オンボーディング", "実装エンジニアが必要",    "URLを貼って公開"],
                 ].map(([f, s, o, lc]) => (
                   <tr key={f} className="border-b border-white/5">
                     <td className="py-3 px-3 text-white/70 font-medium">{f}</td>
@@ -382,7 +400,7 @@ export default function AboutPage() {
               {[
                 { t: "14:21:08", reason: "spend_cap_exceeded",  saved: "$12.40" },
                 { t: "14:19:55", reason: "rate_limit_exceeded", saved: "$0.78"  },
-                { t: "14:15:02", reason: "permit_revoked",       saved: "$0.04"  },
+                { t: "14:15:02", reason: "token_revoked",        saved: "$0.04"  },
                 { t: "14:11:30", reason: "spend_cap_exceeded",  saved: "$8.20"  },
               ].map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-b-0">
