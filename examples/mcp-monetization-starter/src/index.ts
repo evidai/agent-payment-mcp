@@ -4,7 +4,7 @@
  * Minimum-viable MCP server with usage billing via LemonCake.
  *
  * Run with no env vars → demo mode (charges logged to console, no real money).
- * Set LEMONCAKE_SELLER_KEY → live mode (real USDC per call).
+ * Set LEMONCAKE_SELLER_KEY → live mode (card-funded Pay Tokens).
  *
  * Boot:
  *   npm install && npm start
@@ -28,7 +28,7 @@ import { createLemonCakeSDK }   from "@lemon-cake/mcp-sdk";
 // 1) Create the LemonCake SDK. Demo mode if no LEMONCAKE_SELLER_KEY is set.
 const lc = createLemonCakeSDK();
 
-// 2) Define your paid tools. The `price` is per-call USDC.
+// 2) Define your paid tools. The `price` is USD per call.
 const tools = {
   search: {
     schema: {

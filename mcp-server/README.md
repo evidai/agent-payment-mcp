@@ -2,9 +2,11 @@
 
 **Let your AI agent pay for any API — capped, no account.**
 
-Give your agent a spend-capped prepaid wallet and it pays for paid APIs on its own.
+Give your agent a spend-capped Pay Token and it pays for paid APIs on its own.
 Discover → pay → pass through. No per-call key, no human in the loop, and it can't exceed your cap.
 First 3,000 calls free, then 3%. Seller gets 97%. LemonCake never holds your funds.
+
+Want to monetize your own MCP server or API? Start at [lemoncake.xyz/app](https://lemoncake.xyz/app) or copy the [mcp-monetization-starter](../examples/mcp-monetization-starter).
 
 [![npm](https://img.shields.io/npm/v/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
 [![downloads](https://img.shields.io/npm/dm/agent-payment-mcp)](https://www.npmjs.com/package/agent-payment-mcp)
@@ -65,7 +67,7 @@ Agent → POST /g/<endpoint>
          ↓
   402 + accepts[] { pricePerCall, buyUrl, mintUrl }
          ↓
-  Agent mints a Pay Token (off-session, capped wallet)
+  Agent mints a Pay Token (off-session, capped)
          ↓
   Bearer <jwt> → gateway → your API
 ```

@@ -1,7 +1,7 @@
 # mcp-monetization-starter
 
 > **Minimal MCP server with usage billing via LemonCake.**
-> One file, ~70 lines. Run with no env vars for demo mode, set `LEMONCAKE_SELLER_KEY` for live USDC charging.
+> One file, ~70 lines. Run with no env vars for demo mode, set `LEMONCAKE_SELLER_KEY` to accept card-funded Pay Tokens.
 
 [![MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 [![SDK](https://img.shields.io/badge/SDK-%40lemon--cake%2Fmcp--sdk-blueviolet)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
@@ -31,7 +31,7 @@ npm install
 npm start
 ```
 
-Without any env vars, you're in **demo mode** — charges are logged to stderr but no real USDC moves. Useful for local testing.
+Without any env vars, you're in **demo mode** — charges are logged to stderr but no real funds move. Useful for local testing.
 
 To go live:
 
@@ -70,8 +70,8 @@ Restart Claude Desktop. The two paid tools (`search`, `summarize`) appear in the
 `lc.charge({ price: 0.02 })` returns a wrapper function. Applied to your tool handler, it:
 
 1. **Pre-flights** the buyer's spend cap before running the handler. If the buyer has no budget or is rate-limited, the call is rejected with a clear error (no handler execution = no compute cost).
-2. **Records the charge** as the handler returns. On-chain settlement happens batched in the background.
-3. **Surfaces failures cleanly** — payment failures produce structured MCP errors that the calling agent can introspect (insufficient budget vs. revoked permit vs. network issue).
+2. **Records the charge** as the handler returns. In live mode, buyers fund spend-capped Pay Tokens by card through LemonCake's Stripe-backed gateway.
+3. **Surfaces failures cleanly** — payment failures produce structured MCP errors that the calling agent can introspect (insufficient budget vs. revoked token vs. network issue).
 
 No API key management. No webhook handlers. No metering DB.
 
@@ -94,15 +94,15 @@ const tools = {
 };
 ```
 
-Sub-cent prices work natively (Stripe's $0.30 floor doesn't apply — LemonCake settles in USDC).
+Sub-cent prices work natively because LemonCake meters usage behind a prepaid Pay Token instead of running a card transaction for every tool call.
 
 ---
 
 ## Pricing
 
-- **Free tier:** 1,000 transactions / month, gas sponsored
-- **Pro tier:** $50/mo + $0.005/tx
-- **Enterprise:** from $500/mo
+- **No monthly fee**
+- **First 3,000 calls free** for the seller account lifetime
+- **Then 3% only when your API earns** — sellers keep 97%
 
 See [lemoncake.xyz/pricing](https://lemoncake.xyz/pricing?utm_source=example&utm_medium=mcp-starter-readme).
 

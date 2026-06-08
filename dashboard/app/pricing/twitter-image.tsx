@@ -6,7 +6,7 @@
 import OG from "./opengraph-image";
 
 export const runtime     = "edge";
-export const alt         = "LemonCake pricing — free up to 1k tx/mo, $0.005/tx after. MPP-compatible facilitator on Base/USDC.";
+export const alt         = "LemonCake pricing — no monthly fee. First 3,000 calls free, then 3% only when your API earns.";
 export const size        = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

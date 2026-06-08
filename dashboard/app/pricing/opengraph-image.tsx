@@ -6,11 +6,10 @@ import { ImageResponse } from "next/og";
 //
 // The card is meant to do two things in 1 second of preview:
 //   (1) communicate "transparent pricing" — the headline price IS the image
-//   (2) defuse the "wait, isn't this Stripe MPP territory now?" objection
-//       via the eyebrow chip ("MPP-compatible") and the footer comparison.
+//   (2) keep the current Launch Plan consistent across link previews.
 
 export const runtime    = "edge";
-export const alt        = "LemonCake pricing — free up to 1k tx/mo, $0.005/tx after. MPP-compatible facilitator on Base/USDC.";
+export const alt        = "LemonCake pricing — no monthly fee. First 3,000 calls free, then 3% only when your API earns.";
 export const size       = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -90,7 +89,7 @@ export default async function OG() {
           {[
             { name: "Plan",          price: "Launch",   sub: "single plan, no tiers",        featured: false },
             { name: "Monthly fee",   price: "$0",       sub: "no setup, no fixed tx fee",    featured: true  },
-            { name: "Free quota",    price: "3,000",    sub: "API calls / month included",   featured: false },
+            { name: "Free quota",    price: "3,000",    sub: "lifetime calls included",      featured: false },
           ].map((t) => (
             <div
               key={t.name}

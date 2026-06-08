@@ -1,8 +1,8 @@
 {
   "$schema": "https://open-plugins.com/schema/mcp.json",
   "name": "agent-payment-mcp",
-  "displayName": "agent-payment-mcp 🍋 (non-custodial)",
-  "description": "USDC pay-per-call billing for AI agents. v2 non-custodial mode confirmed registration-exempt by Japan FSA (Q11, 2026-05-21) — your USDC stays in your own wallet. ERC-2612 permit replaces JWT-style Pay Tokens. Demo Mode works with zero signup.",
+  "displayName": "agent-payment-mcp 🍋",
+  "description": "MCP/API pay-per-call billing for AI agents. Buyers fund spend-capped Pay Tokens by card; agents call paid APIs without per-call API keys or crypto wallets. Demo Mode works with zero signup.",
   "version": "0.7.1",
   "license": "MIT",
   "homepage": "https://lemoncake.xyz/start/v2",
@@ -16,18 +16,14 @@
     "mcp",
     "model-context-protocol",
     "ai-agent",
-    "agent-wallet",
+    "pay-token",
     "payment",
     "pay-per-call",
-    "usdc",
-    "stablecoin",
     "micropayments",
     "billing",
-    "web3",
     "autonomous",
-    "non-custodial",
-    "erc-2612",
-    "permit",
+    "stripe",
+    "pay-token",
     "fsa-confirmed",
     "japan"
   ],
@@ -36,24 +32,20 @@
   "command": "npx",
   "args": ["-y", "agent-payment-mcp"],
   "env": {
-    "LEMON_CAKE_PERMIT": {
-      "description": "ERC-2612 permit blob from lemoncake.xyz/start/v2. New v2 non-custodial path (FSA Q11 confirmed). Recommended.",
+    "LC_PAY_TOKEN": {
+      "description": "Spend-capped Pay Token JWT from lemoncake.xyz/app or a buy link. Optional in Demo Mode.",
       "required": false
     },
-    "LEMON_CAKE_PAY_TOKEN": {
-      "description": "Legacy Pay Token JWT from lemoncake.xyz/start. Custody mode — use v2 (LEMON_CAKE_PERMIT) instead.",
-      "required": false
-    },
-    "LEMON_CAKE_BUYER_JWT": {
-      "description": "Buyer session JWT for balance lookups in legacy mode. Optional in Demo Mode.",
+    "LC_BUYER_KEY": {
+      "description": "Buyer Key for minting new Pay Tokens off-session. Optional in Demo Mode.",
       "required": false
     }
   },
   "examples": [
-    "Check my USDC balance",
-    "Search for AI startups 2026 using Serper",
-    "Find the email of Anthropic's CEO with Hunter.io",
-    "Verify Japanese tax invoice number T1010401123456"
+    "List LemonCake demo tools",
+    "Call the free search demo",
+    "Use my Pay Token to call a paid API",
+    "Show how many calls my token can still make"
   ],
-  "tags": ["finance", "payments", "ai", "web3", "mcp", "non-custodial"]
+  "tags": ["finance", "payments", "ai", "mcp", "pay-token", "billing"]
 }

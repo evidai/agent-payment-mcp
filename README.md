@@ -2,9 +2,9 @@
 
 # 🍋 LemonCake
 
-**The x402 payment rail for AI agents.** `Private Beta · Open core`
+**Monetize MCP servers and HTTP APIs in minutes.** `Private Beta · Open core`
 
-*Let your AI agent pay for any API, per call — spend-capped, no account, **no crypto**.*
+*Paste an API URL, set a per-call price, and share a buy link. Buyers pay by card; agents call with spend-capped Pay Tokens — **no crypto wallet**.*
 *First 3,000 calls free (lifetime). Then 3% only when your API earns.*
 
 [![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
@@ -27,7 +27,7 @@
 
 ---
 
-## 🚀 Try in 30 seconds
+## 🚀 Try the buyer-side MCP in 30 seconds
 
 No signup, no card — ships **8 free demo tools** (search · translate · weather · geocode · time · dictionary · fx · echo):
 
@@ -47,7 +47,7 @@ Then ask your agent to run `list_demos` / `call_demo`. To call **paid** APIs, se
 
 ## What is LemonCake?
 
-LemonCake is an **x402 payment rail** — a gateway that lets AI agents autonomously pay for any HTTP API with a hard-capped prepaid wallet. No blockchain wallet, no per-call key juggling, no human approving each request.
+LemonCake is an **x402 payment rail** for monetizing MCP servers and HTTP APIs. Sellers register an endpoint and set a price per call. Buyers prepay by card and receive a spend-capped Pay Token. Agents call the gateway with that token, and LemonCake verifies, meters, forwards, and records usage.
 
 ```mermaid
 sequenceDiagram

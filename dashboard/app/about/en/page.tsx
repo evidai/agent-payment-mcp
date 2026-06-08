@@ -4,8 +4,8 @@ import ContactButton from "../ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — Let your AI agent pay for any API (x402 payment rail)",
-  description: "x402 payment rail for AI agents: give your agent a spend-capped Pay Token and it pays for any paid API on its own — no crypto wallet, no per-call key. First 3,000 calls free, then 3%. Custody-free (Stripe Connect Direct Charge). Open core, MIT SDK.",
+  title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
+  description: "Monetize an MCP server or HTTP API in 5 minutes. Buyers prepay by card, agents call with spend-capped Pay Tokens, and sellers keep 97%. No crypto wallet, no per-call API keys. First 3,000 calls free, then 3%.",
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -15,8 +15,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "LemonCake — Let your AI agent pay for any API",
-    description: "x402 payment rail for AI agents. Spend-capped Pay Tokens, no crypto wallet, no per-call key. First 3,000 calls free, then 3%.",
+    title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
+    description: "Card-funded Pay Tokens for paid MCP servers and APIs. No crypto wallet, no per-call API keys. First 3,000 calls free, then 3%.",
     url: "https://lemoncake.xyz/about/en",
     type: "article",
   },
@@ -112,7 +112,7 @@ export default function AboutPageEn() {
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5">
               <Image src="/logo.png" alt="LemonCake" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
@@ -129,12 +129,12 @@ export default function AboutPageEn() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LangSwitcher current="en" basePath="/about" variant="dark" />
-            <Link href="/app" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+            <Link href="/app" className="hidden sm:inline text-[13px] text-white/50 hover:text-white/80 transition-colors">
               Dashboard
             </Link>
-            <ContactButton className="text-[13px] font-semibold px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors">
+            <ContactButton className="text-[13px] font-semibold px-3 sm:px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors whitespace-nowrap">
               Contact
             </ContactButton>
           </div>
@@ -167,24 +167,24 @@ export default function AboutPageEn() {
           <div className="relative z-10 w-full md:max-w-[620px] text-left">
             <div className="inline-flex items-center gap-2 mb-5 flex-wrap">
               <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[10.5px] md:text-[11px] font-mono text-[rgba(26,15,0,0.72)]">
-                The safe monetization layer for AI APIs · Open core
+                The safe monetization layer for MCP servers and APIs · Open core
               </span>
               <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
                 Private Beta
               </span>
             </div>
             <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
-              Let your AI agent pay for<br />
+              Monetize MCP servers<br />
               <span className="text-black">
-                any API — on its own.
+                and APIs in 5 minutes.
               </span>
             </h1>
             <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
-              <strong className="text-[#1a0f00]">Just hand it a spend-capped Pay Token.</strong>{" "}
-              The agent pays for paid APIs autonomously and stops before it overspends. No per-call key, no crypto wallet, no waiting on a human.
+              <strong className="text-[#1a0f00]">Paste your URL, set a per-call price, and share a buy link.</strong>{" "}
+              Buyers prepay by card; agents call with spend-capped Pay Tokens.
             </p>
             <p className="text-[12px] text-[rgba(26,15,0,0.62)] max-w-[560px] mb-7 leading-relaxed">
-              <strong>Live today:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger. First 3,000 calls free, then 3%. Sellers keep 97%.
+              <strong>Live today:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger. No crypto wallet. First 3,000 calls free, then 3%. Sellers keep 97%.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <Link

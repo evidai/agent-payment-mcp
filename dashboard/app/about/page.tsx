@@ -4,8 +4,8 @@ import ContactButton from "./ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
 
 export const metadata = {
-  title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
-  description: "AIエージェントのための x402 決済レール。上限つきの Pay Token を渡すと、エージェントが有料APIを自律で支払って使う（暗号資産ウォレット不要・コールごとの鍵不要）。初回3,000コール無料、以降3%。資金は預からない（Stripe Connect Direct Charge）。SDK は MIT のオープンコア。",
+  title: "LemonCake — MCP / APIを5分で有料化",
+  description: "MCPサーバーやHTTP APIを5分で有料化。買い手はカードで前払いし、エージェントは上限つき Pay Token で自律利用。暗号資産ウォレット不要、コールごとのAPIキー不要。初回3,000コール無料、以降3%。",
   alternates: {
     canonical: "https://lemoncake.xyz/about",
     languages: {
@@ -14,8 +14,8 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "LemonCake — AIエージェントが自分で払う x402 決済レール",
-    description: "AIエージェントのための x402 決済レール。上限つき Pay Token・暗号資産ウォレット不要・コールごとの鍵不要。初回3,000コール無料、以降3%。",
+    title: "LemonCake — MCP / APIを5分で有料化",
+    description: "MCPサーバーやHTTP APIを5分で有料化。カード前払い、上限つきPay Token、暗号資産ウォレット不要。初回3,000コール無料、以降3%。",
     url: "https://lemoncake.xyz/about",
     type: "article",
   },
@@ -117,7 +117,7 @@ export default function AboutPage() {
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5">
               <Image src="/logo.png" alt="LemonCake" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
@@ -134,13 +134,14 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LangSwitcher current="ja" basePath="/about" variant="dark" />
-            <Link href="/app" className="text-[13px] text-white/50 hover:text-white/80 transition-colors">
+            <Link href="/app" className="hidden sm:inline text-[13px] text-white/50 hover:text-white/80 transition-colors">
               ダッシュボード
             </Link>
-            <ContactButton className="text-[13px] font-semibold px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors">
-              お問い合わせ
+            <ContactButton className="text-[13px] font-semibold px-3 sm:px-4 py-1.5 bg-white text-[#06060a] rounded-lg hover:bg-white/90 transition-colors whitespace-nowrap">
+              <span className="sm:hidden">相談</span>
+              <span className="hidden sm:inline">お問い合わせ</span>
             </ContactButton>
           </div>
         </div>
@@ -163,24 +164,24 @@ export default function AboutPage() {
           <div className="relative z-10 w-full md:max-w-[620px] text-left">
             <div className="inline-flex items-center gap-2 mb-5 flex-wrap">
               <span className="px-3 py-1 bg-[#1a0f00]/8 border border-[#1a0f00]/15 rounded-full text-[10.5px] md:text-[11px] font-mono text-[rgba(26,15,0,0.72)]">
-                AI API のための安全な収益化レイヤー · オープンコア
+                MCP / API のための安全な収益化レイヤー · オープンコア
               </span>
               <span className="px-2 py-1 bg-[#1a0f00] text-[#fffd43] rounded-full text-[10px] font-mono font-bold uppercase tracking-widest">
                 Private Beta
               </span>
             </div>
             <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
-              AIエージェントに、<br />
+              MCP / APIを、<br />
               <span className="text-black">
-                有料APIを“自分で払って”使わせる。
+                5分で有料化する。
               </span>
             </h1>
             <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
-              <strong className="text-[#1a0f00]">上限つき Pay Token を渡すだけ。</strong>
-              エージェントは有料APIを自律で支払い、使いすぎる前に止まります。コールごとの鍵も、暗号資産ウォレットも、人間の承認待ちも不要。
+              <strong className="text-[#1a0f00]">URLを貼って、1コール単価を決めて、購入リンクを共有。</strong>
+              買い手はカードで前払いし、エージェントは上限つき Pay Token で自律利用します。
             </p>
             <p className="text-[12px] text-[rgba(26,15,0,0.62)] max-w-[560px] mb-7 leading-relaxed">
-              <strong>本番稼働中:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger。初回3,000コール無料、以降3%。売上の97%はSellerへ。
+              <strong>本番稼働中:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger。暗号資産ウォレット不要。初回3,000コール無料、以降3%。売上の97%はSellerへ。
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <Link
