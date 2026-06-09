@@ -119,14 +119,16 @@ export async function GET(req: NextRequest) {
       (select count(distinct owner_id) from lc_endpoints)::int as owners_endpoint,
       (select count(distinct owner_id) from lc_endpoints where price_per_call > 0)::int as owners_priced,
       (select count(distinct owner_id) from lc_pay_tokens)::int as owners_token,
-      (select count(distinct owner_id) from lc_pay_tokens where stripe_checkout_session_id is not null)::int as owners_purchase,
+      (select count(distinct owner_id) from lc_pay_tokens
+         where stripe_checkout_session_id is not null and stripe_checkout_session_id not like 'stub_%')::int as owners_purchase,
       (select count(distinct t.owner_id) from lc_test_runs r join lc_pay_tokens t on t.id = r.pay_token_id
-         where t.stripe_checkout_session_id is not null)::int as owners_paid_call,
+         where t.stripe_checkout_session_id is not null and t.stripe_checkout_session_id not like 'stub_%')::int as owners_paid_call,
       (select count(*) from lc_endpoints)::int as ep_total,
       (select count(*) from lc_endpoints where price_per_call > 0)::int as ep_priced,
-      (select count(distinct endpoint_id) from lc_pay_tokens where stripe_checkout_session_id is not null)::int as ep_purchase,
+      (select count(distinct endpoint_id) from lc_pay_tokens
+         where stripe_checkout_session_id is not null and stripe_checkout_session_id not like 'stub_%')::int as ep_purchase,
       (select count(distinct r.endpoint_id) from lc_test_runs r join lc_pay_tokens t on t.id = r.pay_token_id
-         where t.stripe_checkout_session_id is not null)::int as ep_paid_call,
+         where t.stripe_checkout_session_id is not null and t.stripe_checkout_session_id not like 'stub_%')::int as ep_paid_call,
       (case when to_regclass('public.lc_agents') is not null
             then (select count(*) from lc_agents) else 0 end)::int as agents_total,
       (select count(*) from lc_share_events where created_at > now() - interval '7 days')::int as share_7d

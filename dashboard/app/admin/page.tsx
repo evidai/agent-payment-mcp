@@ -118,8 +118,8 @@ function FunnelView({ f }: { f: NonNullable<LcStats["funnel"]> }) {
     { label: "Created an endpoint", v: f.ownersWithEndpoint },
     { label: "Priced it (sellable)", v: f.ownersWithPriced },
     { label: "Issued a Pay Token", v: f.ownersWithToken },
-    { label: "🧱 A real buyer PAID", v: f.ownersWithPurchase },
-    { label: "Real paid call happened", v: f.ownersWithPaidCall },
+    { label: "🧱 Real buyer PAID (card)", v: f.ownersWithPurchase },
+    { label: "Real paid call (card token)", v: f.ownersWithPaidCall },
   ];
   const top = Math.max(1, f.owners);
   return (
