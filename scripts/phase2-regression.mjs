@@ -26,6 +26,19 @@ const BASE = (process.env.BASE_URL || "https://www.lemoncake.xyz").replace(/\/$/
 const SELLER_KEY = process.env.SELLER_KEY || "";
 const PAY_TOKEN = process.env.PAY_TOKEN || "";
 
+// Vercel Deployment Protection: protected previews 401 unprotected fetches.
+// Set VERCEL_PROTECTION_BYPASS to the project's "Protection Bypass for
+// Automation" secret to reach a protected preview. (Not needed for prod.)
+const BYPASS = process.env.VERCEL_PROTECTION_BYPASS || "";
+const _fetch = globalThis.fetch;
+globalThis.fetch = (url, init = {}) => {
+  if (!BYPASS) return _fetch(url, init);
+  const headers = new Headers(init.headers || {});
+  headers.set("x-vercel-protection-bypass", BYPASS);
+  headers.set("x-vercel-set-bypass-cookie", "true");
+  return _fetch(url, { ...init, headers });
+};
+
 let failures = 0;
 const ok = (m) => console.log(`  \x1b[32m✓\x1b[0m ${m}`);
 const bad = (m) => { console.log(`  \x1b[31m✗ ${m}\x1b[0m`); failures++; };
