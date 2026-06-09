@@ -88,6 +88,7 @@ export const ja: Messages = {
   "nav.gateway": "ゲートウェイ",
   "nav.buyLinks": "購入リンク",
   "nav.payTokens": "ペイトークン",
+  "nav.agents": "エージェント",
   "nav.testRequest": "テストリクエスト",
   "nav.usageLedger": "使用台帳",
   "nav.blockedRequests": "ブロックされたリクエスト",

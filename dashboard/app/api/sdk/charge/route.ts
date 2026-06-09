@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { backendEnvReady } from "@/lib/lc-backend";
 import { ensureSdkSchema, resolveSellerKey, settleCharge } from "@/lib/lc-sdk";
+import { ensureAgentIdentitySchema } from "@/lib/lc-agents";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
   // be allowed to settle/cancel so budget isn't stranded. The switch blocks new
   // reservations at /preflight (and the gateway), which is the right seam.
   await ensureSdkSchema();
+  await ensureAgentIdentitySchema(); // lc_test_runs.agent_id for settlement
 
   const sellerKey = await resolveSellerKey(req);
   if (!sellerKey) return NextResponse.json({ error: "invalid_seller_key" }, { status: 401 });

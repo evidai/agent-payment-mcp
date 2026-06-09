@@ -35,7 +35,7 @@ import type { MessageKey } from "@/lib/messages/en";
 
 /* ────────────────────────────  types  ──────────────────────────── */
 
-type Pane = "add" | "apis" | "buylinks" | "paytoken" | "test" | "revenue" | "blocked" | "account";
+type Pane = "add" | "apis" | "buylinks" | "paytoken" | "agents" | "test" | "revenue" | "blocked" | "account";
 
 type Endpoint = {
   id: string;
@@ -239,6 +239,7 @@ const SIDEBAR: { headingKey: MessageKey; items: NavItem[] }[] = [
     { labelKey: "nav.gateway",     icon: "Code", pane: "apis" },
     { labelKey: "nav.buyLinks",    icon: "Link", pane: "buylinks" },
     { labelKey: "nav.payTokens",   icon: "Key",  pane: "paytoken" },
+    { labelKey: "nav.agents",      icon: "Shield", pane: "agents" },
     { labelKey: "nav.testRequest", icon: "Play", pane: "test" },
   ]},
   { headingKey: "nav.monitor", items: [
@@ -394,7 +395,7 @@ function RealDashboard() {
   const sellableCount = endpoints.filter((e) => e.pricePerCall > 0).length;
   const counts: Record<Pane, number | null> = {
     add: null, apis: endpoints.length, buylinks: sellableCount || null, paytoken: activeTokens.length,
-    test: runs.length, revenue: sales.count || null, blocked: blocked.length, account: null,
+    agents: null, test: runs.length, revenue: sales.count || null, blocked: blocked.length, account: null,
   };
 
   // Returning from Stripe-hosted onboarding lands on /app?stripe=return|refresh.
@@ -510,6 +511,7 @@ function RealDashboard() {
               {activePane === "apis"     && <ApisPane endpoints={endpoints} tokens={tokens} runs={runs} api={api} goTo={goTo} paymentsReady={paymentsReady} />}
               {activePane === "buylinks" && <BuyLinksPane endpoints={endpoints} tokens={tokens} goTo={goTo} paymentsReady={paymentsReady} />}
               {activePane === "paytoken" && <PayTokenPane endpoints={endpoints} tokens={tokens} jwtById={jwtById} api={api} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
+              {activePane === "agents"   && <AgentsPane goTo={goTo} />}
               {activePane === "test"     && <TestPane endpoints={endpoints} tokens={tokens} jwtById={jwtById} runs={runs} api={api} goTo={goTo} preselectEndpointId={preselectEndpointId} />}
               {activePane === "revenue"  && <RevenuePane endpoints={endpoints} runs={runs} tokens={tokens} sales={sales} stripe={stripe} goTo={goTo} />}
               {activePane === "blocked"  && <BlockedPane blocked={blocked} endpoints={endpoints} api={api} />}
@@ -2051,6 +2053,132 @@ function SellerKeyManager({ endpointId }: { endpointId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* Agents — Agent Identity (thin layer). Per-agent spend rollup (Σ bound Pay
+   Tokens, custody-free) + pause / resume / revoke kill switch. */
+type AgentSummary = {
+  agentId: string; displayName: string; description: string | null; agentType: string | null;
+  status: "active" | "paused" | "revoked"; tokenCount: number; totalBudget: number; totalSpent: number;
+  remaining: number; totalCalls: number; lastUsedAt: string | null; createdAt: string;
+};
+
+function AgentStatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    active: "text-[#16A34A] bg-[#16A34A]/10",
+    paused: "text-[#b45309] bg-[#f59e0b]/12",
+    revoked: "text-[#1a0f00]/45 bg-[#1a0f00]/6",
+  };
+  return <span className={`text-[9.5px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${map[status] ?? map.revoked}`}>{status}</span>;
+}
+
+function AgentsPane({ goTo }: { goTo: (p: Pane, opts?: { endpointId?: string }) => void }) {
+  const [agents, setAgents] = useState<AgentSummary[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  async function load() {
+    setErr(null);
+    try {
+      const r = await fetch("/api/agents");
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "load_failed");
+      setAgents(j.agents as AgentSummary[]);
+    } catch (e) { setErr(e instanceof Error ? e.message : "load_failed"); }
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function create() {
+    if (!name.trim()) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await fetch("/api/agents", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: name.trim(), agentId: handle.trim() || undefined }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "create_failed");
+      setName(""); setHandle(""); setCreating(false);
+      await load();
+    } catch (e) { setErr(e instanceof Error ? e.message : "create_failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function act(agentId: string, action: "pause" | "resume" | "revoke") {
+    if (action === "revoke" && !confirm("Revoke this agent? Its Pay Tokens will stop charging immediately.")) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await fetch(`/api/agents/${agentId}/${action}`, { method: "POST" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `${action}_failed`);
+      setAgents((as) => as?.map((a) => (a.agentId === agentId ? { ...a, status: j.agent.status } : a)) ?? null);
+    } catch (e) { setErr(e instanceof Error ? e.message : `${action}_failed`); }
+    finally { setBusy(false); }
+  }
+
+  const inputCls = "w-full rounded-lg border border-[#1a0f00]/15 bg-white px-3 py-2 text-[12.5px] focus:outline-none focus:border-[#1a0f00]/40";
+
+  return (
+    <>
+      <PaneHeading
+        eyebrow="Agent Identity"
+        title="Agents"
+        subtitle="Give each AI agent an identity with a spend rollup and a kill switch. Budget = the Pay Tokens bound to it (no pooled balance, custody-free)."
+        action={<button type="button" onClick={() => setCreating((v) => !v)} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90">{creating ? "Cancel" : "New agent"}</button>}
+      />
+
+      {creating && (
+        <div className="mb-4 rounded-2xl bg-white border border-[#1a0f00]/10 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2"><label className="block text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-1">Display name</label><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sales Agent" /></div>
+          <div className="sm:col-span-2"><label className="block text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/50 mb-1">Handle (optional)</label><input className={`${inputCls} font-mono`} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="sales-agent-001" /></div>
+          <div className="sm:col-span-2"><button type="button" disabled={busy || !name.trim()} onClick={create} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90 disabled:opacity-50">{busy ? "Creating…" : "Create agent"}</button></div>
+        </div>
+      )}
+
+      {err && <p className="mb-3 text-[11.5px] text-[#dc2626] font-semibold">⚠ {err}</p>}
+
+      {agents === null ? (
+        <p className="text-[12px] text-[#1a0f00]/45">Loading…</p>
+      ) : agents.length === 0 ? (
+        <EmptyState actionLabel="New agent" onAction={() => setCreating(true)} hint="Create an agent, then bind a Pay Token to it when you issue one." />
+      ) : (
+        <div className="space-y-3">
+          {agents.map((a) => (
+            <div key={a.agentId} className="rounded-2xl bg-white border border-[#1a0f00]/10 p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <h3 className="text-[15px] font-bold">{a.displayName}</h3>
+                    <AgentStatusPill status={a.status} />
+                  </div>
+                  <code className="font-mono text-[11px] text-[#1a0f00]/55">{a.agentId}</code>
+                </div>
+                <div className="flex items-center gap-2">
+                  {a.status === "active" && <button type="button" disabled={busy} onClick={() => act(a.agentId, "pause")} className="text-[11.5px] font-semibold text-[#b45309] hover:underline disabled:opacity-50">Pause</button>}
+                  {a.status === "paused" && <button type="button" disabled={busy} onClick={() => act(a.agentId, "resume")} className="text-[11.5px] font-semibold text-[#16A34A] hover:underline disabled:opacity-50">Resume</button>}
+                  {a.status !== "revoked" && <button type="button" disabled={busy} onClick={() => act(a.agentId, "revoke")} className="text-[11.5px] font-semibold text-[#dc2626] hover:underline disabled:opacity-50">Revoke</button>}
+                </div>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <Stat label="Pay Tokens" v={String(a.tokenCount)} />
+                <Stat label="Spent" v={fmtUsd(a.totalSpent)} />
+                <Stat label="Remaining" v={fmtUsd(a.remaining)} />
+                <Stat label="Calls" v={String(a.totalCalls)} />
+                <Stat label="Last used" v={a.lastUsedAt ? timeAgo(new Date(a.lastUsedAt).getTime()) : "—"} />
+              </dl>
+              <div className="mt-4 pt-4 border-t border-[#1a0f00]/6 text-[11.5px] text-[#1a0f00]/60">
+                Bind a Pay Token to this agent when issuing one in{" "}
+                <button type="button" onClick={() => goTo("paytoken")} className="font-semibold text-[#1a0f00] hover:underline">Pay Tokens</button>.
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

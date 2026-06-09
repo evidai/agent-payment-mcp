@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { backendEnvReady, sql, verifyPayToken, isGatewayHalted, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
 import { checkTokenSpendable, computeFee, isOwnerInFreeTier, isRateLimited } from "@/lib/lc-meter";
+import { ensureAgentIdentitySchema, checkAgentForToken } from "@/lib/lc-agents";
 
 export const dynamic = "force-dynamic";
 // Pin gateway functions to Tokyo so they sit next to the Supabase DB
@@ -108,6 +109,7 @@ async function handle(req: Request, { params }: Ctx) {
   // Global kill switch — halt ALL charging/forwarding instantly (operator console
   // or LC_KILL_SWITCH env). Returns 503 before any settlement or upstream call.
   if (await isGatewayHalted()) return jsonErr(req, 503, "gateway_halted");
+  await ensureAgentIdentitySchema(); // guarantees agent_id columns; no-op after warmup
 
   const { shortId } = await params;
 
@@ -144,6 +146,18 @@ async function handle(req: Request, { params }: Ctx) {
   `;
   if (tokens.length === 0) return jsonErr(req, 401, "pay_token_not_found");
   const tok = tokens[0];
+
+  // Agent Identity kill switch — if this Pay Token is bound to an Agent, the
+  // Agent must be usable (exists, owner matches, not paused/revoked). No-op for
+  // unbound tokens. Stops the token even with budget remaining.
+  const agentCheck = await checkAgentForToken(tok);
+  if (!agentCheck.ok) {
+    await sql()`
+      insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
+      values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_revoked', ${charge})
+    `;
+    return jsonErr(req, 403, agentCheck.reason);
+  }
 
   // Spendability — shared decision with the SDK path (lc-meter) so the gateway
   // and /api/sdk never disagree on what a usable Pay Token is. The side effects
@@ -253,8 +267,8 @@ async function handle(req: Request, { params }: Ctx) {
         where id = ${tok.id}
       `,
       sql()`
-        insert into lc_test_runs (endpoint_id, pay_token_id, owner_id, gross, fee, net, upstream_status, upstream_ms)
-        values (${ep.id}, ${tok.id}, ${ep.owner_id}, ${charge}, ${fee}, ${net}, ${upstreamRes.status}, ${ms})
+        insert into lc_test_runs (endpoint_id, pay_token_id, owner_id, gross, fee, net, upstream_status, upstream_ms, agent_id)
+        values (${ep.id}, ${tok.id}, ${ep.owner_id}, ${charge}, ${fee}, ${net}, ${upstreamRes.status}, ${ms}, ${tok.agent_id ?? null})
       `,
     ]);
   }
