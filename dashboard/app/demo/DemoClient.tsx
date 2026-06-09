@@ -214,7 +214,7 @@ console.log(await res.json());`;
             </div>
           </div>
 
-          <div className="grid gap-0 xl:grid-cols-[330px_minmax(0,1fr)]">
+          <div className="grid gap-0 xl:grid-cols-[360px_minmax(0,1fr)]">
             <div className="border-b border-[#1a0f00]/8 p-5 sm:p-6 xl:border-b-0 xl:border-r">
               <div className="space-y-3">
                 <ActionButton
@@ -261,18 +261,18 @@ console.log(await res.json());`;
               )}
             </div>
 
-            <div className="grid gap-0 md:grid-cols-2">
-              <div className="border-b border-[#1a0f00]/8 p-5 sm:p-6 md:border-b-0 md:border-r">
+            <div className="grid gap-0">
+              <div className="border-b border-[#1a0f00]/8 p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#1a0f00]/42">Live event log</p>
-                    <h2 className="mt-1 text-[16px] font-black">What LemonCake checks</h2>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#1a0f00]/42">Live event log</p>
+                    <h2 className="mt-1 text-[18px] font-black leading-tight">Gateway checks</h2>
                   </div>
-                  <span className="rounded-full bg-[#fffd43] px-2.5 py-1 text-[11px] font-black">$0 real funds</span>
+                  <span className="flex-none rounded-full bg-[#fffd43] px-2.5 py-1 text-[11px] font-black whitespace-nowrap">$0 real funds</span>
                 </div>
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {eventLog.map((event) => (
-                    <div key={event.label} className="flex gap-3">
+                    <div key={event.label} className="flex gap-3 rounded-lg border border-[#1a0f00]/8 bg-[#fbfbf4] p-3">
                       <span className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full border text-[11px] font-black ${
                         event.state === "done"
                           ? "border-[#11995c] bg-[#e9fbf1] text-[#11995c]"
@@ -282,8 +282,8 @@ console.log(await res.json());`;
                       }`}>
                         {event.state === "done" ? <IconCheck /> : ""}
                       </span>
-                      <div>
-                        <p className="text-[13px] font-black">{event.label}</p>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-black leading-tight">{event.label}</p>
                         <p className="mt-0.5 text-[12px] leading-relaxed text-[#1a0f00]/55">{event.detail}</p>
                       </div>
                     </div>
@@ -293,11 +293,11 @@ console.log(await res.json());`;
 
               <div className="p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#1a0f00]/42">Seller ledger</p>
-                    <h2 className="mt-1 text-[16px] font-black">Usage and revenue</h2>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#1a0f00]/42">Seller ledger</p>
+                    <h2 className="mt-1 text-[18px] font-black leading-tight">Usage and revenue</h2>
                   </div>
-                  <div className="text-right">
+                  <div className="flex-none text-right">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#1a0f00]/38">Revenue</p>
                     <p className="text-[24px] font-black tabular-nums">${revenue.toFixed(2)}</p>
                   </div>
