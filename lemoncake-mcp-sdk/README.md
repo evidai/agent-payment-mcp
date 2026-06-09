@@ -1,5 +1,14 @@
 # @lemon-cake/mcp-sdk
 
+> ⚠️ **Legacy billing path.** This SDK's production charge flow still routes
+> through the older billing backend (`api.lemoncake.xyz`, USDC-era). A new
+> fiat/Stripe seller SDK is in progress. To **try the current no-crypto flow**
+> today, scaffold a sandbox starter with
+> **[`create-lemon-mcp`](https://www.npmjs.com/package/create-lemon-mcp)**
+> (`npx create-lemon-mcp`). Production billing for your own endpoint (env-only
+> go-live) lands in Phase 2 — until then, register your endpoint in
+> [LemonCake /app](https://lemoncake.xyz/app).
+
 **The SDK for LemonCake's AI API Gatekeeper.** Add per-call billing + spend caps to any MCP server or HTTP API in one line of code. MIT — the open core of [LemonCake](https://lemoncake.xyz).
 
 [![npm](https://img.shields.io/npm/v/@lemon-cake/mcp-sdk)](https://www.npmjs.com/package/@lemon-cake/mcp-sdk)
