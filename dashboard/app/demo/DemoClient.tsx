@@ -332,7 +332,7 @@ console.log(await res.json());`;
           </div>
         </div>
 
-        <aside className="rounded-lg border border-[#1a0f00]/10 bg-[#10100d] text-white shadow-sm">
+        <aside className="self-start rounded-lg border border-[#1a0f00]/10 bg-[#10100d] text-white shadow-sm">
           <div className="border-b border-white/10 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -365,7 +365,7 @@ console.log(await res.json());`;
               ))}
             </div>
           </div>
-          <pre className="min-h-[360px] overflow-x-auto p-4 text-[11px] leading-relaxed text-[#fffd43]/86">
+          <pre className="min-h-[150px] overflow-x-auto p-4 text-[11px] leading-relaxed text-[#fffd43]/86">
             <code>{activeSnippet}</code>
           </pre>
           <div className="border-t border-white/10 px-4 py-3 text-[11px] leading-relaxed text-white/42">
@@ -396,9 +396,9 @@ console.log(await res.json());`;
 
 function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
-    <div className={`rounded-lg border border-[#1a0f00]/8 bg-white ${compact ? "px-3 py-2" : "px-3 py-2.5"}`}>
+    <div className={`flex flex-col rounded-lg border border-[#1a0f00]/8 bg-white ${compact ? "px-3 py-2" : "px-3 py-2.5"}`}>
       <p className="text-[9.5px] font-black uppercase tracking-[0.15em] text-[#1a0f00]/36">{label}</p>
-      <p className={`${compact ? "text-[17px]" : "text-[21px]"} mt-1 font-black leading-none tabular-nums`}>{value}</p>
+      <p className={`${compact ? "text-[17px]" : "text-[21px]"} mt-auto pt-1 font-black leading-none tabular-nums`}>{value}</p>
     </div>
   );
 }
