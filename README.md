@@ -2,9 +2,9 @@
 
 # 🍋 LemonCake
 
-**Monetize MCP servers and HTTP APIs in minutes.** `Private Beta · Open core`
+**The billing, budget & identity layer for software for agents.** `Private Beta · Open core`
 
-*Paste an API URL, set a per-call price, and share a buy link. Buyers pay by card; agents call with spend-capped Pay Tokens — **no crypto wallet**.*
+*Monetize any MCP/API in minutes, and let AI agents pay for it safely — each agent gets a spend-capped identity (budget, usage, pause/revoke). Buyers pay by card; **no crypto wallet**.*
 *First 3,000 calls free (lifetime). Then 3% only when your API earns.*
 
 [![License: MIT (SDK)](https://img.shields.io/badge/license-MIT_(SDK)-green.svg)](LICENSE)
@@ -122,20 +122,49 @@ Monetize any HTTP API or MCP server:
 
 1. Sign in at [lemoncake.xyz/app](https://lemoncake.xyz/app)
 2. **Add API** — paste your URL, set price per call (e.g. `$0.01`)
-3. Share the **buy link** — buyers prepay, Pay Token issued automatically
-4. **You keep 97%.** LemonCake takes 3% once at checkout (Stripe Connect Direct Charge). Never holds funds.
+3. Share the **buy link**, or issue a **Seller Key** (`sk_live_…`) to charge from your own server
+4. **You keep 97%.** LemonCake takes 3% (Stripe Connect Direct Charge). Never holds funds.
 
-Add billing with the SDK (optional):
+**Scaffold a paid MCP in one command** — sandbox by default, production with one env var:
 
-```typescript
-import { withPayment } from "@lemon-cake/mcp-sdk";
-
-server.tool("my_premium_tool", withPayment({ price: 0.01 }, async (args) => {
-  return { content: [{ type: "text", text: "result" }] };
-}));
+```bash
+npx create-lemon-mcp my-paid-mcp     # demo runs with no key
+# then: set LEMONCAKE_SELLER_KEY=sk_live_… → it charges for real (no code change)
 ```
 
-Or route existing traffic through `https://lemoncake.xyz/g/<shortId>` — **no code changes required**.
+Add billing to any tool with the SDK ([`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) v1, no crypto):
+
+```typescript
+import { createLemonCakeSDK } from "@lemon-cake/mcp-sdk";
+
+const lc = createLemonCakeSDK();   // reads LEMONCAKE_SELLER_KEY (demo without it)
+
+server.tool("my_premium_tool", "desc", { q: z.string() },
+  lc.charge({ price: 0.01 })(async ({ q }) => {
+    return { content: [{ type: "text", text: "result" }] };
+  }),
+);
+```
+
+`lc.charge` wraps the handler: preflight (reserve) → run → settle (confirm on success, refund on failure). Or route existing traffic through `https://lemoncake.xyz/g/<shortId>` — **no code changes required**.
+
+---
+
+## 🪪 Agent Identity
+
+Give each AI agent its own spend-capped identity — so a fleet can pay for APIs without a shared card or runaway cost. Built on top of Pay Tokens; **no balance pool, custody-free** (an agent's "budget" is just the Pay Tokens bound to it).
+
+- **Bind a Pay Token to an agent** when issuing it (`agentId`) → spend is attributed to that agent.
+- **Per-agent rollup** — budget, spend, calls, last-used in the dashboard.
+- **Kill switch** — `pause` / `resume` / `revoke` an agent; bound tokens are rejected at the gateway instantly (`AGENT_PAUSED` / `AGENT_REVOKED`), even with budget remaining.
+- **Server-authoritative** — price is set on the endpoint; agents never carry a card or a seller key.
+
+```bash
+# manage agents (owner-authenticated)
+POST /api/agents            # create  → { agent_id, ... }
+POST /api/agents/:id/pause  # kill switch (also /resume, /revoke)
+GET  /api/agents            # list + per-agent spend rollup
+```
 
 ---
 
@@ -148,10 +177,16 @@ Or route existing traffic through `https://lemoncake.xyz/g/<shortId>` — **no c
 - ✅ **Demo Mode** — 8 free tools, try without any setup
 
 ### For API providers / sellers
-- ✅ **Gateway in minutes** — register any HTTP API, get a URL instantly
+- ✅ **5-min go-live** — `npx create-lemon-mcp`, or `lc.charge()` on any tool, or route through the gateway
 - ✅ **Custody-free** — Stripe Connect Direct Charge, 97% goes directly to seller
 - ✅ **Usage ledger** — every call recorded, revenue visible in dashboard
 - ✅ **Buy link** — share one URL, buyers self-serve
+
+### For agent fleets / operators
+- ✅ **Per-agent identity** — bind Pay Tokens to an agent, attribute spend
+- ✅ **Per-agent kill switch** — pause / resume / revoke, enforced at the gateway
+- ✅ **Spend rollup** — budget / spent / calls per agent
+- ✅ **No balance pool** — custody-free; budget = the agent's bound Pay Tokens
 
 ### Infrastructure
 - 🔧 Stripe Connect Direct Charge (no custody)
@@ -212,7 +247,8 @@ See [lemoncake.xyz/security](https://lemoncake.xyz/security)
 | Package | What it does |
 |---|---|
 | [`agent-payment-mcp`](https://www.npmjs.com/package/agent-payment-mcp) | Main entry — x402 gateway + agent payment rail |
-| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | SDK for sellers to monetize their MCP servers |
+| [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) | Seller SDK — `lc.charge()` / `lc.protect()`, fiat, no crypto |
+| [`create-lemon-mcp`](https://www.npmjs.com/package/create-lemon-mcp) | Scaffold a paid MCP server — sandbox→prod with one env var |
 | [`xstocks-mcp`](https://www.npmjs.com/package/xstocks-mcp) | Buy tokenized US stocks on Solana |
 | [`alpaca-guard-mcp`](https://www.npmjs.com/package/alpaca-guard-mcp) | Alpaca paper / live trading with hard daily cap |
 | [`tokenized-stock-mcp`](https://www.npmjs.com/package/tokenized-stock-mcp) | Dinari dShares |
