@@ -180,6 +180,14 @@ export interface MCPTextContent {
 export interface MCPToolResult {
   content: MCPTextContent[];
   isError?: boolean;
+  /**
+   * Index signature so a wrapped handler's return type is assignable to the
+   * @modelcontextprotocol/sdk CallToolResult (which carries `[x: string]:
+   * unknown` for `_meta` + structuredContent). Without this, registering
+   * `lc.charge(opts)(handler)` directly with `server.tool(...)` fails to
+   * typecheck. Keeps the clean "wrap your handler" DX with no casts.
+   */
+  [x: string]: unknown;
 }
 
 // ─── SDK instance shape ───────────────────────────────────────────────────────
