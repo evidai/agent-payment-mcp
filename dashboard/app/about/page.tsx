@@ -152,7 +152,7 @@ export default function AboutPage() {
         <section className="relative max-w-6xl mx-auto px-6 pt-12 pb-10 md:pt-20 md:pb-16 min-h-[calc(100vh-64px)] flex items-center">
           <div className="pointer-events-none absolute -right-16 top-10 hidden md:block w-[52%] max-w-[600px]">
             <Image
-              src="/hero-visual.png"
+              src="/hero-visual.webp"
               alt="LemonCake — AI agent payment infrastructure"
               width={2508}
               height={2508}
@@ -211,7 +211,7 @@ export default function AboutPage() {
             </dl>
             <div className="mt-7 md:hidden">
               <Image
-                src="/hero-visual.png"
+                src="/hero-visual.webp"
                 alt="LemonCake — AI agent payment infrastructure"
                 width={2508}
                 height={2508}
