@@ -28,7 +28,7 @@ const lc = createLemonCakeSDK({
 if (lc.isDemo) {
   console.error("[advanced] Running in DEMO MODE — no real charges.");
 } else {
-  console.error("[advanced] LIVE MODE — real USDC charges enabled.");
+  console.error("[advanced] LIVE MODE — real card charges enabled.");
 }
 
 // ── 2. Create MCP server ───────────────────────────────────────────────────
@@ -170,8 +170,8 @@ async function logEarnings() {
   try {
     const earnings = await lc.getEarnings();
     console.error(
-      `[advanced] Earnings — total: $${earnings.totalEarned} USDC | ` +
-        `today: $${earnings.todayEarned} USDC | calls: ${earnings.callCount}`
+      `[advanced] Earnings — total: $${earnings.totalEarned} | ` +
+        `today: $${earnings.todayEarned} | calls: ${earnings.callCount}`
     );
   } catch (err) {
     console.error("[advanced] Could not fetch earnings:", err);

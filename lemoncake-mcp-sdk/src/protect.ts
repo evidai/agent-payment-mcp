@@ -70,7 +70,7 @@ type NextFn = (err?: unknown) => void;
  */
 export interface ProtectOptions {
   /**
-   * Price per call in USDC. Must be > 0 unless in demo mode.
+   * Price per call in USD. Must be > 0 unless in demo mode.
    */
   cost:     number;
 
@@ -212,21 +212,23 @@ export function buildProtect(
       }
 
       // (4) Pre-flight with the LemonCake API. The API enforces rate-limit,
-      //     free-tier consumption, permit cap, etc. — we don't duplicate
-      //     those checks client-side to avoid cache-coherency bugs.
+      //     free-tier consumption, spend cap, etc. — we don't duplicate those
+      //     checks client-side to avoid cache-coherency bugs.
+      const idempotencyKey =
+        (globalThis as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() ??
+        `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
       let chargeId: string | null = null;
       try {
         const preflight = await client.preflight({
           payToken,
-          amount:    cost,
           toolName,
-          sellerId:  serviceId,
+          idempotencyKey,
         });
 
         if (!preflight.allowed) {
           return sendError(res, 402, {
             error:    "payment_required",
-            message:  "Budget exhausted, permit revoked, or rate-limited",
+            message:  preflight.reason ?? "Budget exhausted, token expired/revoked, or rate-limited",
           });
         }
         chargeId = preflight.chargeId;
@@ -250,9 +252,6 @@ export function buildProtect(
           void client
             .charge({
               chargeId: heldChargeId,
-              toolName,
-              amount:   cost,
-              sellerId: serviceId,
               success:  sc >= 200 && sc < 400,
             })
             .catch(() => { /* fire-and-forget — never block the response */ });

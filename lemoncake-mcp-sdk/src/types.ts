@@ -13,7 +13,7 @@ export interface LemonCakeSDKConfig {
   sellerKey?: string;
 
   /**
-   * LemonCake API base URL. Defaults to https://api.lemoncake.xyz
+   * LemonCake API base URL. Defaults to https://www.lemoncake.xyz
    */
   apiUrl?: string;
 
@@ -36,8 +36,9 @@ export interface LemonCakeSDKConfig {
 
 export interface ChargeOptions {
   /**
-   * Price per call in USDC. Range: 0.001–1.00.
-   * Examples: 0.01 ($0.01/call), 0.05 ($0.05/call)
+   * Price per call in USD, used for local free-tier accounting and logging.
+   * The actual charge is the endpoint's configured price in /app
+   * (server-authoritative). Range: 0.001–1.00. Examples: 0.01, 0.05.
    */
   price: number;
 
@@ -96,16 +97,28 @@ export interface MiddlewareConfig {
 
 export interface PreflightResponse {
   allowed: boolean;
-  remainingUsdc: string;
   chargeId: string;
+  currency?: "usd";
+  /** Price required for this call (the endpoint's configured price). */
+  required?: number;
+  /** Remaining prepaid budget on the Pay Token, in USD. */
+  remaining?: number;
+  /** True when a retried idempotencyKey returned an existing reservation. */
+  alreadyReserved?: boolean;
+  /** Present when allowed=false (e.g. spend_cap_exceeded, invalid_token). */
   reason?: string;
 }
 
 export interface ChargeResponse {
-  chargeId: string;
-  charged: string;
-  newBalance: string;
-  status: "completed" | "demo" | "free";
+  ok: boolean;
+  /** Amount charged in USD (0 on cancel). */
+  charged: number;
+  /** Remaining prepaid budget after this charge, in USD. */
+  remaining: number;
+  /** Settlement reference for reconciliation. */
+  chargeRef: string;
+  /** True when the charge was confirmed (recorded as earnings); false on cancel. */
+  settled: boolean;
 }
 
 export interface EarningsResponse {
@@ -142,7 +155,7 @@ export interface MCPToolContext {
 // ─── Charge result (returned by the SDK wrapper) ──────────────────────────────
 
 export type ChargeResult =
-  | { status: "charged"; chargeId: string; amountUsdc: string }
+  | { status: "charged"; chargeId: string; amount: number }
   | { status: "free"; callsRemaining: number }
   | { status: "demo" }
   | { status: "error"; code: PaymentErrorCode; message: string };
@@ -167,6 +180,14 @@ export interface MCPTextContent {
 export interface MCPToolResult {
   content: MCPTextContent[];
   isError?: boolean;
+  /**
+   * Index signature so a wrapped handler's return type is assignable to the
+   * @modelcontextprotocol/sdk CallToolResult (which carries `[x: string]:
+   * unknown` for `_meta` + structuredContent). Without this, registering
+   * `lc.charge(opts)(handler)` directly with `server.tool(...)` fails to
+   * typecheck. Keeps the clean "wrap your handler" DX with no casts.
+   */
+  [x: string]: unknown;
 }
 
 // ─── SDK instance shape ───────────────────────────────────────────────────────
