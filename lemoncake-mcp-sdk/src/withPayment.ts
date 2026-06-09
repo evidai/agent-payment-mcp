@@ -80,6 +80,13 @@ function hashString(s: string): string {
   return (h >>> 0).toString(36);
 }
 
+/** Unique idempotency key for one tool invocation's reserve→confirm pair. */
+function newIdempotencyKey(): string {
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  return `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // ─── Main wrapper factory ────────────────────────────────────────────────────
 
 export function buildChargeWrapper(
@@ -154,25 +161,29 @@ export function buildChargeWrapper(
           );
         }
 
+        // One idempotency key per tool invocation — a retried preflight (e.g.
+        // after a transient network error) returns the SAME reservation rather
+        // than reserving budget twice.
+        const idempotencyKey = newIdempotencyKey();
+
         let chargeId: string;
         try {
           const preflight = await client.preflight({
             payToken,
-            amount: options.price,
             toolName,
-            sellerId: serviceId,
+            idempotencyKey,
           });
 
           if (!preflight.allowed) {
             const reason = preflight.reason ?? "Insufficient balance or token limit exceeded.";
             return paymentRequiredResponse("INSUFFICIENT_FUNDS", reason, {
-              remainingUsdc: preflight.remainingUsdc,
-              requiredUsdc: options.price.toFixed(6),
+              remaining: preflight.remaining,
+              required: preflight.required,
               x402: x402
                 ? {
                     header: "X-Payment-Required: lemoncake-pay-token",
-                    amount: options.price.toFixed(6),
-                    asset: "USDC",
+                    amount: preflight.required != null ? preflight.required.toFixed(6) : options.price.toFixed(6),
+                    currency: "usd",
                   }
                 : undefined,
             });
@@ -199,21 +210,13 @@ export function buildChargeWrapper(
         try {
           const chargeResult = await client.charge({
             chargeId,
-            toolName,
-            amount: options.price,
-            sellerId: serviceId,
             success,
           });
 
           // Append receipt info to the first text content if x402 mode is on
-          if (x402 && success && chargeResult) {
-            const receipt = {
-              chargeId: chargeResult.chargeId,
-              amountUsdc: chargeResult.charged,
-              newBalance: chargeResult.newBalance,
-            };
+          if (x402 && success && chargeResult?.settled) {
             console.log(
-              `[LemonCake SDK] CHARGED | tool=${toolName} | amount=$${chargeResult.charged} USDC | chargeId=${chargeResult.chargeId}`
+              `[LemonCake SDK] CHARGED | tool=${toolName} | amount=$${chargeResult.charged} | remaining=$${chargeResult.remaining} | ref=${chargeResult.chargeRef}`
             );
             // Attach receipt as a second content block (non-intrusive)
             toolResult = {
@@ -222,7 +225,7 @@ export function buildChargeWrapper(
                 ...toolResult.content,
                 {
                   type: "text",
-                  text: `\n[LemonCake] Charged $${chargeResult.charged} USDC (chargeId: ${receipt.chargeId})`,
+                  text: `\n[LemonCake] Charged $${chargeResult.charged} (remaining $${chargeResult.remaining}, ref ${chargeResult.chargeRef})`,
                 },
               ],
             };

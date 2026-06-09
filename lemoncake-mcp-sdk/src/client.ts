@@ -1,10 +1,14 @@
 /**
- * @lemoncake/mcp-sdk — LemonCake API client
+ * @lemon-cake/mcp-sdk — LemonCake API client
  *
- * Wraps the three SDK endpoints:
- *   POST /api/sdk/preflight  → check balance, reserve chargeId
- *   POST /api/sdk/charge     → confirm or cancel charge
- *   GET  /api/sdk/earnings   → seller earnings
+ * Wraps the seller-side fiat billing endpoints:
+ *   POST /api/sdk/preflight  → validate the buyer Pay Token + reserve a charge
+ *   POST /api/sdk/charge     → confirm (record earnings) or cancel (refund)
+ *   GET  /api/sdk/earnings   → seller earnings (coming soon)
+ *
+ * Buyers prepay by card; this SDK decrements the prepaid Pay Token per call.
+ * No crypto, no per-call card charge. The endpoint's price (set in /app) is
+ * authoritative — the SDK never asserts an amount, so it can't drift from it.
  */
 
 import type {
@@ -14,9 +18,9 @@ import type {
 } from "./types.js";
 import { LemonCakeAPIError } from "./errors.js";
 
-const DEFAULT_API_URL = "https://api.lemoncake.xyz";
-const SDK_VERSION = "0.1.0";
-const USER_AGENT = `@lemoncake/mcp-sdk/${SDK_VERSION} (node/${typeof process !== "undefined" ? process.versions.node : "unknown"})`;
+const DEFAULT_API_URL = "https://www.lemoncake.xyz";
+const SDK_VERSION = "1.0.0";
+const USER_AGENT = `@lemon-cake/mcp-sdk/${SDK_VERSION} (node/${typeof process !== "undefined" ? process.versions.node : "unknown"})`;
 
 export class LemonCakeClient {
   private readonly apiUrl: string;
@@ -30,20 +34,22 @@ export class LemonCakeClient {
   // ─── preflight ─────────────────────────────────────────────────────────────
 
   /**
-   * Check whether a charge is allowed before executing the tool.
-   * Returns a chargeId to use in the subsequent charge() call.
+   * Validate the buyer Pay Token for this seller's resource and RESERVE the
+   * charge. Returns a chargeId to confirm/cancel after the tool runs.
+   *
+   * The amount is NOT sent — the gateway charges the endpoint's configured
+   * price (server-authoritative). `idempotencyKey` makes a retried preflight
+   * return the same reservation instead of double-reserving.
    */
   async preflight(params: {
     payToken: string;
-    amount: number;
     toolName: string;
-    sellerId?: string;
+    idempotencyKey: string;
   }): Promise<PreflightResponse> {
     const res = await this.post("/api/sdk/preflight", {
       payToken: params.payToken,
-      amount: params.amount.toFixed(6),
       toolName: params.toolName,
-      sellerId: params.sellerId,
+      idempotencyKey: params.idempotencyKey,
     });
     return res as PreflightResponse;
   }
@@ -51,20 +57,15 @@ export class LemonCakeClient {
   // ─── charge ────────────────────────────────────────────────────────────────
 
   /**
-   * Confirm (success=true) or cancel (success=false) a previously preflight'd charge.
+   * Confirm (success=true → record earnings) or cancel (success=false →
+   * refund the reservation) a previously preflight'd charge. Idempotent.
    */
   async charge(params: {
     chargeId: string;
-    toolName: string;
-    amount: number;
-    sellerId?: string;
     success: boolean;
   }): Promise<ChargeResponse> {
     const res = await this.post("/api/sdk/charge", {
       chargeId: params.chargeId,
-      toolName: params.toolName,
-      amount: params.amount.toFixed(6),
-      sellerId: params.sellerId,
       success: params.success,
     });
     return res as ChargeResponse;

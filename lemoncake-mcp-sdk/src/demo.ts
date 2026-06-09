@@ -26,7 +26,7 @@ export async function runInDemoMode(
 ): Promise<MCPToolResult> {
   const price = options.price.toFixed(6);
   console.log(
-    `[LemonCake SDK] DEMO CHARGE | tool=${toolName} | price=$${price} USDC | ` +
+    `[LemonCake SDK] DEMO CHARGE | tool=${toolName} | price=$${price} | ` +
       `payToken=<not checked in demo>`
   );
 
@@ -69,7 +69,7 @@ function prependDemoNotice(
   toolName: string,
   price: string
 ): MCPToolResult {
-  const notice = `[DEMO] Would have charged $${price} USDC for tool "${toolName}". Set LEMONCAKE_SELLER_KEY to enable real billing.\n\n`;
+  const notice = `[DEMO] Would have charged $${price} for tool "${toolName}". Set LEMONCAKE_SELLER_KEY to enable real billing.\n\n`;
   const [first, ...rest] = result.content;
   return {
     ...result,
