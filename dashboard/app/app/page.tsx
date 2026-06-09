@@ -1856,6 +1856,7 @@ function ApisPane({ endpoints, tokens, runs, api, goTo, paymentsReady }: { endpo
                 <button type="button" onClick={() => setEditingId(editingId === e.id ? null : e.id)} className="text-[11.5px] font-semibold text-[#1a0f00] hover:underline">{editingId === e.id ? "Cancel" : "Edit"}</button>
               </div>
               {editingId === e.id && <EndpointEditForm e={e} api={api} onClose={() => setEditingId(null)} />}
+              <SellerKeyManager endpointId={e.id} />
             </div>
           );
         })}
@@ -1915,6 +1916,140 @@ function EndpointEditForm({ e, api, onClose }: { e: Endpoint; api: Api; onClose:
         <button type="button" disabled={busy} onClick={save} className="px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90 disabled:opacity-50">{done ? "Saved ✓" : busy ? "Saving…" : "Save changes"}</button>
         <button type="button" onClick={onClose} className="px-3 py-1.5 text-[12px] font-semibold text-[#1a0f00]/60 hover:text-[#1a0f00]">Cancel</button>
       </div>
+    </div>
+  );
+}
+
+/* Seller SDK Key manager — issue / list / revoke the sk_live_… keys that
+   authenticate a seller's OWN server to /api/sdk/{preflight,charge}. One key is
+   bound to one endpoint. The plaintext secret is shown exactly once, at the
+   moment it's generated — only its hash is stored. */
+type SellerKey = { id: string; prefix: string; env: string; status: string; createdAt: string; lastUsedAt: string | null };
+
+function SellerKeyManager({ endpointId }: { endpointId: string }) {
+  const [open, setOpen] = useState(false);
+  const [keys, setKeys] = useState<SellerKey[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<string | null>(null); // full sk_live_…, shown once
+  const [copied, setCopied] = useState(false);
+
+  async function load() {
+    setLoading(true); setErr(null);
+    try {
+      const r = await fetch(`/api/lc/endpoints/${endpointId}/seller-keys`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "load_failed");
+      setKeys(j.keys as SellerKey[]);
+    } catch (e) { setErr(e instanceof Error ? e.message : "load_failed"); }
+    finally { setLoading(false); }
+  }
+
+  function toggle() {
+    const next = !open; setOpen(next);
+    if (next && keys === null) load();
+  }
+
+  async function generate() {
+    setBusy(true); setErr(null); setFresh(null); setCopied(false);
+    try {
+      const r = await fetch(`/api/lc/endpoints/${endpointId}/seller-keys`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "issue_failed");
+      setFresh(j.key as string);
+      await load();
+    } catch (e) { setErr(e instanceof Error ? e.message : "issue_failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function revoke(id: string) {
+    if (!confirm("Revoke this key? Servers using it will immediately fail to charge.")) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await fetch(`/api/lc/seller-keys/${id}/revoke`, { method: "POST" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "revoke_failed");
+      setKeys((ks) => ks?.map((k) => (k.id === id ? { ...k, status: "revoked" } : k)) ?? null);
+    } catch (e) { setErr(e instanceof Error ? e.message : "revoke_failed"); }
+    finally { setBusy(false); }
+  }
+
+  const active = keys?.filter((k) => k.status === "active").length ?? 0;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#1a0f00]/6">
+      <button type="button" onClick={toggle} className="flex items-center gap-2 text-[11.5px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00]">
+        <Icon.Lock className="w-3.5 h-3.5" />
+        Seller SDK Key
+        {keys !== null && <span className="text-[10px] font-normal text-[#1a0f00]/45">({active} active)</span>}
+        <span className="text-[#1a0f00]/40">{open ? "▾" : "▸"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3">
+          <p className="text-[10.5px] text-[#1a0f00]/50 leading-snug mb-3">
+            Charge this endpoint from your own server with <code className="font-mono">@lemon-cake/mcp-sdk</code>. Set{" "}
+            <code className="font-mono">LEMONCAKE_SELLER_KEY</code> to a key below. One key = this endpoint only.
+          </p>
+
+          {/* Freshly minted key — shown once. */}
+          {fresh && (
+            <div className="mb-3 rounded-xl border border-[#fffd43] bg-[#fffd43]/20 p-3.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/65 mb-1.5">New key — copy it now</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 min-w-0 font-mono text-[12px] text-[#1a0f00] break-all">{fresh}</code>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard?.writeText(fresh); setCopied(true); }}
+                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1a0f00]/15 text-[11px] font-semibold text-[#1a0f00]/75 hover:text-[#1a0f00] rounded-lg transition-colors"
+                >
+                  <Icon.Copy className="w-3 h-3" /> {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <p className="mt-2 text-[10.5px] font-semibold text-[#9a6a00] leading-snug">
+                ⚠ Copy this key now. It will only be shown once — it cannot be retrieved later.
+              </p>
+              <button type="button" onClick={() => setFresh(null)} className="mt-2 text-[10.5px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] underline">I've saved it — dismiss</button>
+            </div>
+          )}
+
+          {err && <p className="mb-2 text-[11px] text-[#dc2626] font-semibold">⚠ {err}</p>}
+
+          {/* Existing keys */}
+          {loading && keys === null ? (
+            <p className="text-[11px] text-[#1a0f00]/45">Loading…</p>
+          ) : keys && keys.length > 0 ? (
+            <div className="space-y-1.5">
+              {keys.map((k) => (
+                <div key={k.id} className="flex items-center gap-3 rounded-lg border border-[#1a0f00]/10 bg-[#fafaf7] px-3 py-2">
+                  <code className="font-mono text-[12px] text-[#1a0f00]/80">{k.prefix}</code>
+                  <span className={`text-[9.5px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${k.status === "active" ? "text-[#16A34A] bg-[#16A34A]/10" : "text-[#1a0f00]/45 bg-[#1a0f00]/6"}`}>{k.status}</span>
+                  <span className="text-[10.5px] text-[#1a0f00]/45">created {timeAgo(new Date(k.createdAt).getTime())}</span>
+                  <span className="text-[10.5px] text-[#1a0f00]/45">{k.lastUsedAt ? `used ${timeAgo(new Date(k.lastUsedAt).getTime())}` : "never used"}</span>
+                  <div className="flex-1" />
+                  {k.status === "active" && (
+                    <button type="button" disabled={busy} onClick={() => revoke(k.id)} className="text-[11px] font-semibold text-[#dc2626] hover:underline disabled:opacity-50">Revoke</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#1a0f00]/45">No keys yet.</p>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={generate}
+            className="mt-3 px-3 py-1.5 bg-[#1a0f00] text-white text-[12px] font-semibold rounded-lg hover:bg-[#1a0f00]/90 disabled:opacity-50"
+          >
+            {busy ? "Generating…" : "Generate key"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
