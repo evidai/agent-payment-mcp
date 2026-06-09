@@ -227,6 +227,8 @@ export type PayTokenRow = {
   // Phase 2 (buyer prepaid bundles) — null for seller-issued test tokens.
   stripe_checkout_session_id?: string | null;
   buyer_email?: string | null;
+  // Agent Identity (thin layer) — set when this token is bound to an Agent.
+  agent_id?: string | null;
 };
 
 export type TestRunRow = {

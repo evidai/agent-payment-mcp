@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendEnvReady, ensureOwnerId, sql, signPayToken, type PayTokenRow } from "@/lib/lc-backend";
+import { ensureAgentIdentitySchema, assertAgentBindable } from "@/lib/lc-agents";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -41,11 +42,13 @@ type IssueBody = {
   budget?: number;
   expiresInHours?: number;
   maxCalls?: number;
+  agentId?: string; // optional: bind this Pay Token to an Agent (Agent Identity)
 };
 
 export async function POST(req: Request) {
   if (!backendEnvReady()) return notReady();
   const ownerId = await ensureOwnerId();
+  await ensureAgentIdentitySchema(); // guarantees lc_pay_tokens.agent_id exists
 
   let body: IssueBody;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
@@ -54,6 +57,7 @@ export async function POST(req: Request) {
   const budget = Number(body.budget);
   const hours = Math.max(1, Math.floor(Number(body.expiresInHours)));
   const maxCalls = Math.max(1, Math.floor(Number(body.maxCalls)));
+  const agentId = body.agentId ? String(body.agentId).trim() : null;
 
   if (!endpointId) return NextResponse.json({ error: "endpoint_required" }, { status: 400 });
   if (!(budget > 0)) return NextResponse.json({ error: "invalid_budget" }, { status: 400 });
@@ -69,12 +73,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "budget_exceeds_endpoint_cap", maxAllowed: epCap }, { status: 400 });
   }
 
+  // Optional Agent binding — owner must own a non-revoked agent.
+  if (agentId) {
+    const bindable = await assertAgentBindable(ownerId, agentId);
+    if (!bindable.ok) return NextResponse.json({ error: bindable.error }, { status: 400 });
+  }
+
   const jti = `pt_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
   const expiresAt = Date.now() + hours * 3600 * 1000;
 
   const [row] = await sql()<PayTokenRow[]>`
-    insert into lc_pay_tokens (id, endpoint_id, owner_id, budget, spent, max_calls, calls_used, expires_at, status)
-    values (${jti}, ${endpointId}, ${ownerId}, ${budget}, 0, ${maxCalls}, 0, ${new Date(expiresAt).toISOString()}, 'active')
+    insert into lc_pay_tokens (id, endpoint_id, owner_id, budget, spent, max_calls, calls_used, expires_at, status, agent_id)
+    values (${jti}, ${endpointId}, ${ownerId}, ${budget}, 0, ${maxCalls}, 0, ${new Date(expiresAt).toISOString()}, 'active', ${agentId})
     returning *
   `;
   const jwt = await signPayToken({ jti, sub: endpointId, own: ownerId }, expiresAt);

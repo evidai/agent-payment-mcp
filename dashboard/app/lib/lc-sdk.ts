@@ -27,6 +27,7 @@ import {
   isRateLimited,
   type TokenRejectReason,
 } from "@/lib/lc-meter";
+import { checkAgentForToken, type AgentRejectReason } from "@/lib/lc-agents";
 
 const RESERVE_TTL_MS = 60_000; // a reservation auto-expires (budget released) after 60s
 
@@ -58,10 +59,12 @@ create table if not exists lc_sdk_charges (
   reserved_until  timestamptz not null,
   charge_ref      text,
   tool_name       text,
+  agent_id        text,
   created_at      timestamptz not null default now(),
   unique (seller_key_id, idempotency_key)
 )
 create index if not exists lc_sdk_charges_token_idx on lc_sdk_charges(pay_token_id, status)
+alter table lc_sdk_charges add column if not exists agent_id text
 `;
 
 let _sdkSchemaReady: Promise<void> | null = null;
@@ -75,6 +78,8 @@ export function ensureSdkSchema(): Promise<void> {
           select (
             exists(select 1 from information_schema.tables where table_name = 'lc_seller_keys')
             and exists(select 1 from information_schema.tables where table_name = 'lc_sdk_charges')
+            and exists(select 1 from information_schema.columns
+                       where table_name = 'lc_sdk_charges' and column_name = 'agent_id')
           ) as ready
         `;
         if (probe[0]?.ready) return;
@@ -243,13 +248,21 @@ export type PreflightReason =
   | "env_mismatch"
   | "amount_mismatch"
   | "rate_limit_exceeded"
-  | TokenRejectReason;
+  | TokenRejectReason
+  | AgentRejectReason;
 
 const REJECT_STATUS: Record<TokenRejectReason, number> = {
   token_revoked: 403,
   token_expired: 402,
   token_exhausted: 402,
   spend_cap_exceeded: 402,
+};
+
+const AGENT_REJECT_STATUS: Record<AgentRejectReason, number> = {
+  AGENT_NOT_FOUND: 404,
+  AGENT_TOKEN_MISMATCH: 403,
+  AGENT_PAUSED: 403,
+  AGENT_REVOKED: 403,
 };
 
 export async function preflight(args: {
@@ -304,6 +317,11 @@ export async function preflight(args: {
   const toks = await sql()<PayTokenRow[]>`select * from lc_pay_tokens where id = ${claims.jti} limit 1`;
   if (toks.length === 0) return { allowed: false, reason: "invalid_token", status: 401 };
   const tok = toks[0];
+
+  // Agent Identity kill switch — bound token's agent must be usable.
+  const agentCheck = await checkAgentForToken(tok);
+  if (!agentCheck.ok) return { allowed: false, reason: agentCheck.reason, status: AGENT_REJECT_STATUS[agentCheck.reason] };
+
   const spend = checkTokenSpendable(tok, charge, Date.now());
   if (!spend.ok) return { allowed: false, reason: spend.reason, status: REJECT_STATUS[spend.reason] };
 
@@ -333,9 +351,9 @@ export async function preflight(args: {
   const reservedUntil = new Date(Date.now() + RESERVE_TTL_MS).toISOString();
   await sql()`
     insert into lc_sdk_charges
-      (id, idempotency_key, seller_key_id, endpoint_id, pay_token_id, owner_id, amount, status, reserved_until, tool_name)
+      (id, idempotency_key, seller_key_id, endpoint_id, pay_token_id, owner_id, amount, status, reserved_until, tool_name, agent_id)
     values
-      (${chargeId}, ${idempotencyKey}, ${sellerKey.id}, ${ep.id}, ${tok.id}, ${ep.owner_id}, ${charge}, 'reserved', ${reservedUntil}, ${toolName ?? null})
+      (${chargeId}, ${idempotencyKey}, ${sellerKey.id}, ${ep.id}, ${tok.id}, ${ep.owner_id}, ${charge}, 'reserved', ${reservedUntil}, ${toolName ?? null}, ${tok.agent_id ?? null})
   `;
 
   const remaining = await tokenRemaining(tok.id);
@@ -357,7 +375,7 @@ export async function settleCharge(args: {
 
   const rows = await sql()<{
     id: string; seller_key_id: string; endpoint_id: string; pay_token_id: string;
-    owner_id: string; amount: string; status: string; charge_ref: string | null;
+    owner_id: string; amount: string; status: string; charge_ref: string | null; agent_id: string | null;
   }[]>`select * from lc_sdk_charges where id = ${chargeId} limit 1`;
   if (rows.length === 0) return { ok: false, error: "charge_not_found", status: 404 };
   const c = rows[0];
@@ -385,8 +403,8 @@ export async function settleCharge(args: {
     const chargeRef = `sdk_${chargeId}`;
     await Promise.all([
       sql()`
-        insert into lc_test_runs (endpoint_id, pay_token_id, owner_id, gross, fee, net, upstream_status, upstream_ms)
-        values (${c.endpoint_id}, ${c.pay_token_id}, ${c.owner_id}, ${amount}, ${fee}, ${net}, 200, null)
+        insert into lc_test_runs (endpoint_id, pay_token_id, owner_id, gross, fee, net, upstream_status, upstream_ms, agent_id)
+        values (${c.endpoint_id}, ${c.pay_token_id}, ${c.owner_id}, ${amount}, ${fee}, ${net}, 200, null, ${c.agent_id ?? null})
       `,
       sql()`update lc_sdk_charges set status = 'charged', charge_ref = ${chargeRef} where id = ${chargeId} and status = 'reserved'`,
     ]);

@@ -94,6 +94,7 @@ export const en = {
   "nav.gateway": "Gateway",
   "nav.buyLinks": "Buy links",
   "nav.payTokens": "Pay Tokens",
+  "nav.agents": "Agents",
   "nav.testRequest": "Test Request",
   "nav.usageLedger": "Usage Ledger",
   "nav.blockedRequests": "Blocked Requests",

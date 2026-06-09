@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { backendEnvReady, isGatewayHalted } from "@/lib/lc-backend";
 import { ensureSdkSchema, resolveSellerKey, preflight } from "@/lib/lc-sdk";
+import { ensureAgentIdentitySchema } from "@/lib/lc-agents";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
   if (!backendEnvReady()) return NextResponse.json({ error: "backend_not_configured" }, { status: 503 });
   if (await isGatewayHalted()) return NextResponse.json({ error: "gateway_halted" }, { status: 503 });
   await ensureSdkSchema();
+  await ensureAgentIdentitySchema(); // agent_id columns + Agent kill-switch checks
 
   const sellerKey = await resolveSellerKey(req);
   if (!sellerKey) return NextResponse.json({ error: "invalid_seller_key" }, { status: 401 });

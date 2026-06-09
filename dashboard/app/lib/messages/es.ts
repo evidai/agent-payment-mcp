@@ -88,6 +88,7 @@ export const es: Messages = {
   "nav.gateway": "Gateway",
   "nav.buyLinks": "Enlaces de compra",
   "nav.payTokens": "Pay Tokens",
+  "nav.agents": "Agentes",
   "nav.testRequest": "Solicitud de prueba",
   "nav.usageLedger": "Registro de uso",
   "nav.blockedRequests": "Solicitudes bloqueadas",
