@@ -105,6 +105,33 @@ export async function GET(req: NextRequest) {
     where t.stripe_checkout_session_id is not null
   `;
 
+  // ── Activation funnel — where the 624→0 actually dies ─────────────────────
+  // Staged counts so the cliff is visible. Supply side is owner-keyed; the
+  // demand cliff is the jump from "issued a token" to "a real buyer paid".
+  const [funnel] = await db<{
+    owners_total: number; owners_endpoint: number; owners_priced: number;
+    owners_token: number; owners_purchase: number; owners_paid_call: number;
+    ep_total: number; ep_priced: number; ep_purchase: number; ep_paid_call: number;
+    agents_total: number; share_7d: number;
+  }[]>`
+    select
+      (select count(*) from lc_owners)::int as owners_total,
+      (select count(distinct owner_id) from lc_endpoints)::int as owners_endpoint,
+      (select count(distinct owner_id) from lc_endpoints where price_per_call > 0)::int as owners_priced,
+      (select count(distinct owner_id) from lc_pay_tokens)::int as owners_token,
+      (select count(distinct owner_id) from lc_pay_tokens where stripe_checkout_session_id is not null)::int as owners_purchase,
+      (select count(distinct t.owner_id) from lc_test_runs r join lc_pay_tokens t on t.id = r.pay_token_id
+         where t.stripe_checkout_session_id is not null)::int as owners_paid_call,
+      (select count(*) from lc_endpoints)::int as ep_total,
+      (select count(*) from lc_endpoints where price_per_call > 0)::int as ep_priced,
+      (select count(distinct endpoint_id) from lc_pay_tokens where stripe_checkout_session_id is not null)::int as ep_purchase,
+      (select count(distinct r.endpoint_id) from lc_test_runs r join lc_pay_tokens t on t.id = r.pay_token_id
+         where t.stripe_checkout_session_id is not null)::int as ep_paid_call,
+      (case when to_regclass('public.lc_agents') is not null
+            then (select count(*) from lc_agents) else 0 end)::int as agents_total,
+      (select count(*) from lc_share_events where created_at > now() - interval '7 days')::int as share_7d
+  `;
+
   // Blocked attempts (rate-limit / spend-cap / expired …) — last 7 days.
   const [blocked] = await db<{ total: number }[]>`
     select count(*)::int as total
@@ -201,6 +228,20 @@ export async function GET(req: NextRequest) {
       today: window(salesTs.today_gross, salesTs.today_orders, callsTs.today_calls, callsTs.today_gross),
       month: window(salesTs.month_gross, salesTs.month_orders, callsTs.month_calls, callsTs.month_gross),
       all:   window(salesTs.all_gross,   salesTs.all_orders,   callsTs.all_calls,   callsTs.all_gross),
+    },
+    funnel: {
+      owners: funnel.owners_total,
+      ownersWithEndpoint: funnel.owners_endpoint,
+      ownersWithPriced: funnel.owners_priced,
+      ownersWithToken: funnel.owners_token,
+      ownersWithPurchase: funnel.owners_purchase,
+      ownersWithPaidCall: funnel.owners_paid_call,
+      endpoints: funnel.ep_total,
+      endpointsPriced: funnel.ep_priced,
+      endpointsWithPurchase: funnel.ep_purchase,
+      endpointsWithPaidCall: funnel.ep_paid_call,
+      agents: funnel.agents_total,
+      shareEvents7d: funnel.share_7d,
     },
     blocked7d: blocked.total,
     feeRate: PLATFORM_FEE,

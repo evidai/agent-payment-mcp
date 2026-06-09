@@ -101,8 +101,59 @@ interface LcStats {
   sales:     { orders: number; buyers: number; gross: number; fee: number; net: number; spent: number; outstanding: number };
   gateway:   { calls: number; grossMetered: number };
   timeseries: { today: LcWindow; month: LcWindow; all: LcWindow };
+  funnel?: {
+    owners: number; ownersWithEndpoint: number; ownersWithPriced: number;
+    ownersWithToken: number; ownersWithPurchase: number; ownersWithPaidCall: number;
+    endpoints: number; endpointsPriced: number; endpointsWithPurchase: number; endpointsWithPaidCall: number;
+    agents: number; shareEvents7d: number;
+  };
   blocked7d: number;
   feeRate:   number;
+}
+
+// Activation funnel — shows where the 624→0 dies (each step + drop-off %).
+function FunnelView({ f }: { f: NonNullable<LcStats["funnel"]> }) {
+  const steps = [
+    { label: "Owners (visited /app)", v: f.owners },
+    { label: "Created an endpoint", v: f.ownersWithEndpoint },
+    { label: "Priced it (sellable)", v: f.ownersWithPriced },
+    { label: "Issued a Pay Token", v: f.ownersWithToken },
+    { label: "🧱 A real buyer PAID", v: f.ownersWithPurchase },
+    { label: "Real paid call happened", v: f.ownersWithPaidCall },
+  ];
+  const top = Math.max(1, f.owners);
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <h3 className="text-sm font-bold text-gray-900 mb-3">活性化ファネル（どこで死ぬか）<span className="ml-2 text-[10px] font-normal text-gray-400">owner単位 · 各段の到達数と前段比</span></h3>
+      <div className="space-y-1.5">
+        {steps.map((st, i) => {
+          const prev = i === 0 ? st.v : steps[i - 1].v;
+          const conv = prev > 0 ? Math.round((st.v / prev) * 100) : 0;
+          const widthPct = Math.round((st.v / top) * 100);
+          const cliff = i > 0 && prev > 0 && st.v === 0;
+          return (
+            <div key={st.label} className="flex items-center gap-3">
+              <div className="w-44 text-[11px] text-gray-600 flex-shrink-0">{st.label}</div>
+              <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                <div className={`h-full ${cliff ? "bg-red-400" : "bg-emerald-400"}`} style={{ width: `${Math.max(widthPct, st.v > 0 ? 4 : 0)}%` }} />
+              </div>
+              <div className="w-28 text-right text-[11px] flex-shrink-0">
+                <span className="font-bold text-gray-900">{st.v.toLocaleString()}</span>
+                {i > 0 && <span className={`ml-1.5 ${cliff ? "text-red-500 font-bold" : "text-gray-400"}`}>{conv}%</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+        <div><span className="text-gray-400">Endpoints</span> <b>{f.endpoints}</b> (priced {f.endpointsPriced})</div>
+        <div><span className="text-gray-400">有料化EP</span> <b>{f.endpointsWithPurchase}</b> 購入 / {f.endpointsWithPaidCall} 利用</div>
+        <div><span className="text-gray-400">Agents</span> <b>{f.agents}</b></div>
+        <div><span className="text-gray-400">共有イベント(7d)</span> <b>{f.shareEvents7d}</b></div>
+      </div>
+      <p className="mt-2 text-[10px] text-gray-400 leading-snug">赤＝そこで全滅した段。最大の崖が次に直すべき箇所。「A real buyer PAID」が0なら需要側、その手前で落ちるなら供給側の摩擦。</p>
+    </div>
+  );
 }
 
 function useLcStats() {
@@ -227,6 +278,9 @@ function LcOverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
         <KpiCard label="出品者受取 (net)" value={fmtUsd(s.sales.net)} color="blue" delta={`売上の ${Math.round((1-s.feeRate)*100)}% を還元`}/>
         <KpiCard label="Gateway 呼び出し" value={s.gateway.calls.toLocaleString()} unit="回" color="violet" delta={`課金額 ${fmtUsd(s.gateway.grossMetered)}`}/>
       </div>
+
+      {/* activation funnel — where the 624→0 dies */}
+      {s.funnel && <FunnelView f={s.funnel} />}
 
       {/* 2nd row: Provider / クレジット / ブロック */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
