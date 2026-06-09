@@ -17,7 +17,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { backendEnvReady, sql, verifyPayToken, FREE_TIER_CALLS, isGatewayHalted, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
+import { backendEnvReady, sql, verifyPayToken, isGatewayHalted, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
+import { checkTokenSpendable, computeFee, isOwnerInFreeTier, isRateLimited } from "@/lib/lc-meter";
 
 export const dynamic = "force-dynamic";
 // Pin gateway functions to Tokyo so they sit next to the Supabase DB
@@ -144,34 +145,40 @@ async function handle(req: Request, { params }: Ctx) {
   if (tokens.length === 0) return jsonErr(req, 401, "pay_token_not_found");
   const tok = tokens[0];
 
-  if (tok.status === "revoked") {
-    await sql()`
-      insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
-      values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_revoked', ${charge})
-    `;
-    return jsonErr(req, 403, "token_revoked");
-  }
-  if (new Date(tok.expires_at).getTime() < Date.now() || tok.status === "expired") {
-    if (tok.status !== "expired") {
-      await sql()`update lc_pay_tokens set status = 'expired' where id = ${tok.id}`;
+  // Spendability — shared decision with the SDK path (lc-meter) so the gateway
+  // and /api/sdk never disagree on what a usable Pay Token is. The side effects
+  // (status flip, lc_blocked row, x402 response) stay here, keyed off reason, so
+  // gateway behaviour is byte-for-byte unchanged.
+  const spend = checkTokenSpendable(tok, charge, Date.now());
+  if (!spend.ok) {
+    if (spend.reason === "token_revoked") {
+      await sql()`
+        insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
+        values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_revoked', ${charge})
+      `;
+      return jsonErr(req, 403, "token_revoked");
     }
-    await sql()`
-      insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
-      values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_expired', ${charge})
-    `;
-    return paymentChallenge(req, shortId, charge, "token_expired");
-  }
-  if (tok.calls_used >= tok.max_calls) {
-    if (tok.status !== "exhausted") {
-      await sql()`update lc_pay_tokens set status = 'exhausted' where id = ${tok.id}`;
+    if (spend.reason === "token_expired") {
+      if (tok.status !== "expired") {
+        await sql()`update lc_pay_tokens set status = 'expired' where id = ${tok.id}`;
+      }
+      await sql()`
+        insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
+        values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_expired', ${charge})
+      `;
+      return paymentChallenge(req, shortId, charge, "token_expired");
     }
-    await sql()`
-      insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
-      values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
-    `;
-    return paymentChallenge(req, shortId, charge, "token_exhausted");
-  }
-  if (Number(tok.spent) + charge > Number(tok.budget)) {
+    if (spend.reason === "token_exhausted") {
+      if (tok.status !== "exhausted") {
+        await sql()`update lc_pay_tokens set status = 'exhausted' where id = ${tok.id}`;
+      }
+      await sql()`
+        insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
+        values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
+      `;
+      return paymentChallenge(req, shortId, charge, "token_exhausted");
+    }
+    // spend_cap_exceeded
     await sql()`
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
@@ -179,13 +186,8 @@ async function handle(req: Request, { params }: Ctx) {
     return paymentChallenge(req, shortId, charge, "spend_cap_exceeded");
   }
 
-  // Rate limit: paid calls for this endpoint in the last 60s
-  const sinceIso = new Date(Date.now() - 60_000).toISOString();
-  const recent = await sql()<{ count: string }[]>`
-    select count(*)::text as count from lc_test_runs
-    where endpoint_id = ${ep.id} and at >= ${sinceIso}
-  `;
-  if (Number(recent[0]?.count ?? 0) >= ep.rate_limit) {
+  // Rate limit: paid calls for this endpoint in the last 60s (shared with SDK).
+  if (await isRateLimited(ep.id, ep.rate_limit)) {
     await sql()`
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'rate_limit_exceeded', ${charge})
@@ -235,19 +237,11 @@ async function handle(req: Request, { params }: Ctx) {
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'upstream_error', ${charge})
     `;
   } else {
-    // Free tier: the owner's FIRST FREE_TIER_CALLS paid calls — ONCE, for the
-    // lifetime of the owner (no monthly reset) — have fee = 0. Buyer still pays
-    // `charge` to the seller; LemonCake's 3% cut just doesn't kick in until the
-    // owner crosses the lifetime threshold.
-    const usedRow = await sql()<{ count: string }[]>`
-      select count(*)::text as count from lc_test_runs
-      where owner_id = ${ep.owner_id}
-    `;
-    const usedLifetime = Number(usedRow[0]?.count ?? 0);
-    const inFreeTier = usedLifetime < FREE_TIER_CALLS;
-
-    const fee = inFreeTier ? 0 : charge * 0.03;
-    const net = charge - fee;
+    // Free tier + 3% take-rate — shared money math (lc-meter) so the gateway and
+    // the SDK settle a charge identically. fee = 0 while the owner is under the
+    // lifetime FREE_TIER_CALLS, then 3%; buyer always pays `charge` to the seller.
+    const inFreeTier = await isOwnerInFreeTier(ep.owner_id);
+    const { fee, net } = computeFee(charge, inFreeTier);
     const newCalls = tok.calls_used + 1;
     const newSpent = Number(tok.spent) + charge;
     const newStatus = newCalls >= tok.max_calls ? "exhausted" : tok.status;
