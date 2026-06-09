@@ -22,14 +22,27 @@ In ~10 seconds you see the LemonCake paid-call flow end to end — **402 → min
 
 `npm start` runs the generated paid MCP server (remote / Streamable HTTP) locally.
 
-## Status
+## demo → production is one env var
 
-**v0.1 is sandbox-first.** It demonstrates the flow against the LemonCake sandbox — no real money. Production billing for *your own* endpoint (env-only go-live) is **Phase 2**. To take real payments today, register your endpoint in [LemonCake /app](https://lemoncake.xyz/app).
+The generated server wraps its tool with [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk). Mode is decided by a single env var — **no code change**:
+
+| `LEMONCAKE_SELLER_KEY` | Mode | What happens |
+|---|---|---|
+| unset | **sandbox** | the tool runs, nothing is charged (and `npm run demo:agent` shows the live paid-call flow) |
+| `sk_live_…` | **production** | every call meters the buyer's prepaid Pay Token via the LemonCake fiat gateway; you keep **97%** |
+
+**Go live in ~5 minutes:**
+
+1. Create an endpoint + **Seller Key** in [LemonCake /app](https://www.lemoncake.xyz/app).
+2. `LEMONCAKE_SELLER_KEY=sk_live_…` in `.env`.
+3. `npm run smoke` to verify the charge path, then `npm start`.
+
+Buyers prepay by card and call with a spend-capped Pay Token. No crypto.
 
 ## What you get
 
 - A remote (Streamable HTTP) MCP server with a `paid_search` tool (mock results — swap for any real API).
 - A working agent demo of the pay-per-call flow.
-- No keys, no card, no crypto to try it.
+- Env-only go-live: sandbox to real billing without touching code.
 
 [LemonCake](https://lemoncake.xyz) · MIT

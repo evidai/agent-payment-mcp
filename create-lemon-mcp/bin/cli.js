@@ -47,7 +47,11 @@ async function main() {
   console.log(dim("    npm install"));
   console.log(dim("    npm run demo:agent   ") + "# see the paid-call flow (402 → mint → pay → cap) in ~10s");
   console.log(dim("    npm start            ") + "# run your paid MCP server (remote HTTP) locally\n");
-  console.log(dim("  Everything runs in LemonCake sandbox — no keys, no card, no crypto.\n"));
+  console.log(dim("  Sandbox by default — no keys, no card, no crypto.\n"));
+  console.log("  Go live (no code change):\n");
+  console.log(dim("    1. create an endpoint + Seller Key in ") + "https://www.lemoncake.xyz/app");
+  console.log(dim("    2. set ") + "LEMONCAKE_SELLER_KEY=sk_live_…" + dim(" in .env"));
+  console.log(dim("    3. ") + "npm run smoke" + dim("   # verify the charge path, then npm start\n"));
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
