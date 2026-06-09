@@ -1,0 +1,88 @@
+{
+  "spec": "lemoncake-reserve-confirm-v1",
+  "description": "Byte-verifiable conformance vectors for the LemonCake gateway/SDK charge state machine: reserve (PENDING) -> confirm (COMMITTED) or cancel (REFUND), idempotent on (seller_key, idempotency_key). Reproduce with: node verify_fixture.mjs",
+  "construction": {
+    "hash": "SHA-256, lowercase hex",
+    "canonical": "RFC 8785 JCS — keys sorted lexicographically, compact separators",
+    "binding_digest": "sha256(JCS({amount_usd, charge_ref, nonce, subject_did}))",
+    "interop": {
+      "note": "Same state machine as azender1/SafeAgent exactly-once-v1. Mapping:",
+      "idempotency_key": "azender1 request_id / APS action_ref preimage",
+      "reserve": "PENDING",
+      "confirm": "COMMITTED",
+      "retry": "SKIP (returns the original charge, no re-debit)"
+    },
+    "fee": { "free_tier_calls": 3000, "rate_after_free_tier": 0.03 }
+  },
+  "subject_did": "did:aip:agent:sales-agent-001",
+  "pay_token": { "id": "pt_fixture", "budget_usd": 0.20, "spent_usd_start": 0.0, "max_calls": 20, "in_free_tier": false },
+  "vectors": [
+    {
+      "name": "RESERVE",
+      "op": "preflight",
+      "input": { "seller_key": "sk_live_fixture", "idempotency_key": "idem-0001", "amount_usd": 0.01 },
+      "charge_id": "chg_fixture_0001",
+      "charge_ref": "sdk_chg_fixture_0001",
+      "nonce": "n_4b1e9c7a",
+      "binding_digest": "d4a48efdc99ee59211b5751a30f73c2bdff87508715fa2a7b6bd406c32c0ee91",
+      "state_in": "none",
+      "state_out": "reserved",
+      "spent_after": 0.01,
+      "settled": false
+    },
+    {
+      "name": "RETRY_IDEMPOTENT",
+      "op": "preflight",
+      "input": { "seller_key": "sk_live_fixture", "idempotency_key": "idem-0001", "amount_usd": 0.01 },
+      "expect_same_charge_id": "chg_fixture_0001",
+      "state_in": "reserved",
+      "state_out": "reserved",
+      "spent_after": 0.01,
+      "re_debited": false
+    },
+    {
+      "name": "CONFIRM",
+      "op": "charge",
+      "input": { "charge_id": "chg_fixture_0001", "success": true },
+      "state_in": "reserved",
+      "state_out": "charged",
+      "settled": true,
+      "charge_ref": "sdk_chg_fixture_0001",
+      "spent_after": 0.01,
+      "earnings": { "gross": 0.01, "fee": 0.0003, "net": 0.0097 }
+    },
+    {
+      "name": "RECONFIRM_NOOP",
+      "op": "charge",
+      "input": { "charge_id": "chg_fixture_0001", "success": true },
+      "state_in": "charged",
+      "state_out": "charged",
+      "noop": true,
+      "spent_after": 0.01,
+      "double_charged": false
+    },
+    {
+      "name": "RESERVE_2",
+      "op": "preflight",
+      "input": { "seller_key": "sk_live_fixture", "idempotency_key": "idem-0002", "amount_usd": 0.01 },
+      "charge_id": "chg_fixture_0002",
+      "charge_ref": "sdk_chg_fixture_0002",
+      "nonce": "n_a7f30d12",
+      "binding_digest": "764fad5bb64536ae7af09583b3a525ca75d35560952a58d47836a7aba28dca84",
+      "state_in": "none",
+      "state_out": "reserved",
+      "spent_after": 0.02,
+      "settled": false
+    },
+    {
+      "name": "CANCEL_REFUND",
+      "op": "charge",
+      "input": { "charge_id": "chg_fixture_0002", "success": false },
+      "state_in": "reserved",
+      "state_out": "canceled",
+      "settled": false,
+      "refunded": true,
+      "spent_after": 0.01
+    }
+  ]
+}
