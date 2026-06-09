@@ -107,6 +107,20 @@ async function main() {
     const cancel = await sdk("/api/sdk/charge", { chargeId: pf3.json.chargeId, success: false });
     if (cancel.json?.settled === false && cancel.json?.charged === 0 && cancel.json.remaining >= remAfterReserve - 0.011) ok(`charge(cancel) → refunded, remaining ${cancel.json.remaining}`);
     else bad(`cancel/refund: ${JSON.stringify(cancel.json)}`);
+
+    // 8b. revoked key is rejected (security property #5)
+    const sk2 = await call("POST", `/api/lc/endpoints/${epId}/seller-keys`, {});
+    const revoke = await call("POST", `/api/lc/seller-keys/${sk2.json.id}/revoke`);
+    if (revoke.json?.revoked !== true) bad(`revoke key: ${JSON.stringify(revoke.json)}`);
+    const headers2 = { Authorization: `Bearer ${sk2.json.key}`, "Content-Type": "application/json" };
+    if (BYPASS) { headers2["x-vercel-protection-bypass"] = BYPASS; headers2["x-vercel-set-bypass-cookie"] = "true"; }
+    const rejected = await fetch(`${BASE}/api/sdk/preflight`, {
+      method: "POST", headers: headers2,
+      body: JSON.stringify({ payToken: jwt, idempotencyKey: `smoke-${endpoint.short_id}-revoked` }),
+    });
+    const rj = await rejected.json().catch(() => null);
+    if (rejected.status === 401 && rj?.error === "invalid_seller_key") ok(`revoked key → 401 invalid_seller_key (rejected)`);
+    else bad(`revoked key NOT rejected: ${rejected.status} ${JSON.stringify(rj)}`);
   } finally {
     // 9. cleanup
     const del = await call("DELETE", `/api/lc/endpoints/${epId}`);
