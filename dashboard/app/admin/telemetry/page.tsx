@@ -97,22 +97,22 @@ export default function TelemetryPage() {
 
   const load = useCallback(async (d: number, selfIpHash: string) => {
     setLoading(true); setError("");
+    // Auth = httpOnly owner cookie (admin = email ∈ ADMIN_EMAILS). The legacy
+    // localStorage token is gone — we no longer bounce to /admin/login on its
+    // absence (that caused a loop for valid admins). This telemetry data still
+    // comes from the legacy backend; if it's unreachable we show an error, not
+    // a redirect.
     const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-    if (!token) {
-      router.push("/admin/login");
-      return;
-    }
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
       const glanceUrl = `${API_URL}/api/telemetry/glance${selfIpHash ? `?selfIp=${encodeURIComponent(selfIpHash)}` : ""}`;
       const [mcpRes, playRes, glanceRes] = await Promise.all([
-        fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`,      { headers }),
-        fetch(`${API_URL}/api/telemetry/playground?days=${d}`,                    { headers }),
-        fetch(glanceUrl,                                                          { headers }),
+        fetch(`${API_URL}/api/telemetry/mcp-access?days=${Math.min(d, 90)}`,      { headers, credentials: "include" }),
+        fetch(`${API_URL}/api/telemetry/playground?days=${d}`,                    { headers, credentials: "include" }),
+        fetch(glanceUrl,                                                          { headers, credentials: "include" }),
       ]);
       if (mcpRes.status === 401 || playRes.status === 401 || glanceRes.status === 401) {
-        localStorage.removeItem("admin_token");
-        router.push("/admin/login");
+        setError("テレメトリ(legacy)バックエンドに接続できません。/admin の概要をご利用ください。");
         return;
       }
       if (mcpRes.ok)    setMcpData(await mcpRes.json());     else setMcpData(null);

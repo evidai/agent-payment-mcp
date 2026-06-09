@@ -76,17 +76,17 @@ export default function FunnelPage() {
 
   const load = useCallback(async (d: number) => {
     setLoading(true); setError("");
+    // Auth = httpOnly owner cookie (admin = email ∈ ADMIN_EMAILS). Legacy
+    // localStorage token removed — no more bounce-loop to /admin/login.
     const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
-    if (!token) { router.push("/admin/login"); return; }
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
       const [funnelRes, trafficRes] = await Promise.all([
-        fetch(`${API_URL}/api/telemetry/funnel?days=${d}`,           { headers }),
-        fetch(`${API_URL}/api/telemetry/traffic-sources?days=${d}`,  { headers }),
+        fetch(`${API_URL}/api/telemetry/funnel?days=${d}`,           { headers, credentials: "include" }),
+        fetch(`${API_URL}/api/telemetry/traffic-sources?days=${d}`,  { headers, credentials: "include" }),
       ]);
       if (funnelRes.status === 401 || trafficRes.status === 401) {
-        localStorage.removeItem("admin_token");
-        router.push("/admin/login");
+        setError("ファネル(legacy)バックエンドに接続できません。/admin/lc/stats の funnel をご利用ください。");
         return;
       }
       const funnelJson = await funnelRes.json();
