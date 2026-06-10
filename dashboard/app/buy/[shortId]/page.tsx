@@ -12,6 +12,7 @@ import { backendEnvReady, sql } from "@/lib/lc-backend";
 import BuyForm from "./BuyForm";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "hnd1"; // colocate with Supabase (hnd1) to cut transpacific DB RTT on this DB-backed page
 
 type Props = { params: Promise<{ shortId: string }> };
 

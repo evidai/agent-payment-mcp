@@ -75,6 +75,11 @@ export default function DemoClient() {
   const revenue = useMemo(() => runs.reduce((sum, run) => sum + (run.ok ? run.charge : 0), 0), [runs]);
   const callsLeft = session ? Math.max(0, session.token.maxCalls - successfulCalls) : 0;
   const exhausted = Boolean(session && callsLeft <= 0);
+  const budget = session ? session.token.budget : 0.2;
+  const budgetLeft = Math.max(0, budget - revenue);
+  const budgetPct = Math.max(0, Math.min(100, (budgetLeft / budget) * 100));
+  // The cap firing is the product working, not an error — detect it to style it as the climax.
+  const isCapHit = (label: string) => /exhausted|spend_cap/i.test(label);
 
   const eventLog = useMemo(() => {
     const events = [
@@ -98,9 +103,16 @@ export default function DemoClient() {
         detail: successfulCalls > 0 ? `${successfulCalls} paid call${successfulCalls === 1 ? "" : "s"} recorded.` : "Revenue appears here after a successful call.",
         state: successfulCalls > 0 ? ("done" as const) : ("idle" as const),
       },
+      {
+        label: "Cap enforced",
+        detail: exhausted
+          ? "Budget spent — the gateway now returns 402. The agent physically can't overspend."
+          : "When the budget runs out, the gateway refuses with 402.",
+        state: exhausted ? ("done" as const) : ("idle" as const),
+      },
     ];
     return events;
-  }, [runs.length, session, successfulCalls]);
+  }, [runs.length, session, successfulCalls, exhausted]);
 
   const gatewayUrl = session ? `${origin}${session.gatewayPath}` : `${origin}/g/{shortId}`;
   const maskedToken = session ? `${session.jwt.slice(0, 34)}...${session.jwt.slice(-10)}` : "mint_a_token_first";
@@ -206,10 +218,16 @@ console.log(await res.json());`;
                   No account, card, or crypto wallet required.
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:w-[260px]">
-                <Metric label="Budget" value={session ? `$${session.token.budget.toFixed(2)}` : "$0.20"} />
-                <Metric label="Calls left" value={session ? String(callsLeft) : "20"} />
-                <Metric label="Seller" value="97%" />
+              <div className="w-full overflow-hidden rounded-lg border border-[#1a0f00]/10 bg-white sm:w-[360px]">
+                <div className="grid grid-cols-3">
+                  <HeroMetric label="Budget left" value={`$${budgetLeft.toFixed(2)}`} dim={exhausted} />
+                  <HeroMetric label="Calls left" value={session ? String(callsLeft) : "20"} dim={exhausted} />
+                  <HeroMetric label="Seller share" value="97%" />
+                </div>
+                {/* Budget depletion bar — the hard cap, draining in real time. */}
+                <div className="h-1.5 w-full bg-[#1a0f00]/8">
+                  <div className="h-full bg-[#fffd43] transition-all duration-500" style={{ width: `${budgetPct}%` }} />
+                </div>
               </div>
             </div>
           </div>
@@ -254,6 +272,23 @@ console.log(await res.json());`;
                 </div>
               )}
 
+              {exhausted && (
+                <div className="mt-4 rounded-lg border-2 border-[#1a0f00] bg-[#fffd43] p-3.5">
+                  <p className="text-[12px] font-black uppercase tracking-[0.12em]">🔒 Cap enforced</p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#1a0f00]/80">
+                    Budget spent — the gateway now answers <b className="font-mono">402</b>.
+                    The agent <b>physically can&apos;t overspend</b>. That&apos;s the whole point.
+                  </p>
+                  <button
+                    onClick={mintToken}
+                    disabled={minting}
+                    className="mt-2.5 inline-flex items-center gap-2 rounded-md bg-[#1a0f00] px-3 py-1.5 text-[12px] font-black text-[#fffd43] hover:bg-[#1a0f00]/88 disabled:opacity-40"
+                  >
+                    <IconKey /> Mint a fresh token
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <div className="mt-4 rounded-lg border border-[#dc2626]/20 bg-[#fff1f1] px-3 py-2 text-[12px] font-semibold text-[#b91c1c]">
                   {error}
@@ -271,19 +306,30 @@ console.log(await res.json());`;
                   <span className="flex-none rounded-full bg-[#fffd43] px-2.5 py-1 text-[11px] font-black whitespace-nowrap">$0 real funds</span>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {eventLog.map((event) => (
-                    <div key={event.label} className="flex gap-3 rounded-lg border border-[#1a0f00]/8 bg-[#fbfbf4] p-3">
+                  {eventLog.map((event, index) => (
+                    <div key={event.label} className={`flex gap-3 rounded-lg border p-3 ${index === 4 ? "sm:col-span-2" : ""} ${
+                      event.state === "next" ? "border-[#1a0f00]/18 bg-[#fffef0]"
+                        : index === 4 && event.state === "done" ? "border-[#1a0f00]/30 bg-[#fffd43]/25"
+                        : "border-[#1a0f00]/8 bg-[#fbfbf4]"
+                    }`}>
                       <span className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full border text-[11px] font-black ${
                         event.state === "done"
                           ? "border-[#11995c] bg-[#e9fbf1] text-[#11995c]"
                           : event.state === "next"
-                            ? "border-[#1a0f00] bg-[#1a0f00] text-[#fffd43]"
+                            ? "border-[#fffd43] bg-[#fffd43] text-[#1a0f00]"
                             : "border-[#1a0f00]/12 bg-[#fbfbf4] text-[#1a0f00]/30"
                       }`}>
-                        {event.state === "done" ? <IconCheck /> : ""}
+                        {event.state === "done" ? <IconCheck /> : event.state === "next" ? index + 1 : ""}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-black leading-tight">{event.label}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[13px] font-black leading-tight">{event.label}</p>
+                          {event.state === "next" && (
+                            <span className="rounded-full bg-[#1a0f00] px-2 py-0.5 text-[9.5px] font-black uppercase tracking-[0.12em] text-[#fffd43]">
+                              Next
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-0.5 text-[12px] leading-relaxed text-[#1a0f00]/55">{event.detail}</p>
                       </div>
                     </div>
@@ -314,16 +360,26 @@ console.log(await res.json());`;
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {runs.map((run) => (
-                        <div key={run.n} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border border-[#1a0f00]/8 bg-[#fbfbf4] px-3 py-2 text-[12px]">
-                          <span className="font-mono text-[#1a0f00]/36">#{run.n}</span>
-                          <span className="min-w-0">
-                            <span className={`font-black ${run.ok ? "text-[#1a0f00]" : "text-[#b91c1c]"}`}>{run.ok ? `${run.status} ${run.label}` : run.label}</span>
-                            <span className="ml-2 font-mono text-[#1a0f00]/42">{run.ms}ms</span>
-                          </span>
-                          <span className="font-mono font-black tabular-nums">{run.ok ? `$${run.charge.toFixed(2)}` : "--"}</span>
-                        </div>
-                      ))}
+                      {runs.map((run) => {
+                        const capRow = !run.ok && isCapHit(run.label);
+                        return (
+                          <div
+                            key={run.n}
+                            className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border px-3 py-2 text-[12px] ${
+                              capRow ? "border-[#1a0f00]/30 bg-[#fffd43]/30" : "border-[#1a0f00]/8 bg-[#fbfbf4]"
+                            }`}
+                          >
+                            <span className="font-mono text-[#1a0f00]/36">#{run.n}</span>
+                            <span className="min-w-0">
+                              <span className={`font-black ${run.ok ? "text-[#1a0f00]" : capRow ? "text-[#1a0f00]" : "text-[#b91c1c]"}`}>
+                                {run.ok ? `${run.status} ${run.label}` : capRow ? `🔒 402 cap enforced — token spent` : run.label}
+                              </span>
+                              <span className="ml-2 font-mono text-[#1a0f00]/42">{run.ms}ms</span>
+                            </span>
+                            <span className="font-mono font-black tabular-nums">{run.ok ? `$${run.charge.toFixed(2)}` : "--"}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -374,12 +430,14 @@ console.log(await res.json());`;
         </aside>
       </section>
 
-      <section className="grid gap-3 rounded-lg border border-[#1a0f00]/10 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
-        <div>
+      <section className="grid gap-4 rounded-lg border border-[#1a0f00]/10 bg-white p-4 shadow-sm sm:p-5 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="min-w-0">
           <h2 className="text-[18px] font-black">Ready to make your own endpoint paid?</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-[#1a0f00]/58">
-            Paste a URL, set a per-call price, and share a buy link. First 3,000 lifetime calls are free, then LemonCake takes 3%.
+            One command scaffolds a paid MCP server — sandbox now, production with one env var.
+            First 3,000 lifetime calls are free, then LemonCake takes 3%.
           </p>
+          <NpxChip />
         </div>
         <div className="flex flex-wrap gap-2 md:justify-end">
           <Link href="/app" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#1a0f00] px-4 py-2.5 text-[13px] font-black text-[#fffd43] hover:bg-[#1a0f00]/88">
@@ -399,6 +457,39 @@ function Metric({ label, value, compact = false }: { label: string; value: strin
     <div className={`flex flex-col rounded-lg border border-[#1a0f00]/8 bg-white ${compact ? "px-3 py-2" : "px-3 py-2.5"}`}>
       <p className="text-[9.5px] font-black uppercase tracking-[0.15em] text-[#1a0f00]/36">{label}</p>
       <p className={`${compact ? "text-[17px]" : "text-[21px]"} mt-auto pt-1 font-black leading-none tabular-nums`}>{value}</p>
+    </div>
+  );
+}
+
+function NpxChip() {
+  const [copied, setCopied] = useState(false);
+  const cmd = "npx create-lemon-mcp my-paid-mcp";
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* clipboard unavailable */ }
+  }
+  return (
+    <button
+      onClick={copy}
+      className="mt-3 inline-flex max-w-full items-center gap-2.5 rounded-md border border-[#1a0f00]/14 bg-[#10100d] px-3.5 py-2 text-left transition-colors hover:border-[#1a0f00]/30"
+      title="Copy command"
+    >
+      <code className="truncate font-mono text-[12px] font-bold text-[#fffd43]/90">
+        <span className="select-none text-[#fffd43]/40">$ </span>{cmd}
+      </code>
+      <span className="flex-none text-[10.5px] font-black uppercase tracking-wider text-white/45">{copied ? "Copied ✓" : "Copy"}</span>
+    </button>
+  );
+}
+
+function HeroMetric({ label, value, dim = false }: { label: string; value: string; dim?: boolean }) {
+  return (
+    <div className="min-w-0 border-r border-[#1a0f00]/8 px-4 py-3 last:border-r-0">
+      <p className="truncate text-[10px] font-black uppercase tracking-[0.11em] text-[#1a0f00]/40">{label}</p>
+      <p className={`mt-1 text-[24px] font-black leading-none tabular-nums tracking-tight ${dim ? "text-[#1a0f00]/35" : ""}`}>{value}</p>
     </div>
   );
 }
