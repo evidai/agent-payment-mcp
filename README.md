@@ -15,7 +15,7 @@
 [![FSA-confirmed](https://img.shields.io/badge/Japan_FSA-registration_not_required-blue)](https://lemoncake.xyz/security)
 [![Glama score](https://glama.ai/mcp/servers/evidai/lemon-cake/badges/score.svg)](https://glama.ai/mcp/servers/evidai/lemon-cake)
 
-**[🚀 Quickstart](#-try-in-30-seconds) · [💲 Pricing](https://lemoncake.xyz/pricing) · [📚 Docs](https://lemoncake.xyz/docs) · [🌐 Live](https://lemoncake.xyz)**
+**[🚀 Get started](#-get-started) · [💲 Pricing](https://lemoncake.xyz/pricing) · [📚 Docs](https://lemoncake.xyz/docs) · [🌐 Live](https://lemoncake.xyz)**
 
 <br>
 
@@ -27,21 +27,35 @@
 
 ---
 
-## 🚀 Try the buyer-side MCP in 30 seconds
+## 🚀 Get started
 
-No signup, no card — ships **8 free demo tools** (search · translate · weather · geocode · time · dictionary · fx · echo):
+**Monetizing an MCP/API? Start here — one command:**
+
+```bash
+npx create-lemon-mcp my-paid-mcp     # a paid MCP server, running in sandbox now
+# then add a Seller Key in /app and set LEMONCAKE_SELLER_KEY → it charges for real (no code change)
+```
+
+Pick your path:
+
+| I want to… | Do this |
+|---|---|
+| **Monetize my MCP/API** (sellers) | **`npx create-lemon-mcp`** → add a Seller Key in [/app](https://lemoncake.xyz/app) to go live |
+| Add billing to a server I **already have** | [`@lemon-cake/mcp-sdk`](https://www.npmjs.com/package/@lemon-cake/mcp-sdk) — wrap a tool with `lc.charge()`, or route through the gateway (no code) |
+| **Let an agent pay** for paid APIs (buyers) | `npx -y agent-payment-mcp` — 8 free demo tools, no signup |
+
+<details>
+<summary>Buyer-side MCP — try in 30 seconds</summary>
 
 ```bash
 npx -y agent-payment-mcp
 ```
-
-Or drop it into any MCP client:
-
 ```json
 { "mcpServers": { "lemon": { "command": "npx", "args": ["-y", "agent-payment-mcp"] } } }
 ```
+Ask your agent to run `list_demos` / `call_demo`. To call **paid** APIs, set `LC_PAY_TOKEN` (get one at [lemoncake.xyz/app](https://lemoncake.xyz/app)).
 
-Then ask your agent to run `list_demos` / `call_demo`. To call **paid** APIs, set `LC_PAY_TOKEN` (get one at [lemoncake.xyz/app](https://lemoncake.xyz/app)).
+</details>
 
 ---
 
