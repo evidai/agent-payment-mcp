@@ -417,7 +417,15 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
         </p>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 md:gap-2 md:items-stretch">
           {[
-            { n: "1", icon: IconLink2, time: "1分", t: "URL を貼る", d: "あなたの API / MCP サーバーの URL をダッシュボードに貼り付け。コード変更ゼロでもOK。" },
+            { n: "1", icon: IconLink2, time: "1分", t: "つなぐ", d: (
+              <>
+                <span className="block mb-2">既存の API / MCP は <b className="text-white">URL を貼るだけ</b>。コード変更ゼロ。</span>
+                <span className="my-2 flex items-center gap-2 text-[10px] font-mono text-white/30"><span className="h-px flex-1 bg-white/10" />または ゼロから作る<span className="h-px flex-1 bg-white/10" /></span>
+                <span className="flex items-center justify-center gap-2 rounded-lg border border-[#fffd43]/20 bg-black/40 px-2.5 py-1.5 font-mono text-[11.5px] text-[#fffd43]/90 whitespace-nowrap overflow-x-auto">
+                  <span className="text-white/35 select-none">$</span> npx create-lemon-mcp
+                </span>
+              </>
+            ) },
             { n: "2", icon: IconTag, time: "1分", t: "単価を決める", d: "1 コールいくらかをスライダーで設定。$0.005 のサブセントから OK。いつでも変更できます。" },
             { n: "3", icon: IconRocket, time: "3分", t: "購入リンクを共有", d: "発行された購入リンクを README や X に貼るだけ。買い手がカードで前払いしたら、もう売上が立ちます。" },
           ].map(({ n, icon: StepIcon, time, t, d }, i) => (
@@ -427,7 +435,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
                 <div className="lc-step-emoji mx-auto mt-2 mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#fffd43]/25 bg-[#fffd43]/8 text-[#fffd43]" aria-hidden="true"><StepIcon className="w-8 h-8" /></div>
                 <p className="mb-2 inline-flex items-center gap-1 font-mono text-[10px] text-[#fffd43]/70"><IconClock className="w-3 h-3" /> {time}</p>
                 <h3 className="text-[17px] font-bold text-white mb-2">{t}</h3>
-                <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
+                <div className="text-[13px] text-white/55 leading-relaxed">{d}</div>
               </div>
               {i < 2 && (
                 <div className="hidden md:flex items-center justify-center px-1 text-[#fffd43]/50 text-2xl font-black" aria-hidden="true">→</div>
