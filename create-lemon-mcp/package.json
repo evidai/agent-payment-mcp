@@ -1,6 +1,6 @@
 {
   "name": "create-lemon-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Scaffold a paid MCP server in one command. Sandbox by default; set LEMONCAKE_SELLER_KEY to charge for real. Buyers pay by card, agents call with spend-capped Pay Tokens, no crypto.",
   "type": "module",
   "bin": {
