@@ -94,20 +94,159 @@ const faqJsonLd = {
   ],
 };
 
-// ── SVG Icons ────────────────────────────────────────────────────────────────
+// ── SVG Icons（絵文字の代わりに統一線画アイコン。stroke=currentColor で文脈色に追従） ──
+const svgProps = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true as const,
+};
 const IconArrowRight = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true">
+  <svg {...svgProps} strokeWidth={2} className="w-4 h-4">
     <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+  </svg>
+);
+const IconCard = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/>
+  </svg>
+);
+const IconBot = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="4" y="9" width="16" height="11" rx="2.5"/><line x1="12" y1="5.5" x2="12" y2="9"/><circle cx="12" cy="4" r="1.3"/>
+    <line x1="9" y1="13.5" x2="9" y2="15"/><line x1="15" y1="13.5" x2="15" y2="15"/>
+  </svg>
+);
+const IconGear = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <circle cx="12" cy="12" r="3.2"/>
+    <path d="M12 2.5v2.8M12 18.7v2.8M2.5 12h2.8M18.7 12h2.8M5.3 5.3l2 2M16.7 16.7l2 2M18.7 5.3l-2 2M7.3 16.7l-2 2"/>
+  </svg>
+);
+const IconTicket = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/>
+    <path d="M13 5.5v2M13 11v2M13 16.5v2"/>
+  </svg>
+);
+const IconLock = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>
+  </svg>
+);
+const IconLink2 = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7"/>
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/>
+  </svg>
+);
+const IconTag = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M3 3h8.2L21 12.8a2 2 0 0 1 0 2.8l-5.4 5.4a2 2 0 0 1-2.8 0L3 11.2z"/><circle cx="8" cy="8" r="1.6"/>
+  </svg>
+);
+const IconRocket = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M12 2.5c2.9 2.1 4.6 5.6 4.6 9.6 0 1.4-.3 2.9-.8 4.4H8.2c-.5-1.5-.8-3-.8-4.4 0-4 1.7-7.5 4.6-9.6z"/>
+    <circle cx="12" cy="9.5" r="1.8"/>
+    <path d="M7.6 14.5 5 19.5l3.6-1.2M16.4 14.5l2.6 5-3.6-1.2M12 18.5V22"/>
+  </svg>
+);
+const IconMeter = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M4 16a8 8 0 1 1 16 0"/><line x1="12" y1="16" x2="16.5" y2="11.5"/><circle cx="12" cy="16" r="1.2"/>
+    <line x1="4" y1="19.5" x2="20" y2="19.5"/>
+  </svg>
+);
+const IconKey = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <circle cx="7.5" cy="15.5" r="3.8"/><path d="M10.5 12.5 20 3M17.5 5.5l2.5 2.5M14.5 8.5l2.5 2.5"/>
+  </svg>
+);
+const IconPayout = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="2" y="7" width="20" height="11" rx="2"/><circle cx="12" cy="12.5" r="2.6"/>
+    <path d="M5.5 10v.01M18.5 15v.01"/>
+  </svg>
+);
+const IconBadge = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="3" y="5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="11" r="2"/>
+    <path d="M5.5 16.5c.7-1.5 1.7-2.2 3-2.2s2.3.7 3 2.2M14.5 9.5H19M14.5 13H19"/>
+  </svg>
+);
+const IconPlug = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M9 2.5V8M15 2.5V8M7 8h10v3.5a5 5 0 0 1-10 0z"/><line x1="12" y1="16.5" x2="12" y2="21.5"/>
+  </svg>
+);
+const IconStop = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M7.9 2.5h8.2l5.4 5.4v8.2l-5.4 5.4H7.9l-5.4-5.4V7.9z"/><line x1="12" y1="8" x2="12" y2="12.5"/><path d="M12 16h.01"/>
+  </svg>
+);
+const IconSteps = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <rect x="3" y="14" width="4.5" height="6.5" rx="1"/><rect x="9.75" y="9.5" width="4.5" height="11" rx="1"/><rect x="16.5" y="4.5" width="4.5" height="16" rx="1"/>
+  </svg>
+);
+const IconFlask = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <path d="M10 2.5v6L4.6 18.4A2 2 0 0 0 6.4 21.5h11.2a2 2 0 0 0 1.8-3.1L14 8.5v-6"/><path d="M8.5 2.5h7M7.2 15h9.6"/>
+  </svg>
+);
+const IconClock = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg {...svgProps} className={className}>
+    <circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>
   </svg>
 );
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+// Visual structure mirrors the JA /about overhaul (2026-06-11): floating logo
+// hero, 3-step onboarding, animated money flow, prepaid-card showcase, wavy
+// dividers, icon-based comparison table, colored safety rails, visible FAQ.
 export default function AboutPageEn() {
   return (
     <div className="min-h-screen bg-[#06060a] text-white font-sans antialiased">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+
+      {/* CSS-only animations for the money-flow diagram + ledger ticker (no client JS) */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+@keyframes lcCoin { 0% { left: 0%; opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { left: calc(100% - 10px); opacity: 0; } }
+@keyframes lcTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes lcPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,253,67,0.35); } 50% { box-shadow: 0 0 0 10px rgba(255,253,67,0); } }
+@keyframes lcFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } }
+@keyframes lcStepPop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes lcGrow { from { width: 0%; } }
+@keyframes lcStamp { 0%, 86%, 100% { transform: rotate(-2deg) scale(1); } 92% { transform: rotate(-7deg) scale(1.12); } }
+@keyframes lcShine { 0% { transform: translateX(-140%) skewX(-18deg); } 55%, 100% { transform: translateX(260%) skewX(-18deg); } }
+.lc-coin { animation: lcCoin 3.2s linear infinite; box-shadow: 0 0 8px rgba(255,253,67,0.8); }
+.lc-ticker { animation: lcTicker 28s linear infinite; }
+.lc-pulse { animation: lcPulse 2.4s ease-in-out infinite; }
+.lc-float { animation: lcFloat 5.5s ease-in-out infinite; }
+.lc-grow { animation: lcGrow 1.8s cubic-bezier(.2,.8,.2,1) both; }
+.lc-stamp { animation: lcStamp 4s ease-in-out infinite; }
+.lc-shine { animation: lcShine 5.5s ease-in-out infinite; }
+.lc-tilt { transition: transform .45s ease; transform-style: preserve-3d; transform: rotateY(-8deg) rotateX(4deg); }
+.lc-tilt:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-6px); }
+.lc-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.lc-card:hover { transform: translateY(-4px); border-color: rgba(255,253,67,0.35); box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
+.lc-step:hover .lc-step-emoji { animation: lcStepPop .45s ease; }
+details.lc-faq > summary { list-style: none; cursor: pointer; }
+details.lc-faq > summary::-webkit-details-marker { display: none; }
+details.lc-faq > summary .lc-faq-chev { transition: transform .2s ease; }
+details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .lc-coin, .lc-ticker, .lc-pulse, .lc-float, .lc-grow, .lc-stamp, .lc-shine { animation: none; } .lc-card:hover { transform: none; } .lc-tilt, .lc-tilt:hover { transform: none; } }
+`,
+        }}
       />
 
       {/* ── Nav ── */}
@@ -142,17 +281,22 @@ export default function AboutPageEn() {
       </nav>
 
       {/* ── Hero ── */}
-      {/*
-       * Repositioned 2026-05-27 from crypto-first to developer-billing-first.
-       * The previous hero led with on-chain settlement details and tested
-       * poorly: 624 npm DL → 0 buyers, 1,271 DL → 3 site visits. The
-       * crypto framing scared away the actual ICP: MCP server devs who want
-       * monetization without learning payment rails before they install.
-       * Payment architecture details belong deeper in docs, after a developer
-       * decides LemonCake is worth evaluating.
-       */}
       <div className="bg-[#fffd43] w-full overflow-hidden">
         <section className="relative max-w-6xl mx-auto px-6 pt-12 pb-10 md:pt-20 md:pb-16 min-h-[calc(100vh-64px)] flex items-center">
+          {/* floating LemonCake logos — playful, decorative only */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            {[
+              { left: "3%",  top: "10%", size: 56, delay: "0s",   opacity: 0.85 },
+              { left: "11%", top: "72%", size: 40, delay: "1.6s", opacity: 0.7 },
+              { left: "45%", top: "6%",  size: 34, delay: "0.8s", opacity: 0.6 },
+              { left: "30%", top: "88%", size: 30, delay: "2.4s", opacity: 0.55 },
+              { left: "63%", top: "12%", size: 26, delay: "3.2s", opacity: 0.5 },
+            ].map((l, i) => (
+              <span key={i} className="lc-float absolute" style={{ left: l.left, top: l.top, opacity: l.opacity, animationDelay: l.delay }}>
+                <Image src="/logo.png" alt="" width={l.size} height={l.size} className="drop-shadow-[0_6px_12px_rgba(26,15,0,0.25)]" style={{ width: l.size, height: "auto" }} />
+              </span>
+            ))}
+          </div>
           <div className="pointer-events-none absolute -right-16 top-10 hidden md:block w-[52%] max-w-[600px]">
             <Image
               src="/hero-visual.webp"
@@ -227,15 +371,15 @@ export default function AboutPageEn() {
         </section>
 
         {/* Code snippet — sits inside the yellow hero band as a "this is real" anchor */}
-        <section className="max-w-3xl mx-auto px-6 pb-16">
-          <div className="rounded-2xl bg-[#1a0f00] text-white p-6 shadow-xl">
+        <section className="max-w-5xl mx-auto px-6 pb-12 md:pb-16">
+          <div className="rounded-lg bg-[#1a0f00] text-white p-4 md:p-5 shadow-xl border border-[#1a0f00]/20">
             <div className="flex items-center gap-1.5 mb-4">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+              <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
+              <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
+              <div className="w-2 h-2 rounded-full bg-[#28c840]" />
               <span className="ml-3 text-[11px] font-mono text-white/40">tool-server.ts</span>
             </div>
-            <pre className="font-mono text-[13px] leading-relaxed overflow-x-auto">
+            <pre className="font-mono text-[12px] md:text-[13px] leading-relaxed overflow-x-auto">
               <code>
                 <span className="text-[#c8b800]">{"import"}</span>{" { createLemonCakeSDK } "}<span className="text-[#c8b800]">{"from"}</span> <span className="text-[#7bc97a]">{`"@lemon-cake/mcp-sdk"`}</span>;{"\n\n"}
                 <span className="text-[#c8b800]">const</span>{" lc = "}<span className="text-white">createLemonCakeSDK</span>{"();"}{" "}<span className="text-white/40">{"// demo mode without env vars"}</span>{"\n\n"}
@@ -252,78 +396,245 @@ export default function AboutPageEn() {
         </section>
       </div>
 
-      {/* ── API Monetization Flow visualization ── */}
-      {/*
-       * Stripe/Vercel-style "here's what the product does" diagram.
-       * Sits directly after the hero so visitors who don't read code
-       * still get the mental model in < 5 seconds.
-       *
-       * 4 cards with arrows between: Your API → Gateway → Paid Access → Revenue.
-       * Each card has a short verb-noun caption — no jargon, no crypto words.
-       */}
-      <section id="how-it-works" className="max-w-6xl mx-auto px-6 py-20 scroll-mt-20">
-        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
-        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-12 leading-tight">
-          Four boxes between you<br />
-          <span className="text-[#fffd43]">and per-call revenue.</span>
+      {/* wavy divider: yellow → dark */}
+      <div className="bg-[#fffd43]" aria-hidden="true">
+        <svg viewBox="0 0 1440 64" preserveAspectRatio="none" className="block w-full h-[40px] md:h-[64px]">
+          <path d="M0,32 C240,64 480,0 720,24 C960,48 1200,8 1440,32 L1440,64 L0,64 Z" fill="#06060a" />
+        </svg>
+      </div>
+
+      {/* ── 3 steps in 5 minutes ── */}
+      <section className="max-w-6xl mx-auto px-6 pt-20 pb-4">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Getting started</p>
+        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+          Just <span className="text-[#fffd43]">three things</span> to do.
         </h2>
-
-        <div className="relative">
-          {/* Desktop: horizontal flow with arrows */}
-          <div className="hidden md:flex items-center justify-between gap-3">
-            {[
-              { num: "1", title: "Your API",     sub: "Anything HTTP",       tone: "bg-white/4 border-white/10" },
-              { num: "2", title: "Gateway",      sub: "We add a URL prefix",  tone: "bg-[#fffd43]/10 border-[#fffd43]/30" },
-              { num: "3", title: "Paid access",   sub: "Buyer pays via Pay Token", tone: "bg-[#fffd43]/10 border-[#fffd43]/30" },
-              { num: "4", title: "Revenue",      sub: "97% to you, 3% to us", tone: "bg-emerald-500/10 border-emerald-500/30" },
-            ].map((step, i, arr) => (
-              <div key={step.num} className="flex items-center flex-1">
-                <div className={`flex-1 rounded-2xl border p-5 text-center ${step.tone}`}>
-                  <div className="text-[10px] font-mono text-white/40 mb-1">STEP {step.num}</div>
-                  <div className="text-[16px] font-bold text-white">{step.title}</div>
-                  <div className="text-[12px] text-white/55 mt-1.5">{step.sub}</div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="px-2 text-white/30 text-xl font-thin" aria-hidden="true">→</div>
-                )}
+        <p className="text-center text-[14px] text-white/40 mb-12 max-w-xl mx-auto">
+          You can start without writing code. Five minutes on the timer is plenty.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 md:gap-2 md:items-stretch">
+          {[
+            { n: "1", icon: IconLink2, time: "1 min", t: "Paste your URL", d: "Drop your API / MCP server URL into the dashboard. Zero code changes required." },
+            { n: "2", icon: IconTag, time: "1 min", t: "Set a price", d: "Pick a per-call price with a slider. Sub-cent from $0.005 is fine. Change it anytime." },
+            { n: "3", icon: IconRocket, time: "3 min", t: "Share the buy link", d: "Paste the generated buy link into your README or on X. Once a buyer prepays by card, you have revenue." },
+          ].map(({ n, icon: StepIcon, time, t, d }, i) => (
+            <div key={n} className="contents">
+              <div className="lc-step lc-card relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 md:p-7 text-center">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#fffd43] px-3 py-0.5 text-[11px] font-black text-[#1a0f00]">STEP {n}</span>
+                <div className="lc-step-emoji mx-auto mt-2 mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#fffd43]/25 bg-[#fffd43]/8 text-[#fffd43]" aria-hidden="true"><StepIcon className="w-8 h-8" /></div>
+                <p className="mb-2 inline-flex items-center gap-1 font-mono text-[10px] text-[#fffd43]/70"><IconClock className="w-3 h-3" /> {time}</p>
+                <h3 className="text-[17px] font-bold text-white mb-2">{t}</h3>
+                <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
               </div>
-            ))}
-          </div>
-
-          {/* Mobile: stacked vertical */}
-          <div className="md:hidden flex flex-col gap-3">
-            {[
-              { num: "1", title: "Your API",     sub: "Anything HTTP" },
-              { num: "2", title: "Gateway",      sub: "We add a URL prefix" },
-              { num: "3", title: "Paid access",   sub: "Buyer pays via Pay Token" },
-              { num: "4", title: "Revenue",      sub: "97% to you, 3% to us" },
-            ].map((step, i, arr) => (
-              <div key={step.num}>
-                <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
-                  <div className="text-[10px] font-mono text-white/40">STEP {step.num}</div>
-                  <div className="text-[15px] font-bold text-white mt-1">{step.title}</div>
-                  <div className="text-[12px] text-white/55 mt-1">{step.sub}</div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="text-center py-1 text-white/30 text-lg" aria-hidden="true">↓</div>
-                )}
-              </div>
-            ))}
-          </div>
+              {i < 2 && (
+                <div className="hidden md:flex items-center justify-center px-1 text-[#fffd43]/50 text-2xl font-black" aria-hidden="true">→</div>
+              )}
+            </div>
+          ))}
         </div>
-
-        <p className="mt-10 text-center text-[12px] text-white/40 max-w-xl mx-auto leading-relaxed">
-          You change one URL. We do gateway routing, Pay Token verification, rate limiting, usage metering, and Stripe-backed seller payouts.
+        <p className="mt-8 text-center text-[12px] text-white/40">
+          <span className="font-black text-[#fffd43]">5 minutes</span> total. After that, agents come and pay on their own.
         </p>
       </section>
 
+      {/* ── How it works — animated money flow ── */}
+      <section id="how-it-works" className="max-w-6xl mx-auto px-6 py-20 scroll-mt-20">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
+        <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+          Watch every cent <span className="text-[#fffd43]">move.</span>
+        </h2>
+        <p className="text-center text-[14px] text-white/40 mb-12 max-w-xl mx-auto">
+          Buyer prepays → agent spends within the cap → 97% lands with you. That&apos;s the whole model.
+        </p>
+
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-10 space-y-8">
+          {/* Lane 1 — prepay */}
+          <div>
+            <p className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-3">① Buyer prepays by card</p>
+            <div className="flex items-center gap-3 md:gap-5">
+              <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconCard className="w-7 h-7 md:w-8 md:h-8" /></div>
+              <div className="relative h-8 flex-1" aria-hidden="true">
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
+                <span className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">prepay $5.00</span>
+              </div>
+              <div className="flex-none rounded-2xl border border-[#fffd43]/35 bg-[#fffd43]/10 px-3.5 py-2.5 md:px-5 md:py-3">
+                <p className="flex items-center gap-1.5 text-[15px] md:text-[17px] font-black text-[#fffd43]"><IconTicket className="w-5 h-5" /> Pay Token</p>
+                <p className="mt-0.5 font-mono text-[10px] text-white/55">cap $5.00 · 500 calls · expires</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lane 2 — autonomous usage (coins flow) */}
+          <div>
+            <p className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-3">② Agent pays per call</p>
+            <div className="flex items-center gap-3 md:gap-5">
+              <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconBot className="w-7 h-7 md:w-8 md:h-8" /></div>
+              <div className="relative h-8 flex-1" aria-hidden="true">
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" style={{ animationDelay: `${i * 1.05}s` }} />
+                ))}
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">$0.01 / call</span>
+              </div>
+              <div className="lc-pulse flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-[#fffd43]/40 bg-[#fffd43]/12" aria-hidden="true">
+                <Image src="/logo.png" alt="" width={40} height={40} className="w-9 h-9 md:w-11 md:h-11 object-contain drop-shadow" />
+              </div>
+              <div className="relative hidden h-8 flex-1 sm:block" aria-hidden="true">
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
+                <span className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-emerald-400" style={{ animationDelay: "0.6s" }} />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">verify ✓ meter ✓ forward</span>
+              </div>
+              <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconGear className="w-7 h-7 md:w-8 md:h-8" /></div>
+            </div>
+            <div className="mt-2 flex justify-between font-mono text-[10px] text-white/35">
+              <span>Agent</span><span className="text-[#fffd43]/70">LemonCake Gateway</span><span>Your API</span>
+            </div>
+          </div>
+
+          {/* Lane 3 — split & cap */}
+          <div>
+            <p className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-3">③ Revenue splits automatically. Spending stops when the budget does</p>
+            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+              <div className="flex h-10 overflow-hidden rounded-xl border border-white/10 text-[12px] font-black">
+                <div className="lc-grow flex items-center justify-center bg-[#fffd43] text-[#1a0f00] whitespace-nowrap overflow-hidden" style={{ width: "85%" }}>97% to you (Stripe direct payout)</div>
+                <div className="flex flex-1 items-center justify-center bg-white/10 text-white/60">3%</div>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-center font-mono text-[11.5px] text-white/70 whitespace-nowrap">
+                budget zero → <b className="lc-stamp inline-flex items-center gap-1 text-[#fffd43]"><IconLock className="w-3.5 h-3.5" /> auto-stop with 402</b>
+              </div>
+            </div>
+          </div>
+
+          {/* Ledger ticker — the demo's story, scrolling forever */}
+          <div className="overflow-hidden rounded-xl border border-white/8 bg-black/40 py-2" aria-hidden="true">
+            <div className="lc-ticker flex w-max gap-8 px-4 font-mono text-[11px] whitespace-nowrap">
+              {[0, 1].map((dup) => (
+                <div key={dup} className="flex gap-8">
+                  {[
+                    ["#17", "200 paid_call", "$0.01", "you +$0.0097"],
+                    ["#18", "200 paid_call", "$0.01", "you +$0.0097"],
+                    ["#19", "200 paid_call", "$0.01", "you +$0.0097"],
+                    ["#20", "200 paid_call", "$0.01", "you +$0.0097"],
+                  ].map(([n, s, c, y2]) => (
+                    <span key={`${dup}-${n}`} className="text-white/45">
+                      <span className="text-white/25">{n}</span> {s} <span className="text-[#fffd43]/80">{c}</span> → <span className="text-emerald-300/80">{y2}</span>
+                    </span>
+                  ))}
+                  <span className="font-bold text-[#fffd43]">#21 402 cap_enforced — token spent, agent stopped</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-8 text-center text-[12px] text-white/40 max-w-xl mx-auto leading-relaxed">
+          You change one URL (or one SDK line). Pay Token verification, rate limiting, usage metering, and Stripe payouts — everything in the middle is handled by LemonCake.
+        </p>
+      </section>
+
+      {/* ── Pay Token = capped prepaid card ── */}
+      <section className="max-w-6xl mx-auto px-6 py-24 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-10 items-center">
+          {/* Copy */}
+          <div>
+            <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">What is a Pay Token?</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+              What you hand the agent is<br />
+              <span className="text-[#fffd43]">a capped prepaid card.</span>
+            </h2>
+            <p className="text-[14px] text-white/50 leading-relaxed mb-8">
+              Not a credit-card number, not an API key — a single-use Pay Token.
+              The cap, expiry, and scope are baked into the card itself, and the
+              moment it&apos;s exceeded everything stops with a <span className="font-mono text-[#fffd43]">402</span> — no exceptions.
+            </p>
+            <ul className="space-y-4">
+              {[
+                { t: "Hard cap", d: "A $5 card can never spend $5.01. No approvals, no monitoring required from you." },
+                { t: "Expiry", d: "Expired cards revoke themselves. A forgotten card can never become an incident." },
+                { t: "Scope", d: "Locked to the endpoint you specify. Worth nothing anywhere else." },
+                { t: "Instant revoke", d: "One click in the dashboard. The very next call is rejected." },
+              ].map(({ t, d }) => (
+                <li key={t} className="flex items-start gap-3">
+                  <span className="mt-1 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#fffd43]/15 border border-[#fffd43]/40 text-[#fffd43] text-[11px] font-black" aria-hidden="true">✓</span>
+                  <p className="text-[13.5px] text-white/60 leading-relaxed"><b className="text-white">{t}</b> — {d}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* The card */}
+          <div className="relative mx-auto w-full max-w-[440px] [perspective:1200px]">
+            {/* glow behind */}
+            <div className="pointer-events-none absolute inset-0 -m-10 rounded-full bg-[#fffd43]/[0.07] blur-3xl" aria-hidden="true" />
+            <div className="lc-tilt relative aspect-[1.586/1] rounded-[22px] border border-[#fffd43]/25 bg-gradient-to-br from-[#1c1c26] via-[#101016] to-[#06060a] p-5 md:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(255,253,67,0.12)] overflow-hidden">
+              {/* holo blob + grid texture */}
+              <div className="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(255,253,67,0.16),rgba(255,160,220,0.08),transparent_70%)]" aria-hidden="true" />
+              <div className="pointer-events-none absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)", backgroundSize: "26px 26px" }} aria-hidden="true" />
+              {/* shine sweep */}
+              <div className="pointer-events-none absolute inset-y-0 w-1/3 lc-shine bg-gradient-to-r from-transparent via-white/10 to-transparent" aria-hidden="true" />
+
+              {/* top row: chip + contactless + logo */}
+              <div className="relative flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-11 rounded-md bg-gradient-to-br from-[#f5e36b] to-[#c8a93e] border border-[#fff7c2]/50 grid grid-cols-2 gap-[2px] p-[3px]" aria-hidden="true">
+                    {[0,1,2,3].map(i => <span key={i} className="rounded-[2px] bg-[#a8862c]/60" />)}
+                  </div>
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/40 rotate-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M8.5 8.5a5 5 0 0 1 0 7" /><path d="M5.7 5.7a9 9 0 0 1 0 12.6" /><path d="M11.3 11.3a1.2 1.2 0 0 1 0 1.4" />
+                  </svg>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Image src="/logo.png" alt="" width={30} height={30} className="w-7 h-7 md:w-8 md:h-8 object-contain drop-shadow" aria-hidden="true" />
+                  <span className="font-mono text-[9px] md:text-[10px] font-bold tracking-[0.22em] text-[#fffd43]/80 uppercase">Pay Token</span>
+                </div>
+              </div>
+
+              {/* number */}
+              <p className="relative mt-5 md:mt-7 font-mono text-[17px] md:text-[21px] tracking-[0.14em] text-white/90">
+                lc_pay <span className="text-white/35">••••</span> <span className="text-white/35">••••</span> 8f3a
+              </p>
+
+              {/* budget bar */}
+              <div className="relative mt-4 md:mt-5">
+                <div className="flex items-baseline justify-between font-mono text-[10px] text-white/45 mb-1.5">
+                  <span>balance <b className="text-[#fffd43] text-[12px]">$3.18</b> / $5.00</span>
+                  <span className="text-white/35">318 calls left</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="lc-grow h-full rounded-full bg-gradient-to-r from-[#fffd43] to-[#ffe066]" style={{ width: "64%" }} />
+                </div>
+              </div>
+
+              {/* bottom row */}
+              <div className="relative mt-4 md:mt-6 flex items-end justify-between font-mono text-[9.5px] md:text-[10.5px]">
+                <div>
+                  <p className="text-white/30 uppercase tracking-widest mb-0.5">Holder</p>
+                  <p className="flex items-center gap-1 text-white/80"><IconBot className="w-3.5 h-3.5 text-white/60" /> research-agent-01</p>
+                </div>
+                <div>
+                  <p className="text-white/30 uppercase tracking-widest mb-0.5">Scope</p>
+                  <p className="text-[#fffd43]/85">/api/search only</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/30 uppercase tracking-widest mb-0.5">Exp</p>
+                  <p className="text-white/80">07 / 26</p>
+                </div>
+              </div>
+            </div>
+
+            {/* floating status chips */}
+            <div className="pointer-events-none absolute -right-2 -top-4 rounded-full border border-emerald-400/40 bg-[#06060a] px-3 py-1.5 font-mono text-[10px] text-emerald-300 shadow-lg" aria-hidden="true">
+              ✓ verified · $0.01 charged
+            </div>
+            <div className="pointer-events-none absolute -left-2 -bottom-4 inline-flex items-center gap-1.5 rounded-full border border-red-400/40 bg-[#06060a] px-3 py-1.5 font-mono text-[10px] text-red-300 shadow-lg" aria-hidden="true">
+              <IconLock className="w-3 h-3" /> cap reached → 402
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Why developers ── */}
-      {/*
-       * 6-card benefits grid replacing the old crypto-feature-set. Each card is
-       * a concrete dev pain ("API key management gone") rather than a crypto
-       * primitive ("payment rail internals"). Order matters: lead with the most
-       * universal pain (usage billing), end with the MCP-specific differentiator.
-       */}
       <section id="why-developers" className="max-w-6xl mx-auto px-6 py-24">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Why developers use LemonCake</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
@@ -335,14 +646,15 @@ export default function AboutPageEn() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            { t: "Usage-based billing", d: "Charge per tool call, per token, per outcome. Sub-cent micro-payments work natively — no minimum transaction size, no Stripe-style $0.30 floor." },
-            { t: "AI agent payments",   d: "Agents pay your endpoint directly with one-time spend caps. No human in the loop, no API-key sharing, no \"reset my credentials\" support tickets." },
-            { t: "No API-key management", d: "Stop issuing, rotating, and revoking keys. Buyers authenticate once at install time; you never touch their secrets." },
-            { t: "Stripe-backed payout", d: "Buyers fund Pay Tokens by card. Sellers receive payouts through Stripe Connect Direct Charge; LemonCake never pools customer funds." },
-            { t: "No crypto onboarding", d: "Your buyers don't need a blockchain wallet, seed phrase, or exchange account. They pay by card and hand agents scoped Pay Tokens." },
-            { t: "MCP-native",          d: "Drop-in middleware for any MCP server. Auto-listing on Bazaar + Glama + Smithery + mcp.so + Claude Code Plugins Directory." },
-          ].map(({ t, d }) => (
-            <div key={t} className="rounded-2xl bg-white/4 border border-white/8 p-6">
+            { icon: IconMeter, t: "Usage-based billing", d: "Charge per tool call, per token, per outcome. Sub-cent micro-payments work natively — no minimum transaction size, no Stripe-style $0.30 floor." },
+            { icon: IconBot, t: "AI agent payments", d: "Agents pay your endpoint directly with one-time spend caps. No human in the loop, no API-key sharing, no \"reset my credentials\" support tickets." },
+            { icon: IconKey, t: "No API-key management", d: "Stop issuing, rotating, and revoking keys. Buyers authenticate once at install time; you never touch their secrets." },
+            { icon: IconPayout, t: "Stripe-backed payout", d: "Buyers fund Pay Tokens by card. Sellers receive payouts through Stripe Connect Direct Charge; LemonCake never pools customer funds." },
+            { icon: IconBadge, t: "Agent identity", d: "Every agent gets an ID, a budget, and a usage history. If one goes rogue, pause / revoke stops just that agent — even with balance remaining." },
+            { icon: IconPlug, t: "MCP-native", d: "Drop-in middleware for any MCP server. Scaffold with npx create-lemon-mcp. Auto-listing on Glama + Smithery + mcp.so and more." },
+          ].map(({ icon: CardIcon, t, d }) => (
+            <div key={t} className="lc-card rounded-2xl bg-white/4 border border-white/8 p-6">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#fffd43]/20 bg-[#fffd43]/8 text-[#fffd43]" aria-hidden="true"><CardIcon className="w-5 h-5" /></div>
               <h3 className="text-[15px] font-bold text-white mb-2">{t}</h3>
               <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
             </div>
@@ -351,14 +663,6 @@ export default function AboutPageEn() {
       </section>
 
       {/* ── Billing stack comparison ── */}
-      {/*
-       * Reframed 2026-05-27 from "vs Stripe" to "vs the billing-as-a-service
-       * trio" (Orb / Metronome / Stripe). The honest landscape: Orb and
-       * Metronome handle metering + invoicing but defer payment execution
-       * to Stripe (and Stripe doesn't natively meter). LemonCake collapses
-       * meter + pay + auth into one SDK *and* treats the AI agent as a
-       * first-class buyer. That's the AI-native angle.
-       */}
       <section className="bg-white/[0.02] border-y border-white/8">
         <div className="max-w-5xl mx-auto px-6 py-20">
           <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">The billing stack today</p>
@@ -376,25 +680,37 @@ export default function AboutPageEn() {
                   <th scope="col" className="text-left py-3 px-3 text-white/50 font-semibold"></th>
                   <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Stripe</th>
                   <th scope="col" className="text-left py-3 px-3 text-white/60 font-semibold">Orb / Metronome</th>
-                  <th scope="col" className="text-left py-3 px-3 text-[#fffd43] font-bold">LemonCake</th>
+                  <th scope="col" className="text-left py-3 px-3 text-[#fffd43] font-bold bg-[#fffd43]/[0.07] rounded-t-lg">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Image src="/logo.png" alt="" width={20} height={20} className="w-5 h-5 object-contain" aria-hidden="true" />
+                      LemonCake
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  ["Meter + invoice + pay in one SDK", "Pay only",                   "Meter + invoice (pay via Stripe)", "Yes"],
-                  ["AI agent as buyer",                "Card-only",                  "Org-billed only",                  "Native"],
-                  ["Sub-cent per call",                "$0.30 effective floor",      "Allowed, but Stripe-billed",       "$0.005"],
-                  ["MCP / agent middleware",           "—",                          "—",                                "Drop-in"],
-                  ["No API-key management",            "Keys still required",        "Keys still required",              "Embedded auth"],
-                  ["Free tier",                        "Stripe rates apply",         "Enterprise tiers",                 "1k tx / mo, gas covered"],
-                  ["Open-source SDK",                  "Closed",                     "Closed",                           "MIT"],
-                  ["Setup time",                       "Connect onboarding",         "Implementation engineer",          "One env var"],
-                ].map(([f, s, o, lc]) => (
+                {([
+                  ["Meter + invoice + pay in one SDK", ["✗", "Pay only"],                ["△", "Meter + invoice (pay via Stripe)"], "Yes"],
+                  ["AI agent as buyer",                ["✗", "Card-only"],               ["✗", "Org-billed only"],                  "Native"],
+                  ["Sub-cent per call",                ["✗", "$0.30 effective floor"],   ["△", "Allowed, but Stripe-billed"],       "$0.005"],
+                  ["MCP / agent middleware",           ["✗", "—"],                       ["✗", "—"],                                "Drop-in"],
+                  ["No API-key management",            ["✗", "Keys still required"],     ["✗", "Keys still required"],              "Embedded auth"],
+                  ["Free tier",                        ["△", "Stripe rates apply"],      ["△", "Enterprise tiers"],                 "First 3,000 calls free, then 3%"],
+                  ["Open-source SDK",                  ["✗", "Closed"],                  ["✗", "Closed"],                           "MIT"],
+                  ["Setup time",                       ["△", "Connect onboarding"],      ["✗", "Implementation engineer"],          "Paste a URL and publish"],
+                ] as [string, [string, string], [string, string], string][]).map(([f, s, o, lc]) => (
                   <tr key={f} className="border-b border-white/5">
                     <td className="py-3 px-3 text-white/70 font-medium">{f}</td>
-                    <td className="py-3 px-3 text-white/40">{s}</td>
-                    <td className="py-3 px-3 text-white/40">{o}</td>
-                    <td className="py-3 px-3 text-white">{lc}</td>
+                    {[s, o].map(([mark, text], i) => (
+                      <td key={i} className="py-3 px-3 text-white/40">
+                        <span className={`mr-1.5 font-bold ${mark === "✗" ? "text-red-400/70" : "text-amber-300/70"}`} aria-hidden="true">{mark}</span>
+                        {text}
+                      </td>
+                    ))}
+                    <td className="py-3 px-3 text-white bg-[#fffd43]/[0.07]">
+                      <span className="mr-1.5 font-bold text-[#fffd43]" aria-hidden="true">✓</span>
+                      {lc}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -407,14 +723,6 @@ export default function AboutPageEn() {
       </section>
 
       {/* ── Abuse Prevention Log ── */}
-      {/*
-       * Differentiator visualization — LemonCake doesn't just bill,
-       * it actively blocks runaway / abusive callers. This card mocks
-       * what the live dashboard's "Blocked requests" feed looks like.
-       * Critical for the enterprise pitch (insurance value) but also
-       * resonates with indie devs who've been burned by a bad agent
-       * loop.
-       */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <div className="rounded-3xl bg-gradient-to-br from-red-500/10 to-red-500/[0.02] border border-red-500/25 p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -434,7 +742,7 @@ export default function AboutPageEn() {
               {[
                 { t: "14:21:08", reason: "spend_cap_exceeded",  saved: "$12.40" },
                 { t: "14:19:55", reason: "rate_limit_exceeded", saved: "$0.78"  },
-                { t: "14:15:02", reason: "permit_revoked",       saved: "$0.04"  },
+                { t: "14:15:02", reason: "token_revoked",        saved: "$0.04"  },
                 { t: "14:11:30", reason: "spend_cap_exceeded",  saved: "$8.20"  },
               ].map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-b-0">
@@ -443,21 +751,13 @@ export default function AboutPageEn() {
                   <span className="text-emerald-300/85 font-bold">−{r.saved}</span>
                 </div>
               ))}
-              <p className="mt-3 text-[10px] text-white/35 text-center">Sample data — live feed lands Q3 2026.</p>
+              <p className="mt-3 text-[10px] text-white/35 text-center">Sample data — see your live feed under Blocked requests in the dashboard.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Margin dashboard teaser ── */}
-      {/*
-       * Q3 2026 roadmap signal — Amberflo holds the margin-visibility
-       * angle in this market, and the research doc explicitly flagged it
-       * as one of the differentiated values to claim. This teaser exists
-       * so Pro-tier evaluators know it's coming without committing us to
-       * a specific ship date or feature set. The CTA is a mailto that
-       * drops into Hiroto's inbox as an "early access" signup.
-       */}
+      {/* ── Margin dashboard teaser (Q3 2026) ── */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <div className="rounded-3xl bg-gradient-to-br from-amber-500/10 to-amber-500/[0.02] border border-amber-500/25 p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
@@ -481,15 +781,6 @@ export default function AboutPageEn() {
       </section>
 
       {/* ── Open core ── */}
-      {/*
-       * Open-core is the explicit corporate stance now (2026-05-27).
-       * Same pattern as Supabase / Clerk / Resend: SDK and integration
-       * surface are MIT, hosted billing engine + dashboard + compliance
-       * stay closed. The reason this layout exists: AI infra devs need
-       * to see what's open *and* what's not, because pure-OSS billing
-       * companies are abandonware-suspect and pure-SaaS billing
-       * companies are lock-in-suspect. Open-core threads the needle.
-       */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] border border-emerald-500/20 p-10 md:p-12">
           <div className="text-center mb-10">
@@ -568,56 +859,61 @@ export default function AboutPageEn() {
         </div>
       </section>
 
-      {/*
-       * 2026-05-27: removed the old "Integrations" section that touted
-       * agent-payment-mcp + eliza-plugin-lemoncake. Both still exist on
-       * npm, but the new positioning ("AI API Gatekeeper for sellers")
-       * doesn't lead with "MCP for agents to use" — it leads with
-       * "SDK for sellers to monetize". The MCP server is now a
-       * demonstration of the SDK, not the headline.
-       */}
-
       {/* ── Safety rails (condensed) ── */}
-      {/*
-       * The old "Three safety rails" 3-card grid (Kill Switch / KYA /
-       * Sandbox) was conceptually duplicated by the new Why-developers
-       * grid. Condensed to a single inline strip — the info is still
-       * here for evaluators who want it, just no longer occupying its
-       * own section's worth of real estate.
-       */}
       <section className="max-w-5xl mx-auto px-6 py-16">
-        <div className="rounded-2xl bg-white/4 border border-white/8 p-6 md:p-8">
-          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4 text-center">Safety rails</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-center md:text-left">
-            <div>
-              <h3 className="text-[14px] font-bold text-white mb-1.5">Kill switch</h3>
-              <p className="text-[12.5px] text-white/55 leading-relaxed">One-click revoke on the dashboard. Subsequent charges return 422 atomically.</p>
-            </div>
-            <div>
-              <h3 className="text-[14px] font-bold text-white mb-1.5">Tiered limits (KYA)</h3>
-              <p className="text-[12.5px] text-white/55 leading-relaxed">$10/day default → $1k/day with Know-Your-Agent → $50k/day with full KYC.</p>
-            </div>
-            <div>
-              <h3 className="text-[14px] font-bold text-white mb-1.5">Sandbox mode</h3>
-              <p className="text-[12.5px] text-white/55 leading-relaxed">Issue test tokens that match production behavior without moving real funds.</p>
-            </div>
+        <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-5 text-center">Safety rails</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="lc-card rounded-2xl border border-red-400/25 bg-gradient-to-br from-red-500/10 to-transparent p-6 text-center md:text-left">
+            <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/30 bg-red-500/10 text-red-300" aria-hidden="true"><IconStop className="w-6 h-6" /></div>
+            <h3 className="text-[14px] font-bold text-white mb-1.5">Kill switch</h3>
+            <p className="text-[12.5px] text-white/55 leading-relaxed">One-click revoke on the dashboard, plus per-agent pause / revoke. Subsequent charges are rejected immediately.</p>
+          </div>
+          <div className="lc-card rounded-2xl border border-sky-400/25 bg-gradient-to-br from-sky-500/10 to-transparent p-6 text-center md:text-left">
+            <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/10 text-sky-300" aria-hidden="true"><IconSteps className="w-6 h-6" /></div>
+            <h3 className="text-[14px] font-bold text-white mb-1.5">Tiered limits (KYA)</h3>
+            <p className="text-[12.5px] text-white/55 leading-relaxed">$10/day default → $1k/day with Know-Your-Agent → $50k/day with full KYC.</p>
+          </div>
+          <div className="lc-card rounded-2xl border border-emerald-400/25 bg-gradient-to-br from-emerald-500/10 to-transparent p-6 text-center md:text-left">
+            <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300" aria-hidden="true"><IconFlask className="w-6 h-6" /></div>
+            <h3 className="text-[14px] font-bold text-white mb-1.5">Sandbox mode</h3>
+            <p className="text-[12.5px] text-white/55 leading-relaxed">Issue test tokens that match production behavior without moving real funds. <a href="/demo" className="text-[#fffd43]/80 hover:text-[#fffd43] underline underline-offset-2">Live demo →</a></p>
           </div>
         </div>
       </section>
 
-      {/*
-       * 2026-05-27: cut sections from old positioning (Quickstart that
-       * mirrored /docs/quickstart, Mission "give your agent a safe wallet"
-       * narrative, Buyer/Seller 2-column, The Infrastructure whyItems
-       * grid, Philosophy "raw steel" narrative, generic Contact CTA).
-       * All of those were written for the agent-wallet positioning we've
-       * since pivoted away from. Replaced with a single Launch Plan CTA
-       * that closes the page cleanly.
-       */}
+      {/* ── FAQ (rendered from the same source as faqJsonLd — visible content always matches) ── */}
+      <section className="max-w-3xl mx-auto px-6 py-20">
+        <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">FAQ</p>
+        <h2 className="flex items-center justify-center gap-2.5 text-center text-3xl md:text-4xl font-black text-white mb-10 leading-tight">
+          Frequently asked questions
+          <Image src="/logo.png" alt="" width={40} height={40} className="inline-block w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow" aria-hidden="true" />
+        </h2>
+        <div className="space-y-3">
+          {faqJsonLd.mainEntity.map((q) => (
+            <details key={q.name} className="lc-faq group rounded-2xl border border-white/10 bg-white/[0.03] open:border-[#fffd43]/30 open:bg-white/[0.05]">
+              <summary className="flex items-center gap-3 px-5 py-4">
+                <span className="lc-faq-chev flex-none text-[#fffd43] font-black" aria-hidden="true">›</span>
+                <span className="text-[14.5px] font-bold text-white">{q.name}</span>
+              </summary>
+              <p className="px-5 pb-5 pl-[42px] text-[13.5px] text-white/60 leading-relaxed">{q.acceptedAnswer.text}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* wavy divider: dark → yellow */}
+      <div className="bg-[#06060a]" aria-hidden="true">
+        <svg viewBox="0 0 1440 64" preserveAspectRatio="none" className="block w-full h-[40px] md:h-[64px]">
+          <path d="M0,40 C240,8 480,56 720,32 C960,8 1200,56 1440,24 L1440,64 L0,64 Z" fill="#fffd43" />
+        </svg>
+      </div>
 
       {/* ── Closing CTA ── */}
       <div className="bg-[#fffd43] w-full">
         <section className="max-w-4xl mx-auto px-6 pt-20 pb-24 text-center">
+          <span className="lc-float mx-auto mb-6 inline-block">
+            <Image src="/logo.png" alt="LemonCake" width={88} height={88} className="w-[72px] h-[72px] md:w-[88px] md:h-[88px] object-contain drop-shadow-[0_10px_24px_rgba(26,15,0,0.3)]" />
+          </span>
           <p className="text-[11px] font-bold text-[#1a0f00]/55 uppercase tracking-widest mb-4">
             Launch Plan · Private Beta
           </p>
@@ -654,7 +950,6 @@ export default function AboutPageEn() {
           </p>
         </section>
       </div>
-
 
       {/* ── Footer ── */}
       <footer className="border-t border-white/8 py-12">
