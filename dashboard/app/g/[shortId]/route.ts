@@ -92,6 +92,10 @@ function paymentChallenge(req: Request, shortId: string, charge: number, code: s
           docs: `${origin}/docs/pay-token`,
         },
       ],
+      // Growth loop: the people who read 402 bodies are developers debugging
+      // agents — exactly who can become sellers. One line, zero cost.
+      poweredBy: "LemonCake",
+      monetizeYourApi: `This API earns per call with LemonCake. Make YOURS paid in 5 minutes (first 3,000 calls free): ${origin}`,
     },
     {
       status: 402,

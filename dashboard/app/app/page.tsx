@@ -411,6 +411,22 @@ function RealDashboard() {
     if (params.get("auth")) setActivePane("account");
   }, []);
 
+  // Referral capture: /app?ref=CODE — claim it for this owner (fire-and-forget,
+  // server validates) and strip the param so reloads don't re-claim.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const ref = url.searchParams.get("ref");
+    if (!ref) return;
+    fetch("/api/lc/referral", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: ref }),
+    }).catch(() => {});
+    url.searchParams.delete("ref");
+    window.history.replaceState({}, "", url.pathname + (url.searchParams.size ? `?${url.searchParams}` : ""));
+  }, []);
+
   // ── First-run sign-in gate ──────────────────────────────────────────────
   // Visitors arriving from the "無料で始める" CTA see a sign-in screen first,
   // so each person reconnects to their OWN workspace from any browser. The
@@ -808,6 +824,40 @@ function SignInGate({ onSkip }: { onSkip: () => void }) {
   );
 }
 
+// ── Referral card（紹介プログラム: live になった紹介ごとに双方 +3,000 無料コール）──
+function ReferralCard() {
+  type Ref = { code: string | null; shareUrl: string | null; bonusCalls: number; bonusPerReferral: number; referred: number; referredLive: number };
+  const [data, setData] = useState<Ref | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    fetch("/api/lc/referral").then((r) => (r.ok ? r.json() : null)).then(setData).catch(() => setData(null));
+  }, []);
+  if (!data?.shareUrl) return null;
+  function copy() {
+    navigator.clipboard?.writeText(data!.shareUrl!);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+  return (
+    <section className="rounded-2xl bg-[#fffd43]/20 border border-[#1a0f00]/12 p-5 mb-5">
+      <div className="flex items-baseline justify-between gap-2 mb-1">
+        <h3 className="text-[14px] font-black">友達を紹介して、無料コールを増やす</h3>
+        <span className="text-[10px] font-bold text-[#1a0f00]/45">紹介 {data.referred} / 公開済み {data.referredLive}</span>
+      </div>
+      <p className="text-[12px] text-[#1a0f00]/60 leading-relaxed mb-3">
+        このリンクから登録した人が最初の API を公開すると、<b>あなたにも相手にも +{data.bonusPerReferral.toLocaleString()} 無料コール</b>。
+        {data.bonusCalls > 0 && <>　現在のボーナス: <b className="text-[#1a0f00]">+{data.bonusCalls.toLocaleString()} コール</b></>}
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 min-w-0 truncate rounded-lg border border-[#1a0f00]/12 bg-white px-3 py-2 font-mono text-[12px]">{data.shareUrl}</code>
+        <button onClick={copy} className="flex-shrink-0 px-3.5 py-2 rounded-lg bg-[#1a0f00] text-[#fffd43] text-[12px] font-black hover:bg-[#1a0f00]/85">
+          {copied ? "コピー済 ✓" : "コピー"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function AccountPane() {
   const { t } = useT();
   // ── Identity: anonymous owner cookie + claimed email ──
@@ -927,6 +977,8 @@ function AccountPane() {
   return (
     <>
       <PaneHeading eyebrow={t("account.eyebrow")} title={t("account.title")} subtitle={t("account.subtitle")} />
+
+      <ReferralCard />
 
       {authBanner && (
         <div className={`mb-4 px-3.5 py-2.5 rounded-lg text-[12.5px] font-medium border ${authBanner.tone === "ok" ? "bg-[#16A34A]/8 border-[#16A34A]/25 text-[#15803D]" : "bg-[#DC2626]/8 border-[#DC2626]/25 text-[#B91C1C]"}`}>

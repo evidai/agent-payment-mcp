@@ -110,5 +110,28 @@ export async function POST(req: Request) {
     )
     returning *
   `;
+
+  // Referral credit: when a REFERRED owner ships their FIRST endpoint, both
+  // sides get +3,000 fee-free calls. Single race-safe statement — the CTE only
+  // matches once (referral_credited_at flips from null), so retries/dupes
+  // can't double-credit. Best-effort: a failure here must not fail creation.
+  try {
+    await sql()`
+      with credited as (
+        update lc_owners
+        set referral_credited_at = now(),
+            free_calls_bonus = coalesce(free_calls_bonus, 0) + 3000
+        where id = ${ownerId}
+          and referred_by is not null
+          and referral_credited_at is null
+          and (select count(*) from lc_endpoints where owner_id = ${ownerId}) = 1
+        returning referred_by
+      )
+      update lc_owners
+      set free_calls_bonus = coalesce(free_calls_bonus, 0) + 3000
+      where id in (select referred_by from credited)
+    `;
+  } catch { /* referral credit is non-critical */ }
+
   return NextResponse.json({ endpoint: row }, { status: 201 });
 }
