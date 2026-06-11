@@ -241,6 +241,18 @@ export default function AboutPage() {
 .lc-shine { animation: lcShine 5.5s ease-in-out infinite; }
 .lc-tilt { transition: transform .45s ease; transform-style: preserve-3d; transform: rotateY(-8deg) rotateX(4deg); }
 .lc-tilt:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-6px); }
+@keyframes lcReveal { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+@keyframes lcDrift { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(60px, -40px) scale(1.15); } }
+@keyframes lcDrift2 { 0%, 100% { transform: translate(0, 0) scale(1.1); } 50% { transform: translate(-70px, 50px) scale(0.95); } }
+.lc-aurora { animation: lcDrift 26s ease-in-out infinite; will-change: transform; }
+.lc-aurora2 { animation: lcDrift2 34s ease-in-out infinite; will-change: transform; }
+.lc-outline { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.07); user-select: none; }
+.lc-outline-strong { color: transparent; -webkit-text-stroke: 1px rgba(255,253,67,0.4); }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .lc-stagger > * { animation: lcReveal 1s linear both; animation-timeline: view(); animation-range: entry 0% entry 42%; }
+  }
+}
 .lc-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
 .lc-card:hover { transform: translateY(-4px); border-color: rgba(255,253,67,0.35); box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
 .lc-step:hover .lc-step-emoji { animation: lcStepPop .45s ease; }
@@ -248,10 +260,18 @@ details.lc-faq > summary { list-style: none; cursor: pointer; }
 details.lc-faq > summary::-webkit-details-marker { display: none; }
 details.lc-faq > summary .lc-faq-chev { transition: transform .2s ease; }
 details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
-@media (prefers-reduced-motion: reduce) { .lc-coin, .lc-ticker, .lc-pulse, .lc-float, .lc-grow, .lc-stamp, .lc-shine { animation: none; } .lc-card:hover { transform: none; } .lc-tilt, .lc-tilt:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lc-coin, .lc-ticker, .lc-pulse, .lc-float, .lc-grow, .lc-stamp, .lc-shine, .lc-aurora, .lc-aurora2 { animation: none; } .lc-card:hover { transform: none; } .lc-tilt, .lc-tilt:hover { transform: none; } }
 `,
         }}
       />
+
+      {/* aurora backdrop — slow drifting glow blobs behind the dark sections */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="lc-aurora absolute -left-40 top-1/4 h-[55vh] w-[55vw] rounded-full bg-[#fffd43]/[0.05] blur-[110px]" />
+        <div className="lc-aurora2 absolute -right-40 top-2/3 h-[45vh] w-[45vw] rounded-full bg-emerald-400/[0.04] blur-[110px]" />
+      </div>
+      {/* film grain — static texture overlay */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[60] opacity-[0.05]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">
@@ -324,9 +344,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
             </div>
             <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
               MCP / APIを、<br />
-              <span className="text-black">
-                5分で有料化する。
-              </span>
+              <span className="inline-block bg-[#1a0f00] text-[#fffd43] px-3 py-0.5 rounded-xl -rotate-1 mr-1">5分</span>
+              <span className="text-black">で有料化する。</span>
             </h1>
             <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
               <strong className="text-[#1a0f00]">URLを貼って、1コール単価を決めて、購入リンクを共有。</strong>
@@ -408,8 +427,22 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
         </svg>
       </div>
 
+      {/* marquee — capability strip */}
+      <div className="overflow-hidden border-b border-white/5 py-3" aria-hidden="true">
+        <div className="lc-ticker flex w-max items-center gap-10 px-4 font-black text-[12px] uppercase tracking-[0.3em] whitespace-nowrap">
+          {[0, 1].map((dup) => (
+            <div key={dup} className="flex items-center gap-10">
+              {["Pay-per-call", "HTTP 402", "Pay Token", "MCP Native", "97% to Sellers", "No Crypto Wallet", "x402 Gateway", "Sub-cent Pricing"].map((w, i) => (
+                <span key={w} className={`flex items-center gap-10 ${i % 2 ? "text-white/20" : "lc-outline-strong"}`}>{w}<span className="text-[#fffd43]/35">●</span></span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── 3 steps in 5 minutes ── */}
-      <section className="lc-cv max-w-6xl mx-auto px-6 pt-20 pb-4">
+      <section className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 pt-20 pb-4">
+        <span aria-hidden="true" className="lc-outline pointer-events-none absolute inset-x-0 top-2 text-center text-[88px] md:text-[150px] font-black leading-none whitespace-nowrap">START</span>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Getting started</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           やることは <span className="text-[#fffd43]">3つ</span> だけ。
@@ -451,7 +484,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── How it works — animated money flow ── */}
-      <section id="how-it-works" className="lc-cv max-w-6xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 py-20">
+        <span aria-hidden="true" className="lc-outline pointer-events-none absolute inset-x-0 top-2 text-center text-[88px] md:text-[150px] font-black leading-none whitespace-nowrap">FLOW</span>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           お金の流れが、<span className="text-[#fffd43]">ぜんぶ見える。</span>
@@ -547,7 +581,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Pay Token = capped prepaid card ── */}
-      <section className="lc-cv max-w-6xl mx-auto px-6 py-24 overflow-hidden">
+      <section className="lc-cv lc-stagger max-w-6xl mx-auto px-6 py-24 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-10 items-center">
           {/* Copy */}
           <div>
@@ -648,7 +682,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Why developers ── */}
-      <section id="why-developers" className="lc-cv max-w-6xl mx-auto px-6 py-24">
+      <section id="why-developers" className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 py-24">
+        <span aria-hidden="true" className="lc-outline pointer-events-none absolute inset-x-0 top-2 text-center text-[88px] md:text-[150px] font-black leading-none whitespace-nowrap">WHY</span>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Why developers use LemonCake</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           決済インフラが面倒にする部分を、<br />
@@ -657,19 +692,21 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
         <p className="text-center text-[14px] text-white/40 mb-16 max-w-xl mx-auto">
           LemonCake を繋いだら、気にしなくてよくなる 6 つのこと。
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-5">
           {[
-            { icon: IconMeter, t: "従量課金", d: "tool call 単位・token 単位・成果単位で課金。サブセントのマイクロペイメントがネイティブに動作 — 最低取引額なし、Stripe のような $0.30 の下限なし。" },
-            { icon: IconBot, t: "AI エージェント決済", d: "エージェントが使い切り上限付きで、あなたのエンドポイントに直接支払う。人間の承認も、API キー共有も、「認証情報をリセットして」というサポート対応も不要。" },
-            { icon: IconKey, t: "API キー管理ゼロ", d: "キーの発行・ローテーション・失効はもう不要。Buyer はインストール時に 1 度だけ認証。あなたが秘密情報に触れることはありません。" },
-            { icon: IconPayout, t: "Stripe 入金", d: "Buyer はカードで Pay Token を購入。Seller には Stripe Connect Direct Charge で入金。LemonCake が資金をプールすることはありません。" },
-            { icon: IconBadge, t: "Agent Identity", d: "エージェントごとに ID・予算・利用履歴を紐づけ。暴走したら pause / revoke で即停止 — 残高が残っていても、そのエージェントだけ止められます。" },
-            { icon: IconPlug, t: "MCP ネイティブ", d: "どの MCP サーバーにもそのまま挿せるミドルウェア。npx create-lemon-mcp で雛形ごと生成。Glama + Smithery + mcp.so などに自動掲載。" },
-          ].map(({ icon: CardIcon, t, d }) => (
-            <div key={t} className="lc-card rounded-2xl bg-white/4 border border-white/8 p-6">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#fffd43]/20 bg-[#fffd43]/8 text-[#fffd43]" aria-hidden="true"><CardIcon className="w-5 h-5" /></div>
-              <h3 className="text-[15px] font-bold text-white mb-2">{t}</h3>
-              <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
+            { icon: IconMeter, t: "従量課金", d: "tool call 単位・token 単位・成果単位で課金。サブセントのマイクロペイメントがネイティブに動作 — 最低取引額なし、Stripe のような $0.30 の下限なし。", span: "md:col-span-3", wide: false },
+            { icon: IconBot, t: "AI エージェント決済", d: "エージェントが使い切り上限付きで、あなたのエンドポイントに直接支払う。人間の承認も、API キー共有も、「認証情報をリセットして」というサポート対応も不要。", span: "md:col-span-3", wide: false },
+            { icon: IconKey, t: "API キー管理ゼロ", d: "キーの発行・ローテーション・失効はもう不要。Buyer はインストール時に 1 度だけ認証。あなたが秘密情報に触れることはありません。", span: "md:col-span-2", wide: false },
+            { icon: IconPayout, t: "Stripe 入金", d: "Buyer はカードで Pay Token を購入。Seller には Stripe Connect Direct Charge で入金。LemonCake が資金をプールすることはありません。", span: "md:col-span-2", wide: false },
+            { icon: IconBadge, t: "Agent Identity", d: "エージェントごとに ID・予算・利用履歴を紐づけ。暴走したら pause / revoke で即停止 — 残高が残っていても、そのエージェントだけ止められます。", span: "md:col-span-2", wide: false },
+            { icon: IconPlug, t: "MCP ネイティブ", d: "どの MCP サーバーにもそのまま挿せるミドルウェア。npx create-lemon-mcp で雛形ごと生成。Glama + Smithery + mcp.so などに自動掲載。", span: "md:col-span-6", wide: true },
+          ].map(({ icon: CardIcon, t, d, span, wide }) => (
+            <div key={t} className={`lc-card rounded-2xl bg-white/4 border border-white/8 p-6 ${span} ${wide ? "md:flex md:items-center md:gap-6 md:bg-gradient-to-r md:from-[#fffd43]/[0.06] md:to-transparent" : ""}`}>
+              <div className={`mb-3 flex items-center justify-center rounded-xl border border-[#fffd43]/20 bg-[#fffd43]/8 text-[#fffd43] ${wide ? "h-14 w-14 flex-none md:mb-0" : "h-10 w-10"}`} aria-hidden="true"><CardIcon className={wide ? "w-7 h-7" : "w-5 h-5"} /></div>
+              <div>
+                <h3 className="text-[15px] font-bold text-white mb-2">{t}</h3>
+                <p className="text-[13px] text-white/55 leading-relaxed">{d}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -677,7 +714,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
 
       {/* ── Billing stack comparison ── */}
       <section className="lc-cv bg-white/[0.02] border-y border-white/8">
-        <div className="max-w-5xl mx-auto px-6 py-20">
+        <div className="lc-stagger relative max-w-5xl mx-auto px-6 py-20">
+          <span aria-hidden="true" className="lc-outline pointer-events-none absolute inset-x-0 top-4 text-center text-[88px] md:text-[150px] font-black leading-none whitespace-nowrap">VS</span>
           <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">The billing stack today</p>
           <h2 className="text-center text-3xl font-black text-white mb-4 leading-tight">
             Stripe は人間向け。Orb &amp; Metronome は SaaS 向け。<br />
@@ -895,7 +933,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── FAQ（faqJsonLd と同一ソースを描画 — JSON-LD と可視内容が常に一致） ── */}
-      <section className="lc-cv max-w-3xl mx-auto px-6 py-20">
+      <section className="lc-cv lc-stagger relative max-w-3xl mx-auto px-6 py-20">
+        <span aria-hidden="true" className="lc-outline pointer-events-none absolute inset-x-0 top-2 text-center text-[88px] md:text-[150px] font-black leading-none whitespace-nowrap">FAQ</span>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">FAQ</p>
         <h2 className="flex items-center justify-center gap-2.5 text-center text-3xl md:text-4xl font-black text-white mb-10 leading-tight">
           よくある質問
