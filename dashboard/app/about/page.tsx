@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import ContactButton from "./ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import { RoiCalculator } from "@/components/RoiCalculator";
+import { CtaLink } from "@/components/CtaLink";
 import {
   IconArrowRight, IconCard, IconBot, IconGear, IconTicket, IconLock, IconLink2,
   IconTag, IconRocket, IconMeter, IconKey, IconPayout, IconBadge, IconPlug,
@@ -203,18 +205,18 @@ export default function AboutPage() {
               <strong>本番稼働中:</strong> x402 gateway / Stripe-backed Pay Token / spend caps / usage ledger。暗号資産ウォレット不要。初回3,000コール無料、以降3%。売上の97%はSellerへ。
             </p>
             <div className="flex items-center gap-3 flex-wrap">
-              <Link
+              <CtaLink cta="hero_start_free" page="about_ja"
                 href="/app"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-lg hover:bg-[#1a0f00]/85 transition-colors text-sm"
               >
                 無料で始める <IconArrowRight />
-              </Link>
-              <Link
+              </CtaLink>
+              <CtaLink cta="hero_live_demo" page="about_ja"
                 href="/demo"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-lg hover:bg-white/90 transition-colors text-sm"
               >
                 ライブデモを見る →
-              </Link>
+              </CtaLink>
             </div>
             <dl className="mt-8 grid grid-cols-3 max-w-[520px] border-y border-[rgba(26,15,0,0.14)] divide-x divide-[rgba(26,15,0,0.14)]">
               {[
@@ -605,6 +607,11 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* ── ROI calculator ── */}
+      <section className="lc-cv max-w-5xl mx-auto px-6 py-16">
+        <RoiCalculator locale="ja" />
+      </section>
+
       {/* ── Abuse Prevention Log ── */}
       <section className="lc-cv max-w-5xl mx-auto px-6 py-16">
         <div className="rounded-3xl bg-gradient-to-br from-red-500/10 to-red-500/[0.02] border border-red-500/25 p-8 md:p-10">
@@ -805,12 +812,12 @@ export default function AboutPage() {
             初回 3,000 コール無料、以降 3%。資金は預からず、取り分は97%。
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link
+            <CtaLink cta="closing_start_free" page="about_ja"
               href="/app"
               className="inline-flex items-center gap-2 px-7 py-3 bg-[#1a0f00] text-[#fffd43] font-bold rounded-xl hover:bg-[#1a0f00]/85 transition-colors text-sm"
             >
               無料で始める <IconArrowRight />
-            </Link>
+            </CtaLink>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 px-7 py-3 bg-white text-[#1a0f00] border border-[#1a0f00]/15 font-semibold rounded-xl hover:bg-white/90 transition-colors text-sm"

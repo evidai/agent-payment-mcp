@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { trackCta, trackEvent } from "@/lib/analytics";
 
 type Session = {
   jwt: string;
@@ -21,7 +22,7 @@ type Run = {
   label: string;
 };
 
-type CodeTab = "curl" | "mcp" | "node";
+type CodeTab = "curl" | "mcp" | "claude" | "node";
 
 const IconArrow = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
@@ -120,17 +121,32 @@ export default function DemoClient() {
   -H "Authorization: Bearer ${session ? session.jwt : "$LC_PAY_TOKEN"}" \\
   -H "Content-Type: application/json" \\
   -d '{"ping":1}'`;
-  const mcpConfig = `{
+  const mcpConfigFor = (token: string) => `{
   "mcpServers": {
     "paid-api": {
       "command": "npx",
       "args": ["-y", "agent-payment-mcp"],
       "env": {
-        "LC_PAY_TOKEN": "${session ? maskedToken : "paste_pay_token_here"}"
+        "LC_PAY_TOKEN": "${token}"
       }
     }
   }
 }`;
+  // Claude Desktop: same server entry, addressed at the file users actually edit.
+  const claudeConfigFor = (token: string) => `// ~/Library/Application Support/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "lemoncake-paid-api": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"],
+      "env": {
+        "LC_PAY_TOKEN": "${token}",
+        "LC_GATEWAY_URL": "${gatewayUrl}"
+      }
+    }
+  }
+}`;
+  const placeholderToken = "paste_pay_token_here";
   const nodeSnippet = `const res = await fetch("${gatewayUrl}", {
   method: "POST",
   headers: {
@@ -142,7 +158,20 @@ export default function DemoClient() {
 
 console.log(await res.json());`;
 
-  const activeSnippet = codeTab === "curl" ? curlCmd : codeTab === "mcp" ? mcpConfig : nodeSnippet;
+  const displayToken = session ? maskedToken : placeholderToken;
+  const copyToken = session ? session.jwt : placeholderToken;
+  const activeSnippet =
+    codeTab === "curl" ? curlCmd
+    : codeTab === "mcp" ? mcpConfigFor(displayToken)
+    : codeTab === "claude" ? claudeConfigFor(displayToken)
+    : nodeSnippet;
+  // The copied text carries the REAL token (the displayed one is masked), so
+  // a minted sandbox credential is paste-ready in an MCP client.
+  const copySnippetText =
+    codeTab === "curl" ? curlCmd
+    : codeTab === "mcp" ? mcpConfigFor(copyToken)
+    : codeTab === "claude" ? claudeConfigFor(copyToken)
+    : nodeSnippet;
 
   async function mintToken() {
     setMinting(true);
@@ -157,6 +186,7 @@ console.log(await res.json());`;
       }
       setSession(json as Session);
       setRuns([]);
+      trackEvent("demo_token_minted");
     } catch {
       setError("Network error. Please retry.");
     } finally {
@@ -185,6 +215,7 @@ console.log(await res.json());`;
         { n: prev.length + 1, ok: res.ok, status: res.status, ms, charge: res.ok ? charge : 0, label },
         ...prev,
       ]);
+      trackEvent("mcp_demo_run", { ok: res.ok, status: res.status });
     } catch {
       setError("Network error. Please retry.");
     } finally {
@@ -194,7 +225,8 @@ console.log(await res.json());`;
 
   async function copySnippet() {
     try {
-      await navigator.clipboard.writeText(activeSnippet);
+      await navigator.clipboard.writeText(copySnippetText);
+      trackCta(`copy_${codeTab}`, "demo");
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -403,10 +435,11 @@ console.log(await res.json());`;
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
-            <div className="mt-3 grid grid-cols-3 rounded-md bg-white/5 p-1">
+            <div className="mt-3 grid grid-cols-4 rounded-md bg-white/5 p-1">
               {[
                 ["curl", "curl"],
                 ["mcp", "mcp.json"],
+                ["claude", "Claude"],
                 ["node", "Node"],
               ].map(([id, label]) => (
                 <button
@@ -425,7 +458,9 @@ console.log(await res.json());`;
             <code>{activeSnippet}</code>
           </pre>
           <div className="border-t border-white/10 px-4 py-3 text-[11px] leading-relaxed text-white/42">
-            In production, the buyer pays by card and the agent receives a spend-capped Pay Token.
+            {codeTab === "claude" || codeTab === "mcp"
+              ? "Copy pastes the REAL sandbox token (display is masked) — drop it into your MCP client and the paid call just works."
+              : "In production, the buyer pays by card and the agent receives a spend-capped Pay Token."}
           </div>
         </aside>
       </section>
@@ -487,6 +522,7 @@ function NpxChip() {
   async function copy() {
     try {
       await navigator.clipboard.writeText(cmd);
+      trackCta("copy_npx", "demo");
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch { /* clipboard unavailable */ }

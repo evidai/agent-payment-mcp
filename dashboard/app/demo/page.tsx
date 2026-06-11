@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import DemoClient from "./DemoClient";
 import { softwareAppJsonLd, breadcrumbJsonLd } from "../lib/structured-data";
+import { CtaLink } from "@/components/CtaLink";
 
 export const metadata: Metadata = {
   title: "LemonCake Playground — Test a Paid MCP / API Call in 30 Seconds",
@@ -138,9 +139,9 @@ export default function DemoPage() {
             <Link href="/app" className="hidden text-[13px] font-semibold text-[#1a0f00]/55 hover:text-[#1a0f00] sm:inline">
               Dashboard
             </Link>
-            <Link href="/app" className="rounded-md bg-[#1a0f00] px-3 py-2 text-[12px] font-black text-[#fffd43] hover:bg-[#1a0f00]/88 sm:px-4">
+            <CtaLink cta="nav_monetize_api" page="demo" href="/app" className="rounded-md bg-[#1a0f00] px-3 py-2 text-[12px] font-black text-[#fffd43] hover:bg-[#1a0f00]/88 sm:px-4">
               Monetize API
-            </Link>
+            </CtaLink>
           </div>
         </div>
       </nav>
@@ -183,7 +184,7 @@ export default function DemoPage() {
 
           <p className="mt-8 text-[13px] leading-relaxed text-[#1a0f00]/62">
             Ready to charge for your own endpoint?{" "}
-            <Link href="/app" className="font-bold underline underline-offset-2 hover:text-[#1a0f00]">Paste your URL in the dashboard</Link>{" "}
+            <CtaLink cta="aeo_paste_url" page="demo" href="/app" className="font-bold underline underline-offset-2 hover:text-[#1a0f00]">Paste your URL in the dashboard</CtaLink>{" "}
             or scaffold a paid MCP server with{" "}
             <code className="rounded bg-[#1a0f00]/6 px-1.5 py-0.5 font-mono text-[12px]">npx create-lemon-mcp</code>.
             First 3,000 calls free, then 3% — see <Link href="/pricing" className="font-bold underline underline-offset-2 hover:text-[#1a0f00]">pricing</Link>{" "}
