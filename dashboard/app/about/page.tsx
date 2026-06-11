@@ -832,7 +832,7 @@ export default function AboutPage() {
             </Link>
           </div>
           <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-            クレジットカード不要。Private Beta 中は手動オンボーディング（約 24 時間）。
+            クレジットカード不要。メール / Google / GitHub でサインインして、今すぐ使えます。
           </p>
         </section>
       </div>

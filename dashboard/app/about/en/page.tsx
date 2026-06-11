@@ -858,7 +858,7 @@ export default function AboutPageEn() {
             </Link>
           </div>
           <p className="mt-6 text-[11px] text-[#1a0f00]/40 font-mono">
-            No credit card. Manual onboarding (~24h) during Private Beta.
+            No credit card. Sign in with email, Google, or GitHub — you’re live right away.
           </p>
         </section>
       </div>

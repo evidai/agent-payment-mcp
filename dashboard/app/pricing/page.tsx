@@ -155,7 +155,7 @@ export default function PricingPage() {
               Start for free →
             </Link>
             <p className="text-center mt-3 text-[11px] text-[#1a0f00]/45">
-              No credit card. Manual onboarding (~24h) during Private Beta.
+              No credit card. Sign in with email, Google, or GitHub — you’re live right away.
             </p>
           </div>
         </div>
