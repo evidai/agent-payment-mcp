@@ -1020,7 +1020,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
               <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest mb-3">プロダクト</p>
               <ul className="flex flex-col gap-2">
                 {[
-                  { label: "ダッシュボード", href: "/login" },
+                  { label: "ダッシュボード", href: "/app" },
                   { label: "MCP サーバー",  href: "https://www.npmjs.com/package/agent-payment-mcp" },
                   { label: "Eliza Plugin",  href: "https://www.npmjs.com/package/eliza-plugin-lemoncake" },
                   { label: "ドキュメント",  href: "https://lemoncake.xyz/docs" },

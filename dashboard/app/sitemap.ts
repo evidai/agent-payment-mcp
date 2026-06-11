@@ -15,8 +15,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/app`,                           lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/pricing`,                       lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/demo`,                          lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
-    { url: `${BASE}/sellers`,                       lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
-    { url: `${BASE}/start/free`,                    lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     // /start/v2 — non-custodial buyer onramp (FSA Q11 confirmed).
     { url: `${BASE}/start/v2`,                      lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${BASE}/integrations/freee`,            lastModified: now, changeFrequency: "weekly",  priority: 0.7 },
