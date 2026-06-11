@@ -222,7 +222,7 @@ export default function AboutPage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-@keyframes lcCoin { 0% { left: 0%; opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { left: calc(100% - 10px); opacity: 0; } }
+@keyframes lcCoin { 0% { transform: translateX(0); opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(calc(100% - 10px)); opacity: 0; } }
 @keyframes lcTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 @keyframes lcPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,253,67,0.35); } 50% { box-shadow: 0 0 0 10px rgba(255,253,67,0); } }
 @keyframes lcFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } }
@@ -230,8 +230,10 @@ export default function AboutPage() {
 @keyframes lcGrow { from { width: 0%; } }
 @keyframes lcStamp { 0%, 86%, 100% { transform: rotate(-2deg) scale(1); } 92% { transform: rotate(-7deg) scale(1.12); } }
 @keyframes lcShine { 0% { transform: translateX(-140%) skewX(-18deg); } 55%, 100% { transform: translateX(260%) skewX(-18deg); } }
-.lc-coin { animation: lcCoin 3.2s linear infinite; box-shadow: 0 0 8px rgba(255,253,67,0.8); }
-.lc-ticker { animation: lcTicker 28s linear infinite; }
+.lc-coin { animation: lcCoin 3.2s linear infinite; will-change: transform, opacity; }
+.lc-coin-dot { box-shadow: 0 0 8px rgba(255,253,67,0.8); }
+.lc-ticker { animation: lcTicker 28s linear infinite; will-change: transform; }
+.lc-cv { content-visibility: auto; contain-intrinsic-block-size: auto 1000px; }
 .lc-pulse { animation: lcPulse 2.4s ease-in-out infinite; }
 .lc-float { animation: lcFloat 5.5s ease-in-out infinite; }
 .lc-grow { animation: lcGrow 1.8s cubic-bezier(.2,.8,.2,1) both; }
@@ -407,7 +409,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </div>
 
       {/* ── 3 steps in 5 minutes ── */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-4">
+      <section className="lc-cv max-w-6xl mx-auto px-6 pt-20 pb-4">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Getting started</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           やることは <span className="text-[#fffd43]">3つ</span> だけ。
@@ -449,7 +451,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── How it works — animated money flow ── */}
-      <section id="how-it-works" className="max-w-6xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="lc-cv max-w-6xl mx-auto px-6 py-20">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           お金の流れが、<span className="text-[#fffd43]">ぜんぶ見える。</span>
@@ -464,9 +466,9 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
             <p className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-3">① 買い手がカードで前払い</p>
             <div className="flex items-center gap-3 md:gap-5">
               <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconCard className="w-7 h-7 md:w-8 md:h-8" /></div>
-              <div className="relative h-8 flex-1" aria-hidden="true">
+              <div className="relative h-8 flex-1 overflow-hidden" aria-hidden="true">
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
-                <span className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" />
+                <span className="lc-coin absolute inset-0"><span className="lc-coin-dot absolute left-0 top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" /></span>
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">前払い $5.00</span>
               </div>
               <div className="flex-none rounded-2xl border border-[#fffd43]/35 bg-[#fffd43]/10 px-3.5 py-2.5 md:px-5 md:py-3">
@@ -481,19 +483,19 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
             <p className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-3">② エージェントが 1 コールずつ払って使う</p>
             <div className="flex items-center gap-3 md:gap-5">
               <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconBot className="w-7 h-7 md:w-8 md:h-8" /></div>
-              <div className="relative h-8 flex-1" aria-hidden="true">
+              <div className="relative h-8 flex-1 overflow-hidden" aria-hidden="true">
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
                 {[0, 1, 2].map((i) => (
-                  <span key={i} className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" style={{ animationDelay: `${i * 1.05}s` }} />
+                  <span key={i} className="lc-coin absolute inset-0" style={{ animationDelay: `${i * 1.05}s` }}><span className="lc-coin-dot absolute left-0 top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-[#fffd43]" /></span>
                 ))}
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">$0.01 / call</span>
               </div>
               <div className="lc-pulse flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-[#fffd43]/40 bg-[#fffd43]/12" aria-hidden="true">
                 <Image src="/logo.png" alt="" width={40} height={40} className="w-9 h-9 md:w-11 md:h-11 object-contain drop-shadow" />
               </div>
-              <div className="relative hidden h-8 flex-1 sm:block" aria-hidden="true">
+              <div className="relative hidden h-8 flex-1 overflow-hidden sm:block" aria-hidden="true">
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-white/15" />
-                <span className="lc-coin absolute top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-emerald-400" style={{ animationDelay: "0.6s" }} />
+                <span className="lc-coin absolute inset-0" style={{ animationDelay: "0.6s" }}><span className="lc-coin-dot absolute left-0 top-1/2 -mt-[5px] h-[10px] w-[10px] rounded-full bg-emerald-400" style={{ boxShadow: "0 0 8px rgba(52,211,153,0.8)" }} /></span>
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#06060a] px-2.5 py-0.5 font-mono text-[10px] text-white/55 whitespace-nowrap">検証 ✓ 計量 ✓ 転送</span>
               </div>
               <div className="flex h-14 w-14 md:h-16 md:w-16 flex-none items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/70" aria-hidden="true"><IconGear className="w-7 h-7 md:w-8 md:h-8" /></div>
@@ -545,7 +547,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Pay Token = capped prepaid card ── */}
-      <section className="max-w-6xl mx-auto px-6 py-24 overflow-hidden">
+      <section className="lc-cv max-w-6xl mx-auto px-6 py-24 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-10 items-center">
           {/* Copy */}
           <div>
@@ -646,7 +648,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Why developers ── */}
-      <section id="why-developers" className="max-w-6xl mx-auto px-6 py-24">
+      <section id="why-developers" className="lc-cv max-w-6xl mx-auto px-6 py-24">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Why developers use LemonCake</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           決済インフラが面倒にする部分を、<br />
@@ -674,7 +676,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Billing stack comparison ── */}
-      <section className="bg-white/[0.02] border-y border-white/8">
+      <section className="lc-cv bg-white/[0.02] border-y border-white/8">
         <div className="max-w-5xl mx-auto px-6 py-20">
           <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">The billing stack today</p>
           <h2 className="text-center text-3xl font-black text-white mb-4 leading-tight">
@@ -734,7 +736,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Abuse Prevention Log ── */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section className="lc-cv max-w-5xl mx-auto px-6 py-16">
         <div className="rounded-3xl bg-gradient-to-br from-red-500/10 to-red-500/[0.02] border border-red-500/25 p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
@@ -769,7 +771,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Margin dashboard teaser (Q3 2026) ── */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section className="lc-cv max-w-5xl mx-auto px-6 py-16">
         <div className="rounded-3xl bg-gradient-to-br from-amber-500/10 to-amber-500/[0.02] border border-amber-500/25 p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
             <div>
@@ -792,7 +794,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Open core ── */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
+      <section className="lc-cv max-w-5xl mx-auto px-6 py-20">
         <div className="rounded-3xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] border border-emerald-500/20 p-10 md:p-12">
           <div className="text-center mb-10">
             <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-4">Open core, like Supabase &amp; Clerk</p>
@@ -871,7 +873,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Safety rails (condensed) ── */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section className="lc-cv max-w-5xl mx-auto px-6 py-16">
         <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-5 text-center">安全装置</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="lc-card rounded-2xl border border-red-400/25 bg-gradient-to-br from-red-500/10 to-transparent p-6 text-center md:text-left">
@@ -893,7 +895,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── FAQ（faqJsonLd と同一ソースを描画 — JSON-LD と可視内容が常に一致） ── */}
-      <section className="max-w-3xl mx-auto px-6 py-20">
+      <section className="lc-cv max-w-3xl mx-auto px-6 py-20">
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">FAQ</p>
         <h2 className="flex items-center justify-center gap-2.5 text-center text-3xl md:text-4xl font-black text-white mb-10 leading-tight">
           よくある質問
