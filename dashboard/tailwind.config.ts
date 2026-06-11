@@ -76,8 +76,8 @@ const config: Config = {
         panel: "#FFFFFF",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "Fira Code", "ui-monospace", "monospace"],
+        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
+        mono: ["var(--font-jbmono)", "JetBrains Mono", "Fira Code", "ui-monospace", "monospace"],
       },
       keyframes: {
         "fade-in": {
