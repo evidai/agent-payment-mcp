@@ -84,6 +84,13 @@ export default function SuccessPage() {
     };
   }, []);
 
+  const [linkCopied, setLinkCopied] = useState(false);
+  function copyRecoveryLink() {
+    navigator.clipboard?.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   function copyJwt() {
     if (data?.jwt) {
       navigator.clipboard?.writeText(data.jwt);
@@ -131,7 +138,14 @@ export default function SuccessPage() {
             </p>
 
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 mb-4 text-[12px] leading-relaxed text-amber-800">
-              <span className="font-bold">これがあなたの API キーです。</span> いま表示される一度きりです。安全な場所に保存してください。
+              <span className="font-bold">これがあなたの API キーです。</span>{" "}
+              安全な場所に保存してください。このページの URL を開き直せば、いつでも同じトークンを再表示できます。
+              <button
+                onClick={copyRecoveryLink}
+                className="mt-1.5 block rounded-md border border-amber-300 bg-white/70 px-2 py-1 text-[11px] font-bold text-amber-900 hover:bg-white"
+              >
+                {linkCopied ? "復元リンクをコピーしました ✓" : "復元リンクをコピー"}
+              </button>
             </div>
 
             <label className="block mb-1 text-[12px] font-semibold text-black/55">Pay Token (JWT)</label>

@@ -1088,6 +1088,19 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
   const [busy,         setBusy]         = useState(false);
   const [err,          setErr]          = useState<string | null>(null);
 
+  // Prefill from query params so /demo (and any outside link) can hand a
+  // visitor straight into a half-completed form: /app?url=…&name=…&price=…
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const u = p.get("url");
+    const n = p.get("name");
+    const pr = p.get("price");
+    if (u && /^https?:\/\//.test(u)) setApiUrl(u);
+    if (n) setApiName(n.slice(0, 80));
+    if (pr && Number(pr) > 0 && Number(pr) <= 1000) setPricePerCall(pr);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Verify origin (real browser-side GET against the URL the seller pasted)
   type VerifyState =
     | null

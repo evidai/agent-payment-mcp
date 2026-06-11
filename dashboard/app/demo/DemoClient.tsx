@@ -474,13 +474,18 @@ console.log(await res.json());`;
           </p>
           <NpxChip />
         </div>
-        <div className="flex flex-wrap gap-2 md:justify-end">
-          <Link href="/app" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#1a0f00] px-4 py-2.5 text-[13px] font-black text-[#fffd43] hover:bg-[#1a0f00]/88">
-            Monetize my API <IconArrow />
-          </Link>
-          <Link href="/docs" className="inline-flex items-center justify-center rounded-md border border-[#1a0f00]/12 px-4 py-2.5 text-[13px] font-black text-[#1a0f00]/70 hover:bg-[#1a0f00]/5">
-            Docs
-          </Link>
+        <div className="w-full max-w-[460px] md:justify-self-end">
+          {/* Bridge while the demo is still warm: paste a URL here and land on
+              /app with the form already filled in. */}
+          <PasteUrlCta />
+          <div className="mt-2 flex flex-wrap gap-3 md:justify-end">
+            <Link href="/docs" className="text-[12px] font-black text-[#1a0f00]/55 underline underline-offset-2 hover:text-[#1a0f00]">
+              Docs
+            </Link>
+            <Link href="/app" onClick={() => trackCta("demo_monetize_plain", "demo")} className="text-[12px] font-black text-[#1a0f00]/55 underline underline-offset-2 hover:text-[#1a0f00]">
+              Open dashboard →
+            </Link>
+          </div>
         </div>
       </section>
     </div>
@@ -513,6 +518,36 @@ function Metric({
       <p className="text-[9.5px] font-black uppercase tracking-[0.15em] text-[#1a0f00]/36">{label}</p>
       <p className={`${compact ? "text-[17px]" : "text-[21px]"} mt-auto pt-1 font-black leading-none tabular-nums`}>{value}</p>
     </div>
+  );
+}
+
+function PasteUrlCta() {
+  const [url, setUrl] = useState("");
+  const valid = /^https?:\/\/.+\..+/.test(url.trim());
+  function go(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valid) return;
+    trackCta("demo_paste_url_bridge", "demo");
+    window.location.href = `/app?url=${encodeURIComponent(url.trim())}`;
+  }
+  return (
+    <form onSubmit={go} className="flex gap-2">
+      <input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="https://api.yourservice.com"
+        aria-label="Your API URL"
+        className="min-w-0 flex-1 rounded-md border border-[#1a0f00]/15 bg-white px-3 py-2.5 font-mono text-[12.5px] outline-none placeholder:text-[#1a0f00]/30 focus:border-[#1a0f00]/40"
+      />
+      <button
+        type="submit"
+        disabled={!valid}
+        className="flex-none rounded-md bg-[#1a0f00] px-4 py-2.5 text-[13px] font-black text-[#fffd43] transition-opacity hover:bg-[#1a0f00]/88 disabled:opacity-40"
+      >
+        Make it paid <IconArrow />
+      </button>
+    </form>
   );
 }
 
