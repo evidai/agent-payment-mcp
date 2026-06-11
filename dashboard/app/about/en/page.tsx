@@ -2,6 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import ContactButton from "../ContactButton";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import {
+  IconArrowRight, IconCard, IconBot, IconGear, IconTicket, IconLock, IconLink2,
+  IconTag, IconRocket, IconMeter, IconKey, IconPayout, IconBadge, IconPlug,
+  IconStop, IconSteps, IconFlask, IconClock,
+  AboutStyles, AuroraBackdrop, FilmGrain, WaveDivider, OutlineWord, MarqueeStrip,
+} from "../shared";
+import { softwareAppJsonLd, breadcrumbJsonLd } from "../../lib/structured-data";
 
 export const metadata = {
   title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
@@ -43,32 +50,12 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-// ── Additional structured data (AEO): breadcrumb + product summary.
-// FAQPage JSON-LD below stays the single source for the visible FAQ content. ──
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "LemonCake", item: "https://lemoncake.xyz/" },
-    { "@type": "ListItem", position: 2, name: "About", item: "https://lemoncake.xyz/about/en" },
-  ],
-};
-
-const appJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "LemonCake",
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "Web",
-  url: "https://lemoncake.xyz",
-  description: "Usage-based billing and monetization layer for AI APIs and MCP servers. Buyers prepay by card, agents pay per call with spend-capped Pay Tokens, sellers keep 97%. Open-core: MIT-licensed SDK, hosted billing engine.",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-    description: "First 3,000 API calls free, then 3% per transaction. No monthly fee.",
-  },
-};
+// ── Additional structured data (AEO): breadcrumb + product summary come from
+// app/lib/structured-data.ts (single source, shared with /demo). ──
+const aboutBreadcrumbJsonLd = breadcrumbJsonLd([
+  { name: "LemonCake", path: "/" },
+  { name: "About", path: "/about/en" },
+]);
 
 // ── FAQPage JSON-LD (AEO/AIO: quotable Q&A for AI search engines, mirrors JP /about) ──
 const faqJsonLd = {
@@ -142,115 +129,7 @@ const faqJsonLd = {
   ],
 };
 
-// ── SVG Icons（絵文字の代わりに統一線画アイコン。stroke=currentColor で文脈色に追従） ──
-const svgProps = {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.8,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true as const,
-};
-const IconArrowRight = () => (
-  <svg {...svgProps} strokeWidth={2} className="w-4 h-4">
-    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-  </svg>
-);
-const IconCard = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/>
-  </svg>
-);
-const IconBot = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="4" y="9" width="16" height="11" rx="2.5"/><line x1="12" y1="5.5" x2="12" y2="9"/><circle cx="12" cy="4" r="1.3"/>
-    <line x1="9" y1="13.5" x2="9" y2="15"/><line x1="15" y1="13.5" x2="15" y2="15"/>
-  </svg>
-);
-const IconGear = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <circle cx="12" cy="12" r="3.2"/>
-    <path d="M12 2.5v2.8M12 18.7v2.8M2.5 12h2.8M18.7 12h2.8M5.3 5.3l2 2M16.7 16.7l2 2M18.7 5.3l-2 2M7.3 16.7l-2 2"/>
-  </svg>
-);
-const IconTicket = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/>
-    <path d="M13 5.5v2M13 11v2M13 16.5v2"/>
-  </svg>
-);
-const IconLock = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>
-  </svg>
-);
-const IconLink2 = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7"/>
-    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/>
-  </svg>
-);
-const IconTag = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M3 3h8.2L21 12.8a2 2 0 0 1 0 2.8l-5.4 5.4a2 2 0 0 1-2.8 0L3 11.2z"/><circle cx="8" cy="8" r="1.6"/>
-  </svg>
-);
-const IconRocket = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M12 2.5c2.9 2.1 4.6 5.6 4.6 9.6 0 1.4-.3 2.9-.8 4.4H8.2c-.5-1.5-.8-3-.8-4.4 0-4 1.7-7.5 4.6-9.6z"/>
-    <circle cx="12" cy="9.5" r="1.8"/>
-    <path d="M7.6 14.5 5 19.5l3.6-1.2M16.4 14.5l2.6 5-3.6-1.2M12 18.5V22"/>
-  </svg>
-);
-const IconMeter = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M4 16a8 8 0 1 1 16 0"/><line x1="12" y1="16" x2="16.5" y2="11.5"/><circle cx="12" cy="16" r="1.2"/>
-    <line x1="4" y1="19.5" x2="20" y2="19.5"/>
-  </svg>
-);
-const IconKey = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <circle cx="7.5" cy="15.5" r="3.8"/><path d="M10.5 12.5 20 3M17.5 5.5l2.5 2.5M14.5 8.5l2.5 2.5"/>
-  </svg>
-);
-const IconPayout = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="2" y="7" width="20" height="11" rx="2"/><circle cx="12" cy="12.5" r="2.6"/>
-    <path d="M5.5 10v.01M18.5 15v.01"/>
-  </svg>
-);
-const IconBadge = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="3" y="5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="11" r="2"/>
-    <path d="M5.5 16.5c.7-1.5 1.7-2.2 3-2.2s2.3.7 3 2.2M14.5 9.5H19M14.5 13H19"/>
-  </svg>
-);
-const IconPlug = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M9 2.5V8M15 2.5V8M7 8h10v3.5a5 5 0 0 1-10 0z"/><line x1="12" y1="16.5" x2="12" y2="21.5"/>
-  </svg>
-);
-const IconStop = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M7.9 2.5h8.2l5.4 5.4v8.2l-5.4 5.4H7.9l-5.4-5.4V7.9z"/><line x1="12" y1="8" x2="12" y2="12.5"/><path d="M12 16h.01"/>
-  </svg>
-);
-const IconSteps = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <rect x="3" y="14" width="4.5" height="6.5" rx="1"/><rect x="9.75" y="9.5" width="4.5" height="11" rx="1"/><rect x="16.5" y="4.5" width="4.5" height="16" rx="1"/>
-  </svg>
-);
-const IconFlask = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <path d="M10 2.5v6L4.6 18.4A2 2 0 0 0 6.4 21.5h11.2a2 2 0 0 0 1.8-3.1L14 8.5v-6"/><path d="M8.5 2.5h7M7.2 15h9.6"/>
-  </svg>
-);
-const IconClock = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg {...svgProps} className={className}>
-    <circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>
-  </svg>
-);
+// SVG icons + editorial components live in ../shared (shared with JA /about).
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 // Visual structure mirrors the JA /about overhaul (2026-06-11): floating logo
@@ -263,43 +142,12 @@ export default function AboutPageEn() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutBreadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }} />
 
-      {/* CSS-only animations for the money-flow diagram + ledger ticker (no client JS) */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-@keyframes lcCoin { 0% { transform: translateX(0); opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(calc(100% - 10px)); opacity: 0; } }
-@keyframes lcTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-@keyframes lcPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,253,67,0.35); } 50% { box-shadow: 0 0 0 10px rgba(255,253,67,0); } }
-@keyframes lcFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } }
-@keyframes lcStepPop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
-@keyframes lcGrow { from { width: 0%; } }
-@keyframes lcStamp { 0%, 86%, 100% { transform: rotate(-2deg) scale(1); } 92% { transform: rotate(-7deg) scale(1.12); } }
-@keyframes lcShine { 0% { transform: translateX(-140%) skewX(-18deg); } 55%, 100% { transform: translateX(260%) skewX(-18deg); } }
-.lc-coin { animation: lcCoin 3.2s linear infinite; will-change: transform, opacity; }
-.lc-coin-dot { box-shadow: 0 0 8px rgba(255,253,67,0.8); }
-.lc-ticker { animation: lcTicker 28s linear infinite; will-change: transform; }
-.lc-cv { content-visibility: auto; contain-intrinsic-block-size: auto 1000px; }
-.lc-pulse { animation: lcPulse 2.4s ease-in-out infinite; }
-.lc-float { animation: lcFloat 5.5s ease-in-out infinite; }
-.lc-grow { animation: lcGrow 1.8s cubic-bezier(.2,.8,.2,1) both; }
-.lc-stamp { animation: lcStamp 4s ease-in-out infinite; }
-.lc-shine { animation: lcShine 5.5s ease-in-out infinite; }
-.lc-tilt { transition: transform .45s ease; transform-style: preserve-3d; transform: rotateY(-8deg) rotateX(4deg); }
-.lc-tilt:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-6px); }
-.lc-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
-.lc-card:hover { transform: translateY(-4px); border-color: rgba(255,253,67,0.35); box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
-.lc-step:hover .lc-step-emoji { animation: lcStepPop .45s ease; }
-details.lc-faq > summary { list-style: none; cursor: pointer; }
-details.lc-faq > summary::-webkit-details-marker { display: none; }
-details.lc-faq > summary .lc-faq-chev { transition: transform .2s ease; }
-details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
-@media (prefers-reduced-motion: reduce) { .lc-coin, .lc-ticker, .lc-pulse, .lc-float, .lc-grow, .lc-stamp, .lc-shine { animation: none; } .lc-card:hover { transform: none; } .lc-tilt, .lc-tilt:hover { transform: none; } }
-`,
-        }}
-      />
+      <AboutStyles />
+      <AuroraBackdrop />
+      <FilmGrain />
 
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-20 bg-[#06060a]/90 backdrop-blur-md border-b border-white/8">
@@ -371,9 +219,9 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
             </div>
             <h1 className="text-[34px] sm:text-5xl lg:text-6xl font-black tracking-tight text-[#1a0f00] mb-4 leading-[1.02]">
               Monetize MCP servers<br />
-              <span className="text-black">
-                and APIs in 5 minutes.
-              </span>
+              <span className="text-black">and APIs in </span>
+              <span className="inline-block bg-[#1a0f00] text-[#fffd43] px-3 py-0.5 rounded-xl -rotate-1">5 minutes</span>
+              <span className="text-black">.</span>
             </h1>
             <p className="text-[15px] md:text-lg text-[rgba(26,15,0,0.76)] max-w-[560px] mb-3 leading-relaxed">
               <strong className="text-[#1a0f00]">Paste your URL, set a per-call price, and share a buy link.</strong>{" "}
@@ -448,15 +296,13 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
         </section>
       </div>
 
-      {/* wavy divider: yellow → dark */}
-      <div className="bg-[#fffd43]" aria-hidden="true">
-        <svg viewBox="0 0 1440 64" preserveAspectRatio="none" className="block w-full h-[40px] md:h-[64px]">
-          <path d="M0,32 C240,64 480,0 720,24 C960,48 1200,8 1440,32 L1440,64 L0,64 Z" fill="#06060a" />
-        </svg>
-      </div>
+      <WaveDivider to="dark" />
+
+      <MarqueeStrip />
 
       {/* ── 3 steps in 5 minutes ── */}
-      <section className="lc-cv max-w-6xl mx-auto px-6 pt-20 pb-4">
+      <section className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 pt-20 pb-4">
+        <OutlineWord>START</OutlineWord>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Getting started</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           Just <span className="text-[#fffd43]">three things</span> to do.
@@ -498,7 +344,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── How it works — animated money flow ── */}
-      <section id="how-it-works" className="lc-cv max-w-6xl mx-auto px-6 py-20 scroll-mt-20">
+      <section id="how-it-works" className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 py-20 scroll-mt-20">
+        <OutlineWord>FLOW</OutlineWord>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">How it works</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           Watch every cent <span className="text-[#fffd43]">move.</span>
@@ -594,7 +441,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Pay Token = capped prepaid card ── */}
-      <section className="lc-cv max-w-6xl mx-auto px-6 py-24 overflow-hidden">
+      <section className="lc-cv lc-stagger max-w-6xl mx-auto px-6 py-24 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-10 items-center">
           {/* Copy */}
           <div>
@@ -695,7 +542,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── Why developers ── */}
-      <section id="why-developers" className="lc-cv max-w-6xl mx-auto px-6 py-24">
+      <section id="why-developers" className="lc-cv lc-stagger relative max-w-6xl mx-auto px-6 py-24">
+        <OutlineWord>WHY</OutlineWord>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">Why developers use LemonCake</p>
         <h2 className="text-center text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
           Built for the things<br />
@@ -724,7 +572,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
 
       {/* ── Billing stack comparison ── */}
       <section className="lc-cv bg-white/[0.02] border-y border-white/8">
-        <div className="max-w-5xl mx-auto px-6 py-20">
+        <div className="lc-stagger relative max-w-5xl mx-auto px-6 py-20">
+          <OutlineWord top="top-4">VS</OutlineWord>
           <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">The billing stack today</p>
           <h2 className="text-center text-3xl font-black text-white mb-4 leading-tight">
             Stripe is for humans. Orb &amp; Metronome are for SaaS.<br />
@@ -942,7 +791,8 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
       </section>
 
       {/* ── FAQ (rendered from the same source as faqJsonLd — visible content always matches) ── */}
-      <section className="lc-cv max-w-3xl mx-auto px-6 py-20">
+      <section className="lc-cv lc-stagger relative max-w-3xl mx-auto px-6 py-20">
+        <OutlineWord>FAQ</OutlineWord>
         <p className="text-center text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-4">FAQ</p>
         <h2 className="flex items-center justify-center gap-2.5 text-center text-3xl md:text-4xl font-black text-white mb-10 leading-tight">
           Frequently asked questions
@@ -961,12 +811,7 @@ details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
         </div>
       </section>
 
-      {/* wavy divider: dark → yellow */}
-      <div className="bg-[#06060a]" aria-hidden="true">
-        <svg viewBox="0 0 1440 64" preserveAspectRatio="none" className="block w-full h-[40px] md:h-[64px]">
-          <path d="M0,40 C240,8 480,56 720,32 C960,8 1200,56 1440,24 L1440,64 L0,64 Z" fill="#fffd43" />
-        </svg>
-      </div>
+      <WaveDivider to="yellow" />
 
       {/* ── Closing CTA ── */}
       <div className="bg-[#fffd43] w-full">

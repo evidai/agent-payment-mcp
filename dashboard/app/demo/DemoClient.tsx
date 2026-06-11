@@ -220,9 +220,9 @@ console.log(await res.json());`;
               </div>
               <div className="w-full overflow-hidden rounded-lg border border-[#1a0f00]/10 bg-white sm:w-[360px]">
                 <div className="grid grid-cols-3">
-                  <HeroMetric label="Budget left" value={`$${budgetLeft.toFixed(2)}`} dim={exhausted} />
-                  <HeroMetric label="Calls left" value={session ? String(callsLeft) : "20"} dim={exhausted} />
-                  <HeroMetric label="Seller share" value="97%" />
+                  <Metric variant="hero" label="Budget left" value={`$${budgetLeft.toFixed(2)}`} dim={exhausted} />
+                  <Metric variant="hero" label="Calls left" value={session ? String(callsLeft) : "20"} dim={exhausted} />
+                  <Metric variant="hero" label="Seller share" value="97%" />
                 </div>
                 {/* Budget depletion bar — the hard cap, draining in real time. */}
                 <div className="h-1.5 w-full bg-[#1a0f00]/8">
@@ -452,7 +452,27 @@ console.log(await res.json());`;
   );
 }
 
-function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+function Metric({
+  label,
+  value,
+  compact = false,
+  variant = "card",
+  dim = false,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+  variant?: "card" | "hero";
+  dim?: boolean;
+}) {
+  if (variant === "hero") {
+    return (
+      <div className="min-w-0 border-r border-[#1a0f00]/8 px-4 py-3 last:border-r-0">
+        <p className="truncate text-[10px] font-black uppercase tracking-[0.11em] text-[#1a0f00]/40">{label}</p>
+        <p className={`mt-1 text-[24px] font-black leading-none tabular-nums tracking-tight ${dim ? "text-[#1a0f00]/35" : ""}`}>{value}</p>
+      </div>
+    );
+  }
   return (
     <div className={`flex flex-col rounded-lg border border-[#1a0f00]/8 bg-white ${compact ? "px-3 py-2" : "px-3 py-2.5"}`}>
       <p className="text-[9.5px] font-black uppercase tracking-[0.15em] text-[#1a0f00]/36">{label}</p>
@@ -485,14 +505,6 @@ function NpxChip() {
   );
 }
 
-function HeroMetric({ label, value, dim = false }: { label: string; value: string; dim?: boolean }) {
-  return (
-    <div className="min-w-0 border-r border-[#1a0f00]/8 px-4 py-3 last:border-r-0">
-      <p className="truncate text-[10px] font-black uppercase tracking-[0.11em] text-[#1a0f00]/40">{label}</p>
-      <p className={`mt-1 text-[24px] font-black leading-none tabular-nums tracking-tight ${dim ? "text-[#1a0f00]/35" : ""}`}>{value}</p>
-    </div>
-  );
-}
 
 function ActionButton({
   step,

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_BASE } from "./lib/site";
 
-const BASE = "https://lemoncake.xyz";
+const BASE = SITE_BASE;
 
 // Sitemap intentionally lists only live, indexable surfaces. Admin, draft,
 // and auth-only routes are excluded. Keep this file in sync with the real

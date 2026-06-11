@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import DemoClient from "./DemoClient";
+import { softwareAppJsonLd, breadcrumbJsonLd } from "../lib/structured-data";
 
 export const metadata: Metadata = {
   title: "LemonCake Playground — Test a Paid MCP / API Call in 30 Seconds",
@@ -18,6 +19,8 @@ export const metadata: Metadata = {
     "API monetization sandbox",
     "agent payment demo",
   ],
+  // /demo is EN-only by design (no JA variant exists, so no hreflang pair).
+  // When localizing, add /demo/ja + a middleware locale rule mirroring /about.
   alternates: { canonical: "https://lemoncake.xyz/demo" },
   openGraph: {
     title: "LemonCake Playground — paid MCP/API calls in 30 seconds",
@@ -73,66 +76,49 @@ const faqJsonLd = {
   })),
 };
 
+// Single source for the 3 steps: rendered as visible cards below AND emitted
+// as HowTo JSON-LD, so structured data can never drift from the page.
+const howToSteps = [
+  {
+    name: "Mint a sandbox Pay Token",
+    text: "One click issues a spend-capped sandbox credential. The cap, expiry, and scope are baked into the token itself — the agent holds no wallet and no API key.",
+  },
+  {
+    name: "Run a metered call",
+    text: "Fire a $0.01 paid call. The gateway verifies the token, reserves the charge atomically, forwards the request, and settles — each check appears in the live event log.",
+  },
+  {
+    name: "Hit the cap, get a 402",
+    text: "Keep calling until the budget drains. The gateway blocks the next call with HTTP 402 (cap_enforced) before it reaches the seller's API; the ledger shows usage and 97% seller revenue per call.",
+  },
+];
+
 const howToJsonLd = {
   "@context": "https://schema.org",
   "@type": "HowTo",
   name: "Try a paid MCP/API call in the LemonCake Playground",
   description: "Run a metered, spend-capped API call through the live LemonCake x402 gateway in about 30 seconds — no login, card, or crypto wallet.",
   totalTime: "PT1M",
-  step: [
-    {
-      "@type": "HowToStep",
-      position: 1,
-      name: "Mint a sandbox Pay Token",
-      text: "Click Mint to receive a spend-capped sandbox Pay Token — a prepaid-card-like credential with a hard budget, expiry, and endpoint scope.",
-    },
-    {
-      "@type": "HowToStep",
-      position: 2,
-      name: "Run a metered call",
-      text: "Fire a $0.01 paid call. The gateway verifies the Pay Token, reserves the charge, forwards the request, and settles — watch each check appear in the live event log.",
-    },
-    {
-      "@type": "HowToStep",
-      position: 3,
-      name: "Watch the cap enforce a 402 stop",
-      text: "Keep calling until the budget drains. The gateway blocks the next call with HTTP 402 (cap_enforced), and the seller ledger shows usage and revenue per call. Copy the same call as curl or MCP config.",
-    },
-  ],
+  step: howToSteps.map(({ name, text }, i) => ({
+    "@type": "HowToStep",
+    position: i + 1,
+    name,
+    text,
+  })),
 };
 
-const appJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "LemonCake",
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "Web",
-  url: "https://lemoncake.xyz",
-  description: "Usage-based billing and monetization layer for AI APIs and MCP servers. Buyers prepay by card, agents pay per call with spend-capped Pay Tokens, sellers keep 97%.",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-    description: "First 3,000 API calls free, then 3% per transaction. No monthly fee.",
-  },
-};
-
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "LemonCake", item: "https://lemoncake.xyz/" },
-    { "@type": "ListItem", position: 2, name: "Playground", item: "https://lemoncake.xyz/demo" },
-  ],
-};
+const demoBreadcrumbJsonLd = breadcrumbJsonLd([
+  { name: "LemonCake", path: "/" },
+  { name: "Playground", path: "/demo" },
+]);
 
 export default function DemoPage() {
   return (
     <div className="min-h-screen bg-[#f6f7f0] text-[#1a0f00] font-sans antialiased">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(demoBreadcrumbJsonLd) }} />
 
       <nav className="sticky top-0 z-20 border-b border-[#1a0f00]/8 bg-[#f6f7f0]/95 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -174,15 +160,11 @@ export default function DemoPage() {
             login, no card, no crypto wallet — but the gateway checks are the production code path.
           </p>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {[
-              { n: "1", t: "Mint a sandbox Pay Token", d: "One click issues a budget-limited credential. The cap, expiry, and scope are baked into the token itself — the agent holds no wallet and no API key." },
-              { n: "2", t: "Run a metered call", d: "The gateway verifies the token, reserves the charge atomically, forwards the request, and settles. Each check appears in the live event log." },
-              { n: "3", t: "Hit the cap, get a 402", d: "When the budget drains, the next call is blocked with HTTP 402 before it reaches the seller's API. The ledger shows usage and 97% seller revenue per call." },
-            ].map(({ n, t, d }) => (
-              <div key={n} className="rounded-xl border border-[#1a0f00]/8 bg-white p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#1a0f00]/38">Step {n}</p>
-                <h3 className="mt-1 text-[14.5px] font-black leading-tight">{t}</h3>
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#1a0f00]/62">{d}</p>
+            {howToSteps.map(({ name, text }, i) => (
+              <div key={name} className="rounded-xl border border-[#1a0f00]/8 bg-white p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#1a0f00]/38">Step {i + 1}</p>
+                <h3 className="mt-1 text-[14.5px] font-black leading-tight">{name}</h3>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#1a0f00]/62">{text}</p>
               </div>
             ))}
           </div>
