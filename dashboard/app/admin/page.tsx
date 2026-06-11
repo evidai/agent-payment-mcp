@@ -16,7 +16,7 @@ function authHeaders(): HeadersInit {
 // ピボット後 (2026-05) のコンソール。買い手が /buy/[shortId] で Stripe 前払い →
 // Pay Token 1 枚発行、3% 手数料は Checkout で 1 回だけ。旧 m2m/サブスク/オフランプ
 // のセクションは廃止。KPI は live な lc_* テーブルから直接集計する。
-type NavSection = "overview" | "providers" | "activity" | "invoices";
+type NavSection = "overview" | "providers" | "endpoints" | "tokens" | "activity" | "invoices";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const Ico = {
@@ -25,6 +25,8 @@ const Ico = {
   Alert:    ({cls}:{cls?:string}) => <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M8 2l6 11H2L8 2z" strokeLinejoin="round"/><path d="M8 7v3M8 12h.01"/></svg>,
   User:     ({cls}:{cls?:string}) => <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.7}><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0" strokeLinecap="round"/></svg>,
   Bolt:     ({cls}:{cls?:string}) => <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M9 2L4 9h4l-1 5 6-7H9l1-5z"/></svg>,
+  Plug:     ({cls}:{cls?:string}) => <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M5 2v4M11 2v4M4 6h8v2.5a4 4 0 01-8 0V6zM8 12.5V15"/></svg>,
+  Key:      ({cls}:{cls?:string}) => <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><circle cx="5.5" cy="10.5" r="2.8"/><path d="M7.8 8.2L14 2M11.5 4.5l2 2M9.5 6.5l2 2"/></svg>,
 };
 
 // ── Shared components ─────────────────────────────────────────────────────────
@@ -92,6 +94,24 @@ function fmtUsd(n: number) {
 }
 function shortDate(s: string | null | undefined) { return s ? s.slice(0, 10) : "—"; }
 function shortTime(s: string | null | undefined) { return s ? s.slice(0, 19).replace("T", " ") : "—"; }
+/** 相対時刻（タイトル属性に ISO を残す前提の表示用）。 */
+function timeAgo(s: string | null | undefined): string {
+  if (!s) return "—";
+  const diff = Date.now() - new Date(s).getTime();
+  if (!Number.isFinite(diff)) return "—";
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "たった今";
+  if (m < 60) return `${m}分前`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}時間前`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}日前`;
+  return shortDate(s);
+}
+/** 相対時刻セル — hover で正確な日時。 */
+function Ago({ s }: { s: string | null | undefined }) {
+  return <span title={shortTime(s)}>{timeAgo(s)}</span>;
+}
 
 // ── LemonCake live stats (lc_* テーブル集計) ────────────────────────────────────
 interface LcWindow { gross: number; fee: number; net: number; orders: number; calls: number; callGross: number; }
@@ -160,17 +180,101 @@ function useLcStats() {
   const [stats, setStats] = useState<LcStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const load = useCallback(() => {
     fetch(`/api/admin/lc/stats`, { headers: authHeaders() })
       .then(async (r) => {
         if (!r.ok) { setError(`stats ${r.status}`); return null; }
         return r.json();
       })
-      .then((d) => { if (d) setStats(d); })
+      .then((d) => { if (d) { setStats(d); setError(null); setUpdatedAt(new Date()); } })
       .catch(() => setError("network"))
       .finally(() => setLoading(false));
   }, []);
-  return { stats, loading, error };
+  // 初回 + 60 秒ごとに自動更新（管理画面は開きっぱなし運用が多い）。
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+  }, [load]);
+  return { stats, loading, error, reload: load, updatedAt };
+}
+
+// ── Ops data（/api/admin/lc/ops: 日次売上 / 健全性 / EP board / tokens）──────────
+interface OpsDaily { day: string; gross: number; orders: number; callGross: number; calls: number; }
+interface OpsHealth { calls7d: number; errors7d: number; errorRate: number; avgMs: number | null; p50: number | null; p95: number | null; }
+interface OpsEndpoint {
+  shortId: string; name: string; status: string; price: number; ownerEmail: string | null;
+  purchases: number; purchaseGross: number; calls: number; callGross: number;
+  lastCallAt: string | null; blocked7d: number;
+}
+interface OpsToken {
+  id: string; endpoint: string | null; shortId: string | null;
+  budget: number; spent: number; callsUsed: number; maxCalls: number;
+  status: string; buyer: string | null; purchased: boolean;
+  issuedAt: string; expiresAt: string;
+}
+interface LcOps { revenueDaily: OpsDaily[]; gatewayHealth: OpsHealth; endpointBoard: OpsEndpoint[]; tokens: OpsToken[]; }
+
+function useLcOps() {
+  const [ops, setOps] = useState<LcOps | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(() => {
+    fetch(`/api/admin/lc/ops`, { headers: authHeaders() })
+      .then(async (r) => { if (!r.ok) { setError(`ops ${r.status}`); return null; } return r.json(); })
+      .then((d) => { if (d) { setOps(d); setError(null); } })
+      .catch(() => setError("network"))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  return { ops, loading, error, reload: load };
+}
+
+// 30 日の日次売上バー（CSS のみ — recharts を /admin に持ち込まない）。
+function RevenueChart({ daily }: { daily: OpsDaily[] }) {
+  const max = Math.max(0.01, ...daily.map((d) => d.gross));
+  const total30 = daily.reduce((a, d) => a + d.gross, 0);
+  const orders30 = daily.reduce((a, d) => a + d.orders, 0);
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5">
+      <div className="flex items-baseline justify-between mb-1">
+        <h3 className="text-sm font-bold text-gray-900">日次売上（30日）</h3>
+        <p className="text-[11px] text-gray-400">計 <b className="text-gray-700 font-mono">{fmtUsd(total30)}</b> / {orders30.toLocaleString()} 注文</p>
+      </div>
+      <p className="text-[10px] text-gray-400 mb-3">前払い購入（JST 日次）。バー hover で日付と金額。</p>
+      <div className="flex items-end gap-[2px] h-24">
+        {daily.map((d) => (
+          <div key={d.day} className="group relative flex-1 flex items-end h-full">
+            <div
+              className={`w-full rounded-t ${d.gross > 0 ? "bg-emerald-400 group-hover:bg-emerald-500" : "bg-gray-100"}`}
+              style={{ height: `${d.gross > 0 ? Math.max(6, Math.round((d.gross / max) * 100)) : 3}%` }}
+              title={`${d.day}\n売上 ${fmtUsd(d.gross)} (${d.orders} 注文)\n呼び出し ${d.calls.toLocaleString()} 回 / ${fmtUsd(d.callGross)}`}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1 text-[9px] text-gray-300 font-mono">
+        <span>{daily[0]?.day.slice(5)}</span>
+        <span>{daily[Math.floor(daily.length / 2)]?.day.slice(5)}</span>
+        <span>{daily[daily.length - 1]?.day.slice(5)}</span>
+      </div>
+    </div>
+  );
+}
+
+// Gateway 健全性（7日）— レイテンシ百分位 + エラー率。
+function GatewayHealthRow({ h }: { h: OpsHealth }) {
+  const ms = (v: number | null) => (v == null ? "—" : `${Math.round(v)}`);
+  const errPct = (h.errorRate * 100).toFixed(h.errorRate > 0 && h.errorRate < 0.01 ? 2 : 1);
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <KpiCard label="Gateway 呼び出し (7日)" value={h.calls7d.toLocaleString()} unit="回" />
+      <KpiCard label="エラー率 (5xx/不達)" value={`${errPct}%`} color={h.errorRate > 0.05 ? "red" : h.errorRate > 0 ? "amber" : "green"} delta={`${h.errors7d.toLocaleString()} 件`} />
+      <KpiCard label="レイテンシ p50" value={ms(h.p50)} unit="ms" color="blue" delta={`平均 ${ms(h.avgMs)}ms`} />
+      <KpiCard label="レイテンシ p95" value={ms(h.p95)} unit="ms" color={h.p95 != null && h.p95 > 3000 ? "amber" : "violet"} />
+    </div>
+  );
 }
 
 // ── KillSwitchBanner ──────────────────────────────────────────────────────────
@@ -257,7 +361,8 @@ function KillSwitchBanner() {
 
 // ── Overview ────────────────────────────────────────────────────────────────
 function LcOverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
-  const { stats, loading, error } = useLcStats();
+  const { stats, loading, error, reload, updatedAt } = useLcStats();
+  const { ops } = useLcOps();
 
   if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
   if (!stats)  return <p className="text-sm text-red-500 text-center py-12">集計 API に接続できません（/api/admin/lc/stats{error ? ` — ${error}` : ""}）</p>;
@@ -279,8 +384,17 @@ function LcOverviewPage({ setNav }: { setNav: (n: NavSection) => void }) {
         <KpiCard label="Gateway 呼び出し" value={s.gateway.calls.toLocaleString()} unit="回" color="violet" delta={`課金額 ${fmtUsd(s.gateway.grossMetered)}`}/>
       </div>
 
+      {/* 日次売上 + Gateway 健全性（/api/admin/lc/ops）*/}
+      {ops && <RevenueChart daily={ops.revenueDaily} />}
+      {ops && <GatewayHealthRow h={ops.gatewayHealth} />}
+
       {/* activation funnel — where the 624→0 dies */}
       {s.funnel && <FunnelView f={s.funnel} />}
+
+      <p className="text-[10px] text-gray-400 text-right -mt-3">
+        自動更新 60 秒 ・ 最終 {updatedAt ? updatedAt.toLocaleTimeString("ja-JP", { hour12: false }) : "—"}
+        <button onClick={reload} className="ml-2 font-bold text-amber-700 hover:underline">今すぐ更新</button>
+      </p>
 
       {/* 2nd row: Provider / クレジット / ブロック */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -426,6 +540,186 @@ function LcProvidersPage() {
   );
 }
 
+// ── Endpoints board ───────────────────────────────────────────────────────────
+type EpSort = "gross" | "calls" | "last";
+function LcEndpointsPage() {
+  const { ops, loading, error, reload } = useLcOps();
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<EpSort>("gross");
+
+  if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
+  if (error || !ops) return <p className="text-sm text-red-500 text-center py-12">取得失敗（/api/admin/lc/ops — {error}）</p>;
+
+  const rows = ops.endpointBoard
+    .filter((e) => !q || `${e.name} ${e.shortId} ${e.ownerEmail ?? ""}`.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) =>
+      sort === "gross" ? b.purchaseGross - a.purchaseGross
+      : sort === "calls" ? b.calls - a.calls
+      : (b.lastCallAt ? new Date(b.lastCallAt).getTime() : 0) - (a.lastCallAt ? new Date(a.lastCallAt).getTime() : 0));
+
+  const SortBtn = ({ id, label }: { id: EpSort; label: string }) => (
+    <button onClick={() => setSort(id)}
+      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition ${sort === id ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"}`}>
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-center">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="検索: API名 / shortId / オーナー"
+          className="flex-1 min-w-[200px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"/>
+        <span className="text-[11px] text-gray-400">並び替え:</span>
+        <SortBtn id="gross" label="売上順"/>
+        <SortBtn id="calls" label="呼び出し順"/>
+        <SortBtn id="last"  label="最終利用順"/>
+        <span className="text-xs text-gray-500">{rows.length} 本</span>
+        <button onClick={reload} className="text-xs font-bold text-amber-700 hover:underline">再読み込み</button>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+        <table className="w-full">
+          <thead><tr><Th>API</Th><Th>オーナー</Th><Th>状態</Th><Th right>単価</Th><Th right>購入</Th><Th right>売上</Th><Th right>呼び出し</Th><Th right>課金額</Th><Th right>ブロック(7d)</Th><Th>最終利用</Th><Th>リンク</Th></tr></thead>
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.shortId} className="hover:bg-gray-50">
+                <Td>
+                  <p className="text-xs font-medium text-gray-900">{e.name}</p>
+                  <p className="text-[10px] text-gray-400 font-mono">/{e.shortId}</p>
+                </Td>
+                <Td cls="text-[11px] text-gray-500">{e.ownerEmail ?? "—"}</Td>
+                <Td>{e.status === "live" ? <Pill label="稼働" variant="green"/> : <Pill label="停止" variant="gray"/>}</Td>
+                <Td right mono>{fmtUsd(e.price)}</Td>
+                <Td right mono>{e.purchases.toLocaleString()}</Td>
+                <Td right mono cls="text-gray-900">{fmtUsd(e.purchaseGross)}</Td>
+                <Td right mono>{e.calls.toLocaleString()}</Td>
+                <Td right mono cls="text-blue-700">{fmtUsd(e.callGross)}</Td>
+                <Td right mono cls={e.blocked7d > 0 ? "text-red-600 font-bold" : "text-gray-300"}>{e.blocked7d}</Td>
+                <Td cls="text-[11px] text-gray-500"><Ago s={e.lastCallAt}/></Td>
+                <Td><a href={`/buy/${e.shortId}`} target="_blank" rel="noopener" className="text-[11px] font-bold text-amber-700 hover:underline">/buy →</a></Td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-xs text-gray-400">エンドポイントなし — Provider が /app で URL を貼ると、ここに並びます</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Pay Tokens（横断ビュー + 緊急失効）─────────────────────────────────────────
+function LcTokensPage() {
+  const { ops, loading, error, reload } = useLcOps();
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "revoked" | "exhausted" | "expired">("all");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
+
+  if (loading) return <p className="text-sm text-gray-400 text-center py-12">読み込み中…</p>;
+  if (error || !ops) return <p className="text-sm text-red-500 text-center py-12">取得失敗（/api/admin/lc/ops — {error}）</p>;
+
+  const rows = ops.tokens
+    .filter((t) => statusFilter === "all" || t.status === statusFilter)
+    .filter((t) => !q || `${t.id} ${t.endpoint ?? ""} ${t.buyer ?? ""}`.toLowerCase().includes(q.toLowerCase()));
+
+  async function revoke(t: OpsToken) {
+    if (!confirm(`Pay Token を失効させます。\n\n${t.id}\nAPI: ${t.endpoint ?? "—"} / 残額 ${fmtUsd(Math.max(0, t.budget - t.spent))}\n\n以後この token の呼び出しは全て拒否されます。よろしいですか？`)) return;
+    setBusyId(t.id);
+    try {
+      const r = await fetch(`/api/admin/lc/tokens/revoke`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: t.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setToast({ msg: d.error ?? `失効失敗 (${r.status})`, type: "error" }); return; }
+      setToast({ msg: `失効しました: ${t.id}`, type: "success" });
+      reload();
+    } catch {
+      setToast({ msg: "ネットワークエラー", type: "error" });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const FILTERS: { id: typeof statusFilter; label: string }[] = [
+    { id: "all", label: "すべて" }, { id: "active", label: "有効" },
+    { id: "exhausted", label: "使い切り" }, { id: "expired", label: "期限切れ" }, { id: "revoked", label: "失効" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-center">
+        {FILTERS.map((f) => (
+          <button key={f.id} onClick={() => setStatusFilter(f.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${statusFilter === f.id ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"}`}>
+            {f.label}
+          </button>
+        ))}
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="検索: token ID / API / 購入者"
+          className="flex-1 min-w-[180px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"/>
+        <span className="text-xs text-gray-500">{rows.length} 枚</span>
+        <button onClick={reload} className="text-xs font-bold text-amber-700 hover:underline">再読み込み</button>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+        <table className="w-full">
+          <thead><tr><Th>Token</Th><Th>API</Th><Th>購入者</Th><Th right>予算</Th><Th right>消化</Th><Th right>残額</Th><Th right>calls</Th><Th>状態</Th><Th>発行</Th><Th>期限</Th><Th>操作</Th></tr></thead>
+          <tbody>
+            {rows.map((t) => {
+              const left = Math.max(0, t.budget - t.spent);
+              const pct = t.budget > 0 ? Math.min(100, Math.round((t.spent / t.budget) * 100)) : 0;
+              return (
+                <tr key={t.id} className="hover:bg-gray-50">
+                  <Td>
+                    <p className="text-[10px] font-mono text-gray-700">{t.id}</p>
+                    {t.purchased ? <Pill label="購入" variant="blue"/> : <Pill label="テスト" variant="gray"/>}
+                  </Td>
+                  <Td>
+                    <p className="text-xs text-gray-900">{t.endpoint ?? "—"}</p>
+                    {t.shortId && <p className="text-[10px] text-gray-400 font-mono">/{t.shortId}</p>}
+                  </Td>
+                  <Td cls="text-[11px] text-gray-500">{t.buyer ?? "—"}</Td>
+                  <Td right mono>{fmtUsd(t.budget)}</Td>
+                  <Td right>
+                    <span className="font-mono text-xs">{fmtUsd(t.spent)}</span>
+                    <div className="mt-1 h-1 w-16 ml-auto rounded bg-gray-100 overflow-hidden"><div className="h-full bg-amber-400" style={{ width: `${pct}%` }}/></div>
+                  </Td>
+                  <Td right mono cls={left > 0 ? "text-gray-900" : "text-gray-300"}>{fmtUsd(left)}</Td>
+                  <Td right mono cls="text-gray-500">{t.callsUsed}/{t.maxCalls}</Td>
+                  <Td>
+                    {t.status === "active"    ? <Pill label="有効" variant="green"/> :
+                     t.status === "exhausted" ? <Pill label="使い切り" variant="gray"/> :
+                     t.status === "expired"   ? <Pill label="期限切れ" variant="amber"/> :
+                     t.status === "revoked"   ? <Pill label="失効" variant="red"/> :
+                                                <Pill label={t.status} variant="gray"/>}
+                  </Td>
+                  <Td cls="text-[11px] text-gray-500"><Ago s={t.issuedAt}/></Td>
+                  <Td cls="text-[10px] text-gray-400">{shortDate(t.expiresAt)}</Td>
+                  <Td>
+                    {t.status === "active" ? (
+                      <button onClick={() => revoke(t)} disabled={busyId === t.id}
+                        className="px-2 py-1 rounded-md text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50">
+                        {busyId === t.id ? "..." : "失効"}
+                      </button>
+                    ) : <span className="text-[10px] text-gray-300">—</span>}
+                  </Td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-xs text-gray-400">該当する Pay Token はありません</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-400">「失効」は即時。次の呼び出しから gateway が拒否し、ブロックログに token_revoked として記録されます。</p>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
+    </div>
+  );
+}
+
 // ── Activity ──────────────────────────────────────────────────────────────────
 interface LcPurchase { id:string; endpoint:string|null; shortId:string|null; amount:number; fee:number; buyer:string|null; status:string; at:string; }
 interface LcCall     { id:string; endpoint:string|null; shortId:string|null; gross:number; fee:number; net:number; upstreamStatus:number|null; upstreamMs:number|null; at:string; }
@@ -447,6 +741,7 @@ function LcActivityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"purchases"|"calls"|"blocks">("purchases");
+  const [reasonFilter, setReasonFilter] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -494,7 +789,7 @@ function LcActivityPage() {
             <tbody>
               {purchases.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
-                  <Td mono cls="text-[10px] text-gray-500">{shortTime(p.at)}</Td>
+                  <Td cls="text-[11px] text-gray-500"><Ago s={p.at}/></Td>
                   <Td>
                     <p className="text-xs text-gray-900">{p.endpoint ?? "—"}</p>
                     {p.shortId && <p className="text-[10px] text-gray-400 font-mono">/{p.shortId}</p>}
@@ -524,7 +819,7 @@ function LcActivityPage() {
             <tbody>
               {calls.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <Td mono cls="text-[10px] text-gray-500">{shortTime(c.at)}</Td>
+                  <Td cls="text-[11px] text-gray-500"><Ago s={c.at}/></Td>
                   <Td>
                     <p className="text-xs text-gray-900">{c.endpoint ?? "—"}</p>
                     {c.shortId && <p className="text-[10px] text-gray-400 font-mono">/{c.shortId}</p>}
@@ -547,13 +842,58 @@ function LcActivityPage() {
           </table>
         </div>
       ) : (
+        <div className="space-y-4">
+          {/* 理由の分布 + 多発エンドポイント（直近 300 件から集計） */}
+          {blocks.length > 0 && (() => {
+            const byReason = new Map<string, number>();
+            const byEp = new Map<string, { name: string; count: number }>();
+            for (const b of blocks) {
+              byReason.set(b.reason, (byReason.get(b.reason) ?? 0) + 1);
+              const k = b.shortId ?? "—";
+              const cur = byEp.get(k) ?? { name: b.endpoint ?? "—", count: 0 };
+              cur.count += 1; byEp.set(k, cur);
+            }
+            const reasons = [...byReason.entries()].sort((a, b2) => b2[1] - a[1]);
+            const topEps = [...byEp.entries()].sort((a, b2) => b2[1].count - a[1].count).slice(0, 5);
+            const maxR = reasons[0]?.[1] ?? 1;
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <h4 className="text-xs font-bold text-gray-900 mb-2">理由の分布 <span className="font-normal text-gray-400">(クリックで絞り込み)</span></h4>
+                  <div className="space-y-1.5">
+                    {reasons.map(([r, n]) => (
+                      <button key={r} onClick={() => setReasonFilter(reasonFilter === r ? null : r)}
+                        className={`flex items-center gap-2 w-full text-left rounded-md px-1 py-0.5 ${reasonFilter === r ? "bg-amber-50 ring-1 ring-amber-200" : "hover:bg-gray-50"}`}>
+                        <span className="w-24 text-[11px] text-gray-600 flex-shrink-0">{BLOCK_REASON_LABEL[r] ?? r}</span>
+                        <span className="flex-1 h-3 bg-gray-100 rounded overflow-hidden"><span className="block h-full bg-red-400" style={{ width: `${Math.round((n / maxR) * 100)}%` }}/></span>
+                        <span className="w-10 text-right text-[11px] font-bold text-gray-700">{n}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <h4 className="text-xs font-bold text-gray-900 mb-2">ブロック多発 API（上位5）</h4>
+                  <div className="space-y-1.5">
+                    {topEps.map(([sid, v]) => (
+                      <div key={sid} className="flex items-center justify-between text-[11px]">
+                        <span className="text-gray-700">{v.name} <span className="text-gray-400 font-mono">/{sid}</span></span>
+                        <span className="font-bold text-red-600">{v.count} 件</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-gray-400">同一 API に集中している場合は買い手の暴走 or 上限設定ミスの可能性。</p>
+                </div>
+              </div>
+            );
+          })()}
+
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <table className="w-full">
             <thead><tr><Th>日時</Th><Th>API</Th><Th>理由</Th><Th right>試行額</Th></tr></thead>
             <tbody>
-              {blocks.map((b) => (
+              {(reasonFilter ? blocks.filter((b) => b.reason === reasonFilter) : blocks).map((b) => (
                 <tr key={b.id} className="hover:bg-gray-50">
-                  <Td mono cls="text-[10px] text-gray-500">{shortTime(b.at)}</Td>
+                  <Td cls="text-[11px] text-gray-500"><Ago s={b.at}/></Td>
                   <Td>
                     <p className="text-xs text-gray-900">{b.endpoint ?? "—"}</p>
                     {b.shortId && <p className="text-[10px] text-gray-400 font-mono">/{b.shortId}</p>}
@@ -563,10 +903,11 @@ function LcActivityPage() {
                 </tr>
               ))}
               {blocks.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-400">ブロックはありません</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-400">ブロックはありません — Pay Token の上限が守られている状態です</td></tr>
               )}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </div>
@@ -632,8 +973,10 @@ function InvoicesPage() {
 
 // ── Admin Sidebar ─────────────────────────────────────────────────────────────
 const NAV: {id:NavSection; label:string; sub:string; Icon: ({cls}:{cls?:string})=>React.JSX.Element}[] = [
-  { id:"overview",  label:"概要",            sub:"前払い売上 / 手数料 / KPI",  Icon: Ico.Overview },
+  { id:"overview",  label:"概要",            sub:"売上 / 健全性 / KPI",          Icon: Ico.Overview },
   { id:"providers", label:"Provider",        sub:"出品者 + Stripe + 売上",      Icon: Ico.User     },
+  { id:"endpoints", label:"エンドポイント",  sub:"API 別の売上 / 利用 / 停止",   Icon: Ico.Plug     },
+  { id:"tokens",    label:"Pay Token",       sub:"横断ビュー + 緊急失効",        Icon: Ico.Key      },
   { id:"activity",  label:"アクティビティ",  sub:"購入 / 呼び出し / ブロック",  Icon: Ico.Bolt     },
   { id:"invoices",  label:"インボイス",      sub:"適格請求書 (legacy m2m)",     Icon: Ico.Finance  },
 ];
@@ -704,9 +1047,11 @@ function AdminSidebar({nav, setNav}: {nav:NavSection; setNav:(n:NavSection)=>voi
 
 // ── Page titles & descriptions ────────────────────────────────────────────────
 const PAGE_META: Record<NavSection, {title:string; desc:string}> = {
-  overview:  { title:"概要",             desc:"前払い売上・3% 手数料・Gateway 呼び出し" },
+  overview:  { title:"概要",             desc:"日次売上・Gateway 健全性・KPI（60秒ごと自動更新）" },
   providers: { title:"Provider",         desc:"出品者一覧（Stripe 接続 + 前払い売上 + 受取）" },
-  activity:  { title:"アクティビティ",   desc:"前払い購入 / Gateway 呼び出し / ブロック" },
+  endpoints: { title:"エンドポイント",   desc:"API 別の売上・呼び出し・ブロック（売上順 / 利用順）" },
+  tokens:    { title:"Pay Token",        desc:"全オーナー横断の発行済みトークン + 緊急失効" },
+  activity:  { title:"アクティビティ",   desc:"前払い購入 / Gateway 呼び出し / ブロック分析" },
   invoices:  { title:"インボイス",       desc:"適格請求書（legacy m2m 課金の集計）" },
 };
 
@@ -812,6 +1157,8 @@ export default function AdminRoot() {
         <div className="flex-1 overflow-y-auto px-4 sm:px-7 py-4 sm:py-6">
           {nav === "overview"  && <LcOverviewPage setNav={setNav}/>}
           {nav === "providers" && <LcProvidersPage/>}
+          {nav === "endpoints" && <LcEndpointsPage/>}
+          {nav === "tokens"    && <LcTokensPage/>}
           {nav === "activity"  && <LcActivityPage/>}
           {nav === "invoices"  && <InvoicesPage/>}
         </div>
