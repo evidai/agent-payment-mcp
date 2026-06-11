@@ -5,7 +5,6 @@ import { PageviewPing } from "./components/PageviewPing";
 import { UtmWelcomeBanner } from "./components/UtmWelcomeBanner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { Providers } from "./Providers";
 import "./globals.css";
 
 // GA4 measurement ID — set NEXT_PUBLIC_GA_ID in .env(.local) to enable.
@@ -195,9 +194,10 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <UtmWelcomeBanner />
         </Suspense>
-        <Providers>
-          {children}
-        </Providers>
+        {/* Web3 providers (Privy/Wagmi/OnchainKit) moved to app/start/v2/layout.tsx —
+            only that route needs them; everywhere else they were ~hundreds of KB of
+            dead client JS on every page. */}
+        {children}
         {/* Self-hosted pageview ingest (Suspense 必須: useSearchParams を使う) */}
         <Suspense fallback={null}>
           <PageviewPing />
