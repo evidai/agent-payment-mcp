@@ -154,6 +154,8 @@ details.lc-faq > summary { list-style: none; cursor: pointer; }
 details.lc-faq > summary::-webkit-details-marker { display: none; }
 details.lc-faq > summary .lc-faq-chev { transition: transform .2s ease; }
 details.lc-faq[open] > summary .lc-faq-chev { transform: rotate(90deg); }
+/* aurora is a desktop nicety — on small screens the blurred layers cost GPU/battery for little visual return */
+@media (max-width: 767px) { .lc-aurora, .lc-aurora2 { display: none; } }
 @media (prefers-reduced-motion: reduce) { .lc-coin, .lc-ticker, .lc-pulse, .lc-float, .lc-grow, .lc-stamp, .lc-shine, .lc-aurora, .lc-aurora2 { animation: none; } .lc-card:hover { transform: none; } .lc-tilt, .lc-tilt:hover { transform: none; } }
 `;
 
