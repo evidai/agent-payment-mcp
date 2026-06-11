@@ -1156,13 +1156,24 @@ function AddPane({ endpoints, goTo, api, paymentsReady }: { endpoints: Endpoint[
 
   async function create() {
     setErr(null);
-    if (!apiName.trim()) return setErr(t("add.errName"));
     if (!/^https?:\/\//.test(apiUrl)) return setErr(t("add.errUrl"));
     if (priceNum <= 0) return setErr(t("add.errPrice"));
+    // Name is optional — derive a sensible one from the URL so "paste URL,
+    // hit create" is a complete flow.
+    let name = apiName.trim();
+    if (!name) {
+      try {
+        const u = new URL(apiUrl.trim());
+        const firstSeg = u.pathname.split("/").filter(Boolean)[0];
+        name = `${u.hostname.replace(/^www\./, "")}${firstSeg ? ` ${firstSeg}` : ""}`.slice(0, 60);
+      } catch {
+        return setErr(t("add.errUrl"));
+      }
+    }
     setBusy(true);
     try {
       const ep = await api.createEndpoint({
-        name: apiName.trim(),
+        name,
         originalUrl: apiUrl.trim(),
         upstreamAuth: upstreamAuth.trim() || undefined,
         pricePerCall: priceNum,

@@ -395,7 +395,7 @@ export const en = {
   "add.chipAccess": "Access control live",
   "add.chipCheckout": "Buyer prepay checkout live",
   "add.intro": "Everything works end-to-end: create an endpoint, share its buy link, and buyers prepay via Stripe to get a Pay Token automatically. Connect Stripe in Account so those payments land in your balance — 97% to you, 3% to LemonCake, taken once at checkout.",
-  "add.fieldName": "API name",
+  "add.fieldName": "API name (optional — derived from the URL if blank)",
   "add.phName": "AI Search API",
   "add.fieldUrl": "Original API URL",
   "add.verify": "Verify",

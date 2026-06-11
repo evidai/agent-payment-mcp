@@ -389,7 +389,7 @@ export const ja: Messages = {
   "add.chipAccess": "アクセス制御 稼働中",
   "add.chipCheckout": "購入者前払いチェックアウト 稼働中",
   "add.intro": "すべて一気通貫で動きます：エンドポイントを作成し、購入リンクを共有すると、購入者は Stripe で前払いしてペイトークンを自動で受け取ります。アカウントで Stripe を接続すると、その支払いが残高に入金されます — 97%があなた、3%が LemonCake で、チェックアウト時に一度だけ差し引かれます。",
-  "add.fieldName": "API 名",
+  "add.fieldName": "API 名（任意 — 空欄なら URL から自動）",
   "add.phName": "AI Search API",
   "add.fieldUrl": "元の API URL",
   "add.verify": "検証",
