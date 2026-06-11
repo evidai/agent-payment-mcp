@@ -6,6 +6,20 @@ import { LangSwitcher } from "@/components/LangSwitcher";
 export const metadata = {
   title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
   description: "Monetize an MCP server or HTTP API in 5 minutes. Buyers prepay by card, agents call with spend-capped Pay Tokens, and sellers keep 97%. No crypto wallet, no per-call API keys. First 3,000 calls free, then 3%.",
+  keywords: [
+    "monetize MCP server",
+    "monetize API",
+    "AI agent payments",
+    "usage-based billing",
+    "Pay Token",
+    "x402",
+    "HTTP 402",
+    "MCP middleware",
+    "Stripe alternative for AI agents",
+    "sub-cent micropayments",
+    "API monetization",
+    "agent payment infrastructure",
+  ],
   // /en/about ルートは削除済み。EN 正規 URL は /about/en に統一。
   alternates: {
     canonical: "https://lemoncake.xyz/about/en",
@@ -18,7 +32,41 @@ export const metadata = {
     title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
     description: "Card-funded Pay Tokens for paid MCP servers and APIs. No crypto wallet, no per-call API keys. First 3,000 calls free, then 3%.",
     url: "https://lemoncake.xyz/about/en",
+    siteName: "LemonCake",
     type: "article",
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "LemonCake — Monetize MCP Servers and APIs in 5 Minutes",
+    description: "Paste a URL, set a per-call price, share a buy link. Agents pay with spend-capped Pay Tokens; sellers keep 97%.",
+  },
+  robots: { index: true, follow: true },
+};
+
+// ── Additional structured data (AEO): breadcrumb + product summary.
+// FAQPage JSON-LD below stays the single source for the visible FAQ content. ──
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "LemonCake", item: "https://lemoncake.xyz/" },
+    { "@type": "ListItem", position: 2, name: "About", item: "https://lemoncake.xyz/about/en" },
+  ],
+};
+
+const appJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "LemonCake",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Web",
+  url: "https://lemoncake.xyz",
+  description: "Usage-based billing and monetization layer for AI APIs and MCP servers. Buyers prepay by card, agents pay per call with spend-capped Pay Tokens, sellers keep 97%. Open-core: MIT-licensed SDK, hosted billing engine.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "First 3,000 API calls free, then 3% per transaction. No monthly fee.",
   },
 };
 
@@ -215,6 +263,8 @@ export default function AboutPageEn() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
 
       {/* CSS-only animations for the money-flow diagram + ledger ticker (no client JS) */}
       <style
