@@ -1,0 +1,163 @@
+{
+  "spec": "lemoncake-gated-preflight-v1",
+  "description": "Byte-verifiable conformance vectors for the LemonCake gateway preflight with the OPTIONAL pre-execution verifier_attestation gate (A2A #1920). Pairs with reserve-confirm-v1 (settlement/idempotency) and azender1/SafeAgent exactly-once + haroldmalikfrimpong-ops/agentid verifier side. Reproduce with: node verify_gated_fixture.mjs",
+  "construction": {
+    "hash": "SHA-256, lowercase hex",
+    "canonical": "RFC 8785 JCS — keys sorted lexicographically (recursive), compact separators",
+    "binding_digest": "sha256(JCS({amount_usd, charge_ref, nonce, subject_did}))",
+    "attestation_jws": "compact JWS, EdDSA over JCS(header).JCS(payload), offline-verifiable against verifier_jwks",
+    "effective_budget": "min(static_cap_usd, admission.dynamic_limit_usd)",
+    "invariant": "verifier_attestation absent => UNGATED reserve (backward compatible, both directions)",
+    "gateway_preflight_checks": [
+      "1. verify JWS against verifier_jwks (NEW front gate)",
+      "2. recompute binding_digest, must match THIS charge",
+      "3. admission.verdict == 'admit'",
+      "4. effective_budget = min(static_cap, dynamic_limit_usd)",
+      "5. evaluated_at <= expires_at (NEW front gate, ~30-60s verdict->charge window)",
+      "6. binding.action_ref keys azender1 exactly-once guard (same preimage, action_ref_method named)"
+    ],
+    "interop": {
+      "verifier_side": "haroldmalikfrimpong-ops/agentid ctef-verifier-attestation-v0.1 (same binding_digest construction)",
+      "guard_side": "azender1/SafeAgent exactly-once-v1 (action_ref / PENDING->COMMITTED->SKIP)",
+      "settlement_side": "lemoncake-reserve-confirm-v1 (this repo)"
+    }
+  },
+  "verifier_did": "did:web:trust.lemoncake.xyz",
+  "subject_did": "did:aip:agent:sales-agent-001",
+  "evaluated_at": "2026-06-12T09:00:00Z",
+  "verifier_jwks": {
+    "keys": [
+      {
+        "crv": "Ed25519",
+        "x": "GPtoW0h-sTw033vJY5f5WufYQyAoPv0pbWNn5W0kFYE",
+        "kty": "OKP",
+        "kid": "lemoncake-verifier-2026-06",
+        "alg": "EdDSA",
+        "use": "sig"
+      }
+    ]
+  },
+  "vectors": [
+    {
+      "name": "ADMIT",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjUwLCJyZWFzb25fY29kZSI6Im9rIiwidmVyZGljdCI6ImFkbWl0In0sImJpbmRpbmciOnsiYWN0aW9uX3JlZiI6IjgzZTc2NWM1YmY5YTY5ZTA3MGUyZGI4YzI3NWUwNDY3NzlkY2U2YWZlZjc1Zjk2NTNlZDI0MjcwMDJlZDE0MTYiLCJhY3Rpb25fcmVmX21ldGhvZCI6ImFyZ2VudHVtLWNvcmUgYWN0aW9uLXJlZi12MSIsImFtb3VudF91c2QiOjAuMDEsImJpbmRpbmdfZGlnZXN0IjoiMWUzNDZmZGYyNTBjMzE3NDhkM2QwMTE2OWFiYTQzMGU1ZGYwNzIxOTg4ZjI2M2NiMjNjMzVmNmU3NGUyZjY2YyIsImNoYXJnZV9yZWYiOiJzZGtfY2hnX2cwMDAxIiwibm9uY2UiOiJuX2FkbWl0MDEiLCJzdWJqZWN0X2RpZCI6ImRpZDphaXA6YWdlbnQ6c2FsZXMtYWdlbnQtMDAxIn0sImVudmVsb3BlIjoicHJlLWV4ZWN1dGlvbi12ZXJkaWN0LXYwIiwiZXhwaXJlc19hdCI6IjIwMjYtMDYtMTJUMDk6MDA6MTVaIiwiZnJlc2huZXNzX3R0bF9zZWNvbmRzIjozNSwiZ2F0ZXNfcmVjaGVja2VkIjpbImlkZW50aXR5IiwiY2VydGlmaWNhdGUiLCJrZXlfbGlmZWN5Y2xlIl0sImlzc3VlZF9hdCI6IjIwMjYtMDYtMTJUMDg6NTk6NDBaIiwia2V5X3NvdXJjZSI6Imp3a3NfcmVzb2x2ZWQiLCJzdWJqZWN0X2RpZCI6ImRpZDphaXA6YWdlbnQ6c2FsZXMtYWdlbnQtMDAxIiwidmVyaWZpZXJfZGlkIjoiZGlkOndlYjp0cnVzdC5sZW1vbmNha2UueHl6In0.uvuLOr8kCIIyxl7mTg2ryVXLqP0QoBZjONNXqc8Vo4AO1jeAq6ptUOd-bLurx6mzIGLyFqFVgI7acMqzK_4hBg",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0001",
+        "amount_usd": 0.01,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": true,
+        "effective_budget_usd": 0.2,
+        "state_out": "reserved",
+        "spent_after": 0.01
+      }
+    },
+    {
+      "name": "SCOPE_DENY",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjAsInJlYXNvbl9jb2RlIjoic2NvcGVfZGVuaWVkIiwidmVyZGljdCI6ImRlbnkifSwiYmluZGluZyI6eyJhY3Rpb25fcmVmIjoiNmQ3YWY2MWQwZDhhODZkNmVjM2RiN2QzZGU1Mzg0ODI5ZjQ5NjRmYzE2NzNkNmFkMmZmZDVmOWM0OTljMzAzYiIsImFjdGlvbl9yZWZfbWV0aG9kIjoiYXJnZW50dW0tY29yZSBhY3Rpb24tcmVmLXYxIiwiYW1vdW50X3VzZCI6MC4wMSwiYmluZGluZ19kaWdlc3QiOiI3M2MxY2QyYTFiNzEzZDU3YTFmZWMzNjRlMDFlYjZhMTE2OGYyNzRlMzM4NzZkNjE4YzIyNTY0MWMzMjFkNGRkIiwiY2hhcmdlX3JlZiI6InNka19jaGdfZzAwMDIiLCJub25jZSI6Im5fZGVueTAyIiwic3ViamVjdF9kaWQiOiJkaWQ6YWlwOmFnZW50OnNhbGVzLWFnZW50LTAwMSJ9LCJlbnZlbG9wZSI6InByZS1leGVjdXRpb24tdmVyZGljdC12MCIsImV4cGlyZXNfYXQiOiIyMDI2LTA2LTEyVDA5OjAwOjIwWiIsImZyZXNobmVzc190dGxfc2Vjb25kcyI6MzUsImdhdGVzX3JlY2hlY2tlZCI6WyJpZGVudGl0eSIsImNlcnRpZmljYXRlIiwia2V5X2xpZmVjeWNsZSJdLCJpc3N1ZWRfYXQiOiIyMDI2LTA2LTEyVDA4OjU5OjQ1WiIsImtleV9zb3VyY2UiOiJqd2tzX3Jlc29sdmVkIiwic3ViamVjdF9kaWQiOiJkaWQ6YWlwOmFnZW50OnNhbGVzLWFnZW50LTAwMSIsInZlcmlmaWVyX2RpZCI6ImRpZDp3ZWI6dHJ1c3QubGVtb25jYWtlLnh5eiJ9.AvCG5iiXkOyJ64w9HbQTcCbjoRGHFJ6EQtDZxXgt0zj7wt4-bGRYviUKkLlvTeX9BzE8JOatIHxz9NNhg5MnBg",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0002",
+        "amount_usd": 0.01,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": false,
+        "reject_code": "admission_denied",
+        "state_out": "none",
+        "spent_after": 0.01
+      }
+    },
+    {
+      "name": "LIMIT_CLAMP_OK",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjAuMDUsInJlYXNvbl9jb2RlIjoib2siLCJ2ZXJkaWN0IjoiYWRtaXQifSwiYmluZGluZyI6eyJhY3Rpb25fcmVmIjoiM2ZlNzRjYzc5ODNhYmFjODUzNzdjYTVlYTA2NDNiMmNjMDIwZDMzM2Y3Y2M5OWU3ZmRlMjcyOTE5NGJmYjU2OSIsImFjdGlvbl9yZWZfbWV0aG9kIjoiYXJnZW50dW0tY29yZSBhY3Rpb24tcmVmLXYxIiwiYW1vdW50X3VzZCI6MC4wNCwiYmluZGluZ19kaWdlc3QiOiIyMTA1OWY4MDM5MDYxNTY5MDg2MzY1M2FhNWViMDMxNDliNmNkZDRmZGY3ZTk1NzJhZDE3NWUxNGU4MTBlNjY4IiwiY2hhcmdlX3JlZiI6InNka19jaGdfZzAwMDMiLCJub25jZSI6Im5fY2xhbXAwMyIsInN1YmplY3RfZGlkIjoiZGlkOmFpcDphZ2VudDpzYWxlcy1hZ2VudC0wMDEifSwiZW52ZWxvcGUiOiJwcmUtZXhlY3V0aW9uLXZlcmRpY3QtdjAiLCJleHBpcmVzX2F0IjoiMjAyNi0wNi0xMlQwOTowMDoyNVoiLCJmcmVzaG5lc3NfdHRsX3NlY29uZHMiOjM1LCJnYXRlc19yZWNoZWNrZWQiOlsiaWRlbnRpdHkiLCJjZXJ0aWZpY2F0ZSIsImtleV9saWZlY3ljbGUiXSwiaXNzdWVkX2F0IjoiMjAyNi0wNi0xMlQwODo1OTo1MFoiLCJrZXlfc291cmNlIjoiandrc19yZXNvbHZlZCIsInN1YmplY3RfZGlkIjoiZGlkOmFpcDphZ2VudDpzYWxlcy1hZ2VudC0wMDEiLCJ2ZXJpZmllcl9kaWQiOiJkaWQ6d2ViOnRydXN0LmxlbW9uY2FrZS54eXoifQ.QP1WQUbcYPSbIGEEXvnpdJObLZ0QzWvebD7DohdzRRnGm_Rwqz6M1l6LHYvbsVnVLw-QTjLfzBerOBz6asnUDg",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0003",
+        "amount_usd": 0.04,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": true,
+        "effective_budget_usd": 0.05,
+        "state_out": "reserved",
+        "spent_after": 0.05
+      }
+    },
+    {
+      "name": "LIMIT_CLAMP_DENY",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjAuMDUsInJlYXNvbl9jb2RlIjoib2siLCJ2ZXJkaWN0IjoiYWRtaXQifSwiYmluZGluZyI6eyJhY3Rpb25fcmVmIjoiYmM0MTcyNzE3ZTk3YjliZjcyM2U5ZmVhYTYxZDg2MmMwNjI2ZjAyZTA2MDA4ZjExMTk1ZDc5Y2EyMTdmNTNiZSIsImFjdGlvbl9yZWZfbWV0aG9kIjoiYXJnZW50dW0tY29yZSBhY3Rpb24tcmVmLXYxIiwiYW1vdW50X3VzZCI6MC4wNiwiYmluZGluZ19kaWdlc3QiOiI2YTYyMGQ5ZTIxYjdkYzdjYWU2ODdkYjZjODhjN2RlNjljMzEzM2U3NjZkMDE1NDMyOWJiNjdlYTRmZjRjYjgwIiwiY2hhcmdlX3JlZiI6InNka19jaGdfZzAwMDQiLCJub25jZSI6Im5fY2xhbXAwNCIsInN1YmplY3RfZGlkIjoiZGlkOmFpcDphZ2VudDpzYWxlcy1hZ2VudC0wMDEifSwiZW52ZWxvcGUiOiJwcmUtZXhlY3V0aW9uLXZlcmRpY3QtdjAiLCJleHBpcmVzX2F0IjoiMjAyNi0wNi0xMlQwOTowMDoyN1oiLCJmcmVzaG5lc3NfdHRsX3NlY29uZHMiOjM1LCJnYXRlc19yZWNoZWNrZWQiOlsiaWRlbnRpdHkiLCJjZXJ0aWZpY2F0ZSIsImtleV9saWZlY3ljbGUiXSwiaXNzdWVkX2F0IjoiMjAyNi0wNi0xMlQwODo1OTo1MloiLCJrZXlfc291cmNlIjoiandrc19yZXNvbHZlZCIsInN1YmplY3RfZGlkIjoiZGlkOmFpcDphZ2VudDpzYWxlcy1hZ2VudC0wMDEiLCJ2ZXJpZmllcl9kaWQiOiJkaWQ6d2ViOnRydXN0LmxlbW9uY2FrZS54eXoifQ.adGMhQozvlsQYKUCvdN-HVDJMGuP8Bqf163mOOdmrJdlM3_tWEB9h_1tHo4VNHiYUWwd4N3DOgt-L05Xyj85Dg",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0004",
+        "amount_usd": 0.06,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": false,
+        "reject_code": "dynamic_limit_exceeded",
+        "effective_budget_usd": 0.05,
+        "state_out": "none",
+        "spent_after": 0.05
+      }
+    },
+    {
+      "name": "STALE_REJECT",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjUwLCJyZWFzb25fY29kZSI6Im9rIiwidmVyZGljdCI6ImFkbWl0In0sImJpbmRpbmciOnsiYWN0aW9uX3JlZiI6ImIxNzEyYmJlMWFiODdlYTg2N2Q0N2ZlN2QwMTU5NDk0ZmM0ZmFhMzQ3MmY4NDhmYzUxZjQ1Y2RmMmMxMWQ5MzQiLCJhY3Rpb25fcmVmX21ldGhvZCI6ImFyZ2VudHVtLWNvcmUgYWN0aW9uLXJlZi12MSIsImFtb3VudF91c2QiOjAuMDEsImJpbmRpbmdfZGlnZXN0IjoiZWVmZjM3NTUwMjhmZTFiNjMzYmZmMWJkNjViMWYyZjlmZjVmYzQ3Mzk1ZTQ3MzNmYmY3MzlmOGNkNjU4MTU5ZSIsImNoYXJnZV9yZWYiOiJzZGtfY2hnX2cwMDA1Iiwibm9uY2UiOiJuX3N0YWxlMDUiLCJzdWJqZWN0X2RpZCI6ImRpZDphaXA6YWdlbnQ6c2FsZXMtYWdlbnQtMDAxIn0sImVudmVsb3BlIjoicHJlLWV4ZWN1dGlvbi12ZXJkaWN0LXYwIiwiZXhwaXJlc19hdCI6IjIwMjYtMDYtMTJUMDg6MzA6MzVaIiwiZnJlc2huZXNzX3R0bF9zZWNvbmRzIjozNSwiZ2F0ZXNfcmVjaGVja2VkIjpbImlkZW50aXR5IiwiY2VydGlmaWNhdGUiLCJrZXlfbGlmZWN5Y2xlIl0sImlzc3VlZF9hdCI6IjIwMjYtMDYtMTJUMDg6MzA6MDBaIiwia2V5X3NvdXJjZSI6Imp3a3NfcmVzb2x2ZWQiLCJzdWJqZWN0X2RpZCI6ImRpZDphaXA6YWdlbnQ6c2FsZXMtYWdlbnQtMDAxIiwidmVyaWZpZXJfZGlkIjoiZGlkOndlYjp0cnVzdC5sZW1vbmNha2UueHl6In0.nLmY-uGE7vTVfIBQAqJDffrie40PCiEpD5qpRFggKZHwIOfK3R3T4JYYN3oTMKnRv51nm2bvdXbpP_nXXfndAQ",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0005",
+        "amount_usd": 0.01,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": false,
+        "reject_code": "attestation_expired",
+        "state_out": "none",
+        "spent_after": 0.05
+      }
+    },
+    {
+      "name": "BADSIG_REJECT",
+      "op": "gated_preflight",
+      "verifier_attestation": "eyJhbGciOiJFZERTQSIsImtpZCI6ImxlbW9uY2FrZS12ZXJpZmllci0yMDI2LTA2IiwidHlwIjoidmVyaWZpZXItYXR0ZXN0YXRpb24randzIn0.eyJhZG1pc3Npb24iOnsiY29uZmlkZW5jZSI6MC45OSwiZHluYW1pY19saW1pdF91c2QiOjUwLCJyZWFzb25fY29kZSI6Im9rIiwidmVyZGljdCI6ImFkbWl0In0sImJpbmRpbmciOnsiYWN0aW9uX3JlZiI6IjNjMzhjMDcyYTI0YzNkZGFmM2Y4NWY1MDZlMjI3ZjUzNGY5YmU3ZWQyODA3MTRlMGIzYjFjYzkzOWFlN2ZiODgiLCJhY3Rpb25fcmVmX21ldGhvZCI6ImFyZ2VudHVtLWNvcmUgYWN0aW9uLXJlZi12MSIsImFtb3VudF91c2QiOjAuMDEsImJpbmRpbmdfZGlnZXN0IjoiM2Y1MTkxOWVlOGNlZTkzMGE1YmU4ZThkNzBjNjcxZmEyYzA2YmNkMzQyNzBmMzZmYWI3YmQ5NTYyMjM3ZDYyMCIsImNoYXJnZV9yZWYiOiJzZGtfY2hnX2cwMDA2Iiwibm9uY2UiOiJuX2JhZDA2Iiwic3ViamVjdF9kaWQiOiJkaWQ6YWlwOmFnZW50OnNhbGVzLWFnZW50LTAwMSJ9LCJlbnZlbG9wZSI6InByZS1leGVjdXRpb24tdmVyZGljdC12MCIsImV4cGlyZXNfYXQiOiIyMDI2LTA2LTEyVDA5OjAwOjMwWiIsImZyZXNobmVzc190dGxfc2Vjb25kcyI6MzUsImdhdGVzX3JlY2hlY2tlZCI6WyJpZGVudGl0eSIsImNlcnRpZmljYXRlIiwia2V5X2xpZmVjeWNsZSJdLCJpc3N1ZWRfYXQiOiIyMDI2LTA2LTEyVDA4OjU5OjU1WiIsImtleV9zb3VyY2UiOiJqd2tzX3Jlc29sdmVkIiwic3ViamVjdF9kaWQiOiJkaWQ6YWlwOmFnZW50OnNhbGVzLWFnZW50LTAwMSIsInZlcmlmaWVyX2RpZCI6ImRpZDp3ZWI6dHJ1c3QubGVtb25jYWtlLnh5eiJ9.47cDBduzxH3Ur5aOn98LtkcNrCI0w2ZyaFFvl9eZZH2_1Q7gvw-XPXjaA8MTzxE6y2gn3kZLQ-ikKPbe57r9Dg",
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0006",
+        "amount_usd": 0.01,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": false,
+        "reject_code": "bad_signature",
+        "state_out": "none",
+        "spent_after": 0.05
+      }
+    },
+    {
+      "name": "UNGATED_PASSTHROUGH",
+      "op": "gated_preflight",
+      "verifier_attestation": null,
+      "input": {
+        "seller_key": "sk_live_fixture",
+        "idempotency_key": "g-0007",
+        "amount_usd": 0.01,
+        "static_cap_usd": 0.2
+      },
+      "expect": {
+        "admitted": true,
+        "gated": false,
+        "effective_budget_usd": 0.2,
+        "state_out": "reserved",
+        "spent_after": 0.06
+      }
+    }
+  ]
+}
