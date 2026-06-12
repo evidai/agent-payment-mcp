@@ -20,6 +20,7 @@ import { NextResponse } from "next/server";
 import { backendEnvReady, sql, verifyPayToken, isGatewayHalted, type EndpointRow, type PayTokenRow } from "@/lib/lc-backend";
 import { checkTokenSpendable, computeFee, isOwnerInFreeTier, isRateLimited } from "@/lib/lc-meter";
 import { ensureAgentIdentitySchema, checkAgentForToken } from "@/lib/lc-agents";
+import { ackPaymentRequest } from "@/lib/lc-ack";
 
 export const dynamic = "force-dynamic";
 // Pin gateway functions to Tokyo so they sit next to the Supabase DB
@@ -71,10 +72,31 @@ function jsonErr(req: Request, status: number, code: string, extra?: Record<stri
  *             mints/tops-up a Pay Token off-session with a Buyer Key). It is
  *             advertised here so the gateway is already x402-native; the route
  *             itself ships in the funding-API phase.
+ *
+ * The body also carries a Catena ACK-Pay block (`ackPay`): a W3C-style signed
+ * PaymentRequest JWT verifiable against did:web:www.lemoncake.xyz, plus the
+ * receipt service URL. ACK-aware agents settle via the standard ACK flow;
+ * everyone else ignores the extra field. Signing failure never blocks the 402.
  */
-function paymentChallenge(req: Request, shortId: string, charge: number, code: string) {
+async function paymentChallenge(req: Request, shortId: string, charge: number, code: string) {
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
   const resource = `${origin}/g/${shortId}`;
+
+  let ackPay: Record<string, unknown> | undefined;
+  try {
+    const { paymentRequest, paymentRequestToken } = await ackPaymentRequest(shortId, charge);
+    ackPay = {
+      protocol: "ACK-Pay",
+      ackVersion: "2025-05-04",
+      paymentRequest,
+      paymentRequestToken,
+      receiptService: `${origin}/api/lc/ack/receipt`,
+      didDocument: `${origin}/.well-known/did.json`,
+    };
+  } catch {
+    // ACK layer is additive — a signing hiccup must not break the x402 challenge.
+  }
+
   return NextResponse.json(
     {
       error: code,
@@ -92,6 +114,7 @@ function paymentChallenge(req: Request, shortId: string, charge: number, code: s
           docs: `${origin}/docs/pay-token`,
         },
       ],
+      ...(ackPay ? { ackPay } : {}),
       // Growth loop: the people who read 402 bodies are developers debugging
       // agents — exactly who can become sellers. One line, zero cost.
       poweredBy: "LemonCake",
@@ -129,11 +152,11 @@ async function handle(req: Request, { params }: Ctx) {
 
   const auth = req.headers.get("authorization") ?? "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
-  if (!m) return paymentChallenge(req, shortId, charge, "missing_pay_token");
+  if (!m) return await paymentChallenge(req, shortId, charge, "missing_pay_token");
   const jwt = m[1].trim();
 
   const claims = await verifyPayToken(jwt);
-  if (!claims) return paymentChallenge(req, shortId, charge, "invalid_pay_token");
+  if (!claims) return await paymentChallenge(req, shortId, charge, "invalid_pay_token");
 
   if (claims.sub !== ep.id) return jsonErr(req, 403, "token_endpoint_mismatch");
 
@@ -184,7 +207,7 @@ async function handle(req: Request, { params }: Ctx) {
         insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
         values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'token_expired', ${charge})
       `;
-      return paymentChallenge(req, shortId, charge, "token_expired");
+      return await paymentChallenge(req, shortId, charge, "token_expired");
     }
     if (spend.reason === "token_exhausted") {
       if (tok.status !== "exhausted") {
@@ -194,14 +217,14 @@ async function handle(req: Request, { params }: Ctx) {
         insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
         values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
       `;
-      return paymentChallenge(req, shortId, charge, "token_exhausted");
+      return await paymentChallenge(req, shortId, charge, "token_exhausted");
     }
     // spend_cap_exceeded
     await sql()`
       insert into lc_blocked (endpoint_id, pay_token_id, owner_id, reason, attempted)
       values (${ep.id}, ${tok.id}, ${ep.owner_id}, 'spend_cap_exceeded', ${charge})
     `;
-    return paymentChallenge(req, shortId, charge, "spend_cap_exceeded");
+    return await paymentChallenge(req, shortId, charge, "spend_cap_exceeded");
   }
 
   // Rate limit: paid calls for this endpoint in the last 60s (shared with SDK).

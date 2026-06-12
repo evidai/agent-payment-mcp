@@ -21,6 +21,7 @@
     "@types/nodemailer": "^8.0.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "agentcommercekit": "^0.10.1",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
     "jose": "^6.2.3",
