@@ -12,6 +12,7 @@ import { backendEnvReady, sql } from "@/lib/lc-backend";
 import BuyForm from "./BuyForm";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "hnd1"; // colocate with Supabase (hnd1) to cut transpacific DB RTT on this DB-backed page
 
 type Props = { params: Promise<{ shortId: string }> };
 
@@ -26,7 +27,17 @@ type Row = {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-screen bg-[#faf7f0] text-[#1a0f00] flex items-center justify-center px-5 py-12">
-      <div className="w-full max-w-md">{children}</div>
+      <div className="w-full max-w-md">
+        {children}
+        {/* growth loop: every /buy visitor (form OR notice) is a developer —
+            the page that takes money also sells the ability to take money. */}
+        <p className="mt-6 text-center text-[11px] text-black/40">
+          あなたの API もこのページ 1 枚で販売できます —{" "}
+          <a href="/app" className="font-bold text-black/60 underline underline-offset-2 hover:text-black">
+            LemonCake で5分・初回3,000コール無料 →
+          </a>
+        </p>
+      </div>
     </main>
   );
 }

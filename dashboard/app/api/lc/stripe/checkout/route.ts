@@ -89,7 +89,17 @@ export async function POST(req: Request) {
     select count(*)::text as count from lc_test_runs where owner_id = ${ep.owner_id}
   `;
   const usedLifetime = Number(usedRow[0]?.count ?? 0);
-  const feeAmount = usedLifetime < FREE_TIER_CALLS ? 0 : applicationFeeAmount(amountCents);
+  // Referral program: earned bonus calls extend the fee-free allowance.
+  // coalesce + try/catch keep this safe even before ensureGrowthSchema has
+  // added the column on a fresh database.
+  let bonusCalls = 0;
+  try {
+    const [b] = await sql()<{ bonus: number }[]>`
+      select coalesce(free_calls_bonus, 0)::int as bonus from lc_owners where id = ${ep.owner_id}
+    `;
+    bonusCalls = b?.bonus ?? 0;
+  } catch { /* column not migrated yet — base tier applies */ }
+  const feeAmount = usedLifetime < FREE_TIER_CALLS + bonusCalls ? 0 : applicationFeeAmount(amountCents);
 
   try {
     const session = await stripe().checkout.sessions.create(

@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { PageviewPing } from "./components/PageviewPing";
 import { UtmWelcomeBanner } from "./components/UtmWelcomeBanner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { Providers } from "./Providers";
 import "./globals.css";
+
+// Self-hosted via next/font — replaces the render-blocking Google Fonts
+// @import in globals.css (saved: CSS-blocking round trips to 2 origins).
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const jbMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jbmono", display: "swap" });
 
 // GA4 measurement ID — set NEXT_PUBLIC_GA_ID in .env(.local) to enable.
 // Leave unset in dev to avoid polluting the property; in prod it must be set.
@@ -182,7 +187,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    <html lang="ja" className={`${inter.variable} ${jbMono.variable}`}>
       <head>
         <link rel="canonical" href={SITE_URL} />
         <script
@@ -195,9 +200,10 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <UtmWelcomeBanner />
         </Suspense>
-        <Providers>
-          {children}
-        </Providers>
+        {/* Web3 providers (Privy/Wagmi/OnchainKit) moved to app/start/v2/layout.tsx —
+            only that route needs them; everywhere else they were ~hundreds of KB of
+            dead client JS on every page. */}
+        {children}
         {/* Self-hosted pageview ingest (Suspense 必須: useSearchParams を使う) */}
         <Suspense fallback={null}>
           <PageviewPing />

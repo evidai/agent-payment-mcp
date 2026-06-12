@@ -389,7 +389,7 @@ export const es: Messages = {
   "add.chipAccess": "Control de acceso activo",
   "add.chipCheckout": "Checkout de prepago activo",
   "add.intro": "Todo funciona de extremo a extremo: crea un endpoint, comparte su enlace de compra y los compradores prepagan vía Stripe para obtener un Pay Token automáticamente. Conecta Stripe en Cuenta para que esos pagos lleguen a tu saldo — 97% para ti, 3% para LemonCake, cobrado una vez en el checkout.",
-  "add.fieldName": "Nombre de la API",
+  "add.fieldName": "Nombre de la API (opcional — derivado de la URL)",
   "add.phName": "AI Search API",
   "add.fieldUrl": "URL original de la API",
   "add.verify": "Verificar",

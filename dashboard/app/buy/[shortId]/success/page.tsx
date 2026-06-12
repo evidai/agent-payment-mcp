@@ -84,6 +84,34 @@ export default function SuccessPage() {
     };
   }, []);
 
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [mcpCopied, setMcpCopied] = useState(false);
+  const mcpConfig = data?.jwt
+    ? `{
+  "mcpServers": {
+    "lemoncake-paid-api": {
+      "command": "npx",
+      "args": ["-y", "agent-payment-mcp"],
+      "env": {
+        "LC_PAY_TOKEN": "${data.jwt}",
+        "LC_GATEWAY_URL": "${data.gatewayUrl ?? ""}"
+      }
+    }
+  }
+}`
+    : "";
+  function copyMcp() {
+    if (!mcpConfig) return;
+    navigator.clipboard?.writeText(mcpConfig);
+    setMcpCopied(true);
+    setTimeout(() => setMcpCopied(false), 2000);
+  }
+  function copyRecoveryLink() {
+    navigator.clipboard?.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   function copyJwt() {
     if (data?.jwt) {
       navigator.clipboard?.writeText(data.jwt);
@@ -131,7 +159,14 @@ export default function SuccessPage() {
             </p>
 
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 mb-4 text-[12px] leading-relaxed text-amber-800">
-              <span className="font-bold">これがあなたの API キーです。</span> いま表示される一度きりです。安全な場所に保存してください。
+              <span className="font-bold">これがあなたの API キーです。</span>{" "}
+              安全な場所に保存してください。このページの URL を開き直せば、いつでも同じトークンを再表示できます。
+              <button
+                onClick={copyRecoveryLink}
+                className="mt-1.5 block rounded-md border border-amber-300 bg-white/70 px-2 py-1 text-[11px] font-bold text-amber-900 hover:bg-white"
+              >
+                {linkCopied ? "復元リンクをコピーしました ✓" : "復元リンクをコピー"}
+              </button>
             </div>
 
             <label className="block mb-1 text-[12px] font-semibold text-black/55">Pay Token (JWT)</label>
@@ -147,13 +182,33 @@ export default function SuccessPage() {
               </button>
             </div>
 
-            <label className="block mb-1 text-[12px] font-semibold text-black/55">使い方</label>
+            <label className="block mb-1 text-[12px] font-semibold text-black/55">使い方 (curl)</label>
             <pre className="text-[11px] leading-snug bg-black/[0.04] border border-black/10 rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all text-black/75">
               {`curl -X POST ${data.gatewayUrl} \\
   -H "Authorization: Bearer <PAY_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{}'`}
             </pre>
+
+            {/* Paste-ready MCP config with the REAL token — the buyer goes
+                from purchase to a working agent without reading docs. */}
+            <label className="mt-4 block mb-1 text-[12px] font-semibold text-black/55">
+              Claude Desktop / MCP クライアントに貼るだけ
+            </label>
+            <div className="relative">
+              <pre className="text-[11px] leading-snug bg-black/[0.04] border border-black/10 rounded-xl p-3 pr-16 overflow-x-auto whitespace-pre-wrap break-all text-black/75">
+                {mcpConfig}
+              </pre>
+              <button
+                onClick={copyMcp}
+                className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-[#1a0f00] text-white text-[11px] font-bold hover:bg-[#1a0f00]/85"
+              >
+                {mcpCopied ? "コピー済 ✓" : "コピー"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-black/40 leading-relaxed">
+              `claude_desktop_config.json` の mcpServers にそのまま追加すると、エージェントがこの API に自分で支払えるようになります。
+            </p>
 
             <p className="mt-4 text-[11px] text-black/40 leading-relaxed">
               Token ID: {data.token?.id} ・ 有効期限:{" "}

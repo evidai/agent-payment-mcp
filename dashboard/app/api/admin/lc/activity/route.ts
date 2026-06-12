@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
       from lc_blocked b
       left join lc_endpoints e on e.id = b.endpoint_id
       order by b.at desc
-      limit 50
+      limit 300
     `,
   ]);
 

@@ -271,6 +271,11 @@ export type ShareEventRow = {
 let _growthSchemaReady: Promise<void> | null = null;
 
 const GROWTH_DDL = `
+alter table lc_owners add column if not exists referral_code        text;
+alter table lc_owners add column if not exists referred_by          text;
+alter table lc_owners add column if not exists referral_credited_at timestamptz;
+alter table lc_owners add column if not exists free_calls_bonus     int not null default 0;
+create unique index if not exists lc_owners_referral_code_unq on lc_owners(referral_code) where referral_code is not null;
 alter table lc_endpoints add column if not exists public_slug         text;
 alter table lc_endpoints add column if not exists public_title        text;
 alter table lc_endpoints add column if not exists public_description  text;
@@ -322,6 +327,8 @@ export function ensureGrowthSchema(): Promise<void> {
           select (
             exists(select 1 from information_schema.columns
                    where table_name = 'lc_endpoints' and column_name = 'public_page_views')
+            and exists(select 1 from information_schema.columns
+                       where table_name = 'lc_owners' and column_name = 'free_calls_bonus')
             and exists(select 1 from information_schema.tables
                        where table_name = 'lc_share_events')
           ) as ready
